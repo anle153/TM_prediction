@@ -1,1 +1,2 @@
-# TM_prediction
+# TrafficMatrix_RNN
+Using RNN for traffic prediction

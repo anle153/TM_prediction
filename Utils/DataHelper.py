@@ -1,0 +1,639 @@
+import datetime
+import xml.etree.ElementTree as et
+from math import sqrt, log
+
+import scipy.io as sio
+from pandas import DataFrame
+from pandas import concat
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.tsa.stattools import acf
+from scipy.signal import argrelextrema
+
+from FlowClassification.SpatialClustering import *
+from dfa import *
+from sklearn.preprocessing import MinMaxScaler
+
+
+########################################################################################################################
+#         Calculating Error: error_ratio, normalized mean absolute error, normalized mean squred error                 #
+########################################################################################################################
+
+
+def plot_errors(x_axis, xlabel, errors, filename, title='', saving_path='/home/anle/TM_estimation_figures/'):
+    now = datetime.datetime.now()
+
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
+    plt.title('Errors\n' + title)
+    plt.plot(x_axis, errors[:, 0], label='NMAE')
+    plt.plot(x_axis, errors[:, 1], label='NMSE')
+    plt.xlabel(xlabel)
+    if errors.shape[1] == 4:
+        plt.plot(x_axis, errors[:, 3], label='Error_ratio')
+    plt.legend()
+
+    plt.savefig(saving_path + str(now) + '_Errors_' + filename)
+    plt.close()
+
+    plt.title('R2-Score')
+    plt.plot(x_axis, errors[:, 2])
+    plt.xlabel(xlabel)
+    plt.savefig(saving_path + str(now) + '_R2_Score_' + filename)
+    plt.close()
+    print('--- Saving figures at %s ---' % saving_path)
+
+
+def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_matrix, sampling_hyperparams):
+    """
+    Calculated measured weight for determine which flows should be measured in next time slot.
+    We measured first K flows which have small weight
+    The weight is calculated based on the formular: w = (1/rlf) + (1/rlb) + mp + f + 1/cl
+        w: the measurement weight
+        rlf: the recovery loss forward rnn
+        rlb: the recovery loss backward rnn
+        mp: data point measurement percentage
+        f: measure how fluctuate the flow is
+        cl: measure the consecutive loss
+    :param rnn_input:
+    :param forward_pred:
+    :param backward_pred: the backward pred has been flipped
+    :param measured_matrix: shape = (od x timeslot)
+    :return:
+    """
+
+    parameter = [sampling_hyperparams[0], sampling_hyperparams[1]]
+    loss_parameter = [sampling_hyperparams[2], sampling_hyperparams[3], sampling_hyperparams[4]]
+    eps = 0.0000001
+
+    rnn_first_input_updated = np.expand_dims(backward_pred[:, 1], axis=1)
+    rnn_last_input_updated = np.expand_dims(forward_pred[:, -2], axis=1)
+    rnn_updated_input_forward = np.concatenate([rnn_first_input_updated, forward_pred[:, 0:-2], rnn_last_input_updated],
+                                               axis=1)
+    rnn_updated_input_backward = np.concatenate([rnn_first_input_updated, backward_pred[:, 2:], rnn_last_input_updated],
+                                                axis=1)
+
+    rl_forward = recovery_loss(rnn_input=rnn_input, rnn_updated=rnn_updated_input_forward,
+                               measured_matrix=measured_matrix)
+    rl_forward[rl_forward == 0] = eps
+
+    # rl_forward_transformed = MinMaxScaler().fit_transform(np.expand_dims(rl_forward, axis=1))
+    # rl_forward_transformed = rl_forward_transformed.squeeze()
+
+    rl_backward = recovery_loss(rnn_input=rnn_input, rnn_updated=rnn_updated_input_backward,
+                                measured_matrix=measured_matrix)
+    rl_backward[rl_backward == 0] = eps
+
+    # rl_backward_transformed = MinMaxScaler().fit_transform(np.expand_dims(rl_backward, axis=1))
+    # rl_backward_transformed = rl_backward_transformed.squeeze()
+
+    cl = calculate_consecutive_loss(measured_matrix).astype(float)
+    cl_transformed = MinMaxScaler().fit_transform(np.expand_dims(cl, axis=1))
+    cl_transformed[cl_transformed == 0] = eps
+    cl_transformed = cl_transformed.squeeze()
+
+    sum_loss = rl_forward* loss_parameter[0] + rl_backward*loss_parameter[1] + cl*loss_parameter[2]
+
+    recovery_consecutive_loss = 1 / sum_loss
+    recovery_consecutive_loss_transformed = MinMaxScaler().fit_transform(
+        np.expand_dims(recovery_consecutive_loss, axis=1))
+    recovery_consecutive_loss_transformed = recovery_consecutive_loss_transformed.squeeze()
+
+    fl = calculate_flow_fluctuation(rnn_input)
+    fl_transformed = MinMaxScaler().fit_transform(np.expand_dims(fl, axis=1))
+    fl_transformed = fl_transformed.squeeze()
+
+    w = recovery_consecutive_loss_transformed * parameter[0] + fl_transformed * parameter[1]
+
+    return w
+
+
+def flow_measurement_percentage(measured_matrix):
+    """
+    Calculate the measurement percentage of the flow over the lookback
+    :param measured_matrix:
+    :return:
+    """
+    labels = measured_matrix.astype(int)
+
+    count_measurement = np.count_nonzero(labels, axis=1).astype(float)
+
+    return count_measurement / labels.shape[1]
+
+
+def calculate_flow_fluctuation(rnn_input, show=False):
+    """
+    Calculate the value of flow fluctuation
+    :param rnn_input:
+    :param show:
+    :return:
+    """
+
+    fluctuations = []
+    for flow_id in range(rnn_input.shape[0]):
+        flow = rnn_input[flow_id, :]
+        _s, f, _c = dfa(flow, scale_lim=[log(rnn_input.shape[1], 2) - 1, log(rnn_input.shape[1], 2)], show=show)
+        fluctuations.append(f[-1])
+
+    fluctuations = np.asarray(fluctuations)
+
+    return fluctuations
+
+
+def calculate_consecutive_loss(measured_matrix):
+    """
+    Calculate the last consecutive loss count from the last time slot
+    :param measured_matrix:
+    :return:
+    """
+    labels = measured_matrix.astype(int)
+
+    consecutive_losses = []
+    for flow_id in range(labels.shape[0]):
+        flows_labels = labels[flow_id, :]
+        if flows_labels[-1] == 1:
+            consecutive_losses.append(1)
+        else:
+            measured_idx = np.argwhere(flows_labels == 1)
+            if measured_idx.size == 0:
+                consecutive_losses.append(labels.shape[1])
+            else:
+                consecutive_losses.append(labels.shape[1] - measured_idx[-1][0])
+
+    consecutive_losses = np.asarray(consecutive_losses)
+    return consecutive_losses
+
+
+def mean_absolute_errors_by_day(y_true, y_pred, sampling_itvl):
+    """
+    Calculate the mean absolute error of the traffic matrix within a day
+    :param y_true:
+    :param y_pred:
+    :param sampling_itvl:
+    :return:
+    """
+    day_size = 24 * (60 / sampling_itvl)
+    ndays = y_true.shape[0] / (day_size)
+
+    mean_abs_errors_by_day = []
+    for day in range(ndays):
+        upperbound = (day + 1) * day_size if (day + 1) * day_size < y_true.shape[0] else y_true.shape[0]
+        ytrue_by_day = y_true[day * day_size:upperbound, :]
+        y_pred_by_day = y_pred[day * day_size:upperbound, :]
+        mean_abs_errors_by_day.append(mean_abs_error(y_true=ytrue_by_day, y_pred=y_pred_by_day))
+    return mean_abs_errors_by_day
+
+
+def recovery_loss(rnn_input, rnn_updated, measured_matrix):
+    """
+    Calculate the recovery loss for each flow using this equation: r_l = sqrt(sum((y_true - y_pred)^2))
+    :param rnn_input: array-like, shape = (od x look_back)
+    :param rnn_updated: array-like, shape = (od x look_back)
+    :param measured_matrix: array-like, shape = (od x look_back)
+    :return: shape = (od, )
+    """
+    labels = measured_matrix.astype(int)
+    r_l = []
+    for flow_id in range(rnn_input.shape[0]):
+        flow_label = labels[flow_id, :]
+        n_measured_data = np.count_nonzero(flow_label)
+        if n_measured_data == 0:  # If no measured data point ==> negative recovery loss
+            r_l.append(labels.shape[1])
+        else:
+            # Only consider the data point which is measured
+            observated_idx = np.where(flow_label == 1)
+            flow_true = rnn_input[flow_id, :]
+            flow_pred = rnn_updated[flow_id, :]
+            r_l.append(sqrt(np.sum(np.square(flow_true[observated_idx] - flow_pred[observated_idx]))))
+
+    r_l = np.asarray(r_l)
+    r_l[r_l < 0] = r_l.max()
+
+    return r_l
+
+
+def root_means_squared_error_by_day(y_true, y_pred, sampling_itvl):
+    day_size = 24 * (60 / sampling_itvl)
+    ndays = y_true.shape[0] / (day_size)
+
+    rmse_by_day = []
+    for day in range(ndays):
+        upperbound = (day + 1) * day_size if (day + 1) * day_size < y_true.shape[0] else y_true.shape[0]
+        ytrue_by_day = y_true[day * day_size:upperbound, :]
+        y_pred_by_day = y_pred[day * day_size:upperbound, :]
+        rmse_by_day.append(rmse(ytrue_by_day, y_pred_by_day))
+    return rmse_by_day
+
+
+def rmse(y_true, y_pred):
+    ytrue = y_true.flatten() / 1000.0
+    ypred = y_pred.flatten() / 1000.0
+    err = sqrt(np.sum(np.square(ytrue - ypred)) / ytrue.size)
+    return err
+
+
+def mean_abs_error(y_true, y_pred):
+    ytrue = y_true.flatten() / 1000.0
+    ypred = y_pred.flatten() / 1000.0
+    return mean_absolute_error(y_true=ytrue, y_pred=ypred)
+
+
+def calculate_error_ratio_by_day(y_true, y_pred, sampling_itvl, measured_matrix):
+    day_size = 24 * (60 / sampling_itvl)
+    ndays = y_true.shape[0] / (day_size)
+
+    errors_by_day = []
+
+    for day in range(ndays):
+        upperbound = (day + 1) * day_size if (day + 1) * day_size < y_true.shape[0] else y_true.shape[0]
+        ytrue_by_day = y_true[day * day_size:upperbound, :]
+        y_pred_by_day = y_pred[day * day_size:upperbound, :]
+        measured_matrix_by_day = measured_matrix[day * day_size:upperbound, :]
+        errors_by_day.append(
+            error_ratio(y_true=ytrue_by_day, y_pred=y_pred_by_day, measured_matrix=measured_matrix_by_day))
+
+    return errors_by_day
+
+
+def error_ratio(y_true, y_pred, measured_matrix):
+    y_true = y_true.flatten()
+    y_pred = y_pred.flatten()
+    measured_matrix = measured_matrix.flatten()
+    observated_indice = np.where(measured_matrix == False)
+
+    e1 = sqrt(np.sum(np.square(y_true[observated_indice] - y_pred[observated_indice])))
+    e2 = sqrt(np.sum(np.square(y_true[observated_indice])))
+    if e2 == 0:
+        return 0
+    else:
+        return e1 / e2
+
+
+def normalized_mean_absolute_error(y_true, y_hat):
+    """
+    Calculate the normalized mean absolute error
+    :param y_true:
+    :param y_hat:
+    :return:
+    """
+    mae_y_yhat = mean_absolute_error(y_true=y_true, y_pred=y_hat)
+    mae_y_zero = mean_absolute_error(y_true=y_true, y_pred=np.zeros(shape=y_true.shape))
+    if mae_y_zero == 0:
+        return 0
+    else:
+        return mae_y_yhat / mae_y_zero
+
+
+def normalized_mean_squared_error(y_true, y_hat):
+    mse_y_yhat = mean_squared_error(y_true=y_true, y_pred=y_hat)
+    mse_y_zero = mean_squared_error(y_true=y_true, y_pred=np.zeros(shape=y_true.shape))
+    if mse_y_zero == 0:
+        return 0
+    else:
+        return mse_y_yhat / mse_y_zero
+
+
+def path_exist(path):
+    """
+    Checking the dataset path
+    :param path:
+    :return:
+    """
+    return os.path.exists(path)
+
+
+########################################################################################################################
+#                             Loading ABILENE Traffic trace into Traffic Matrix                                        #
+#                                             Number of node: 12                                                       #
+########################################################################################################################
+
+
+ABILENE24_DIM = 144
+
+
+def convert_abilene_24(path_dir='/home/anle/Documents/sokendai/research/TM_estimation_RNN/Dataset'
+                                '/Abilene_24/Abilene/2004/Measured'):
+    if os.path.exists(path_dir):
+        list_files = os.listdir(path_dir)
+        list_files = sorted(list_files, key=lambda x: x[:-4])
+
+        TM = np.empty((0, ABILENE24_DIM))
+        for raw_file in list_files:
+            if raw_file.endswith('.dat'):
+                print(raw_file)
+                _tm = np.genfromtxt(path_dir + '/' + raw_file, delimiter=',')
+                _tm = np.expand_dims(_tm.flatten(), axis=0)
+                TM = np.concatenate([TM, _tm], axis=0) if TM.size else _tm
+
+    print('--- Finish converting Abilene24 to csv. Saing at ./Dataset/Abilene24_original.csv')
+    np.savetxt('./Dataset/Abilene24_original.csv', TM, delimiter=',')
+
+
+def load_Abilene_dataset_from_matlab(path='./Dataset/abilene.mat'):
+    """
+    Load Abilene from original matlab file
+    :param path: dataset path
+    :return:
+    """
+    if path_exist(path):
+        # ...
+        data = sio.loadmat(path)
+        X = data['X']
+        A = data['A']
+        odnames = data['odnames']
+        edgenames = data['edgenames']
+        return X
+    else:
+        return None, None, None, None
+
+
+def load_Abilene_dataset_from_csv(csv_file_path='./Dataset/Abilene.csv'):
+    """
+    Load Abilene dataset from csv file. If file is not found, create the one from original matlab file and remove noise
+    :param csv_file_path:
+    :return: A traffic matrix (m x k)
+    """
+    if not os.path.exists(csv_file_path):
+        print('--- %s not found. Create csv file from original matlab file ---' % csv_file_path)
+        abilene_data = np.asarray(load_Abilene_dataset_from_matlab('./Dataset/SAND_TM_Estimation_Data.mat')) / 1000000
+        # noise_removed(data=abilene_data, sampling_interval=5, threshold=30)
+        np.savetxt(csv_file_path, abilene_data, delimiter=',')
+        return abilene_data
+    else:
+        print('--- Load dataset from %s' % csv_file_path)
+        return np.genfromtxt(csv_file_path, delimiter=',')
+
+
+def noise_removed(data, sampling_interval=5, threshold=50):
+    """
+    Remove noises in the data set
+    :param data: the raw data
+    :param sampling_interval: the sampling interval
+    :param threshold: if data > mean * threshold => data = data / threshold
+    :return:
+    """
+
+    # Split the traffic of each flow by day
+    day_size = date_size = 24 * 60 / sampling_interval
+    ndays = int(data.shape[0] / date_size) + (data.shape[0] % date_size > 0)
+
+    for day in xrange(ndays):
+        # Get flow by day
+        upper_bound = (day + 1) * date_size
+        if upper_bound > data.shape[0]:
+            upper_bound = data.shape[0]
+
+        traffics_by_day = data[day * date_size:upper_bound, :]
+        flow_means = np.expand_dims(np.mean(traffics_by_day, axis=0), axis=0)
+
+        traffics_by_day[traffics_by_day > flow_means * threshold] = \
+            traffics_by_day[traffics_by_day > flow_means * threshold] / threshold
+
+
+# convert series to supervised learning
+def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
+    n_vars = 1 if type(data) is list else data.shape[1]
+    df = DataFrame(data)
+    cols, names = list(), list()
+    # input sequence (t-n, ... t-1)
+    for i in range(n_in, 0, -1):
+        cols.append(df.shift(i))
+        names += [('var%d(t-%d)' % (j + 1, i)) for j in range(n_vars)]
+    # forecast sequence (t, t+1, ... t+n)
+    for i in range(0, n_out):
+        cols.append(df.shift(-i))
+        if i == 0:
+            names += [('var%d(t)' % (j + 1)) for j in range(n_vars)]
+        else:
+            names += [('var%d(t+%d)' % (j + 1, i)) for j in range(n_vars)]
+    # put it all together
+    agg = concat(cols, axis=1)
+    agg.columns = names
+    # drop rows with NaN values
+    if dropnan:
+        agg.dropna(inplace=True)
+    return agg
+
+
+########################################################################################################################
+#                             Loading GEANT Traffic trace into Traffic Matrix from XML files                           #
+#                                                 Number of node: 23                                                   #
+########################################################################################################################
+
+MATRIX_DIM = 23
+GEANT_XML_PATH = './GeantDataset/traffic-matrices-anonymized-v2/traffic-matrices'
+
+
+def get_row(xmlRow):
+    """
+    Parse Traffic matrix row from XLM element "src"
+    :param xmlRow: XML element "src"
+    :return: Traffic row corresponds to the measured traffic of a source node.
+    """
+    TM_row = [0] * MATRIX_DIM
+    for dst in xmlRow.iter('dst'):
+        dstId = int(dst.get('id'))
+        TM_row[dstId - 1] = float(dst.text)
+
+    return TM_row
+
+
+def load_Geant_from_xml(datapath=GEANT_XML_PATH):
+    TM = np.empty((0, MATRIX_DIM * MATRIX_DIM))
+
+    if path_exist(datapath):
+        list_files = os.listdir(datapath)
+        list_files = sorted(list_files, key=lambda x: x[:-4])
+
+        for file in list_files:
+            if file.endswith(".xml"):
+                print('----- Load file: %s -----' % file)
+                data = et.parse(datapath + '/' + file)
+                root = data.getroot()
+
+                TM_t = []
+                for src in root.iter('src'):
+                    TM_row = get_row(xmlRow=src)
+                    TM_t.append(TM_row)
+
+                aRow = np.asarray(TM_t).reshape(1, MATRIX_DIM * MATRIX_DIM)
+                TM = np.concatenate([TM, aRow]) if TM.size else aRow
+
+    return TM
+
+
+def load_Geant_from_csv(csv_file_path='./Dataset/Geant_noise_removed.csv'):
+    """
+
+    :param csv_file_path:
+    :return:
+    """
+    if os.path.exists(csv_file_path):
+        return np.genfromtxt(csv_file_path, delimiter=',')
+    else:
+        print('--- Find not found. Create Dataset from XML file ---')
+        data = load_Geant_from_xml(datapath=GEANT_XML_PATH) / 1000
+        noise_removed(data=data, sampling_interval=15, threshold=30)
+        np.savetxt(csv_file_path, data, delimiter=",")
+        return data
+
+
+########################################################################################################################
+#                                                 Data visualization                                                   #
+########################################################################################################################
+
+
+def visualize_retsult_by_flows(y_true,
+                               y_pred,
+                               sampling_itvl,
+                               measured_matrix=[],
+                               saving_path='/home/anle/TM_estimation_figures/',
+                               description='',
+                               visualized_day=-1,
+                               show=False):
+    """
+    Visualize the original flows and the predicted flows over days
+    :param y_true: (numpy.ndarray) the measured TM
+    :param y_pred: (numpy.ndarray) the predicted TM
+    :param sampling_itvl: (int) sampling interval between each sampling
+    :param measured_matrix: (numpy.ndarray) identify which elements in the predicted TM are predicted using RNN
+    :param saving_path: (str) path to saved figures directory
+    :param description: (str) (optional) the description of this visualization
+    :return:
+    """
+
+    # Get date-time when visualizing, create dir corresponding to the date-time and the description.
+    import datetime
+    now = datetime.datetime.now()
+    description = description + '_' + str(now)
+    if not os.path.exists(saving_path + description + '/'):
+        os.makedirs(saving_path + description + '/')
+
+    # Calculate no. time slots within a day and the no. days over the period
+    n_ts_day = 24 * (60 / sampling_itvl)
+    n_days = int(y_true.shape[0] / n_ts_day)
+
+    # Calculate the nmse and plot both original and predicted data of each day by flow.
+    path = saving_path + description + '/'
+
+    for day in range(n_days):
+        if (visualized_day != -1 and visualized_day == day) or visualized_day == -1:
+            if not os.path.exists(path + 'Day%i/' % day):
+                os.makedirs(path + 'Day%i/' % day)
+            for flowID in range(y_true.shape[1]):
+                print('--- Visualize flow %i in day %i' % (flowID, day))
+                upperbound = (day + 1) * n_ts_day if (day + 1) * n_ts_day < y_true.shape[0] else y_true.shape[0]
+                y1 = y_true[day * n_ts_day:upperbound, flowID]
+                y2 = y_pred[day * n_ts_day:upperbound, flowID]
+                sampling = measured_matrix[day * n_ts_day:upperbound, flowID]
+                arg_sampling = np.argwhere(sampling == True).squeeze(axis=1)
+
+                rmse_by_day = rmse(y_true=np.expand_dims(y1, axis=1), y_pred=np.expand_dims(y2, axis=1))
+
+                plt.title('Flow %i prediction result - Day %i \n RMSE: %f' % (flowID, day, rmse_by_day))
+                plt.plot(y1, label='Original Data')
+                plt.plot(y2, label='Prediction Data')
+                plt.legend()
+                plt.xlabel('Time')
+                plt.ylabel('Mbps')
+                # Mark the measured data in the predicted data as red start
+                plt.plot(arg_sampling, y2[arg_sampling], 'r*')
+                plt.savefig(path + 'Day%i/' % day + '%i.png' % flowID)
+                if show:
+                    plt.show()
+                plt.close()
+
+
+def visualize_results_by_timeslot(y_true,
+                                  y_pred,
+                                  measured_matrix,
+                                  saving_path='/home/anle/TM_estimation_figures/',
+                                  description='',
+                                  ts_plot=-1,
+                                  show=False):
+    """
+
+    Visualize the original TM and the predicted TM of each measured time slot
+    :param y_true: (numpy.ndarray) the measured TM
+    :param y_pred: (numpy.ndarray) the predicted TM
+    :param measured_matrix: (numpy.ndarray) identify which elements in the predicted TM are predicted using RNN
+    :param saving_path: (str) path to saved figures directory
+    :param description: (str) (optional) the description of this visualization
+    :return:
+    """
+    now = datetime.datetime.now()
+    description = description + '_' + str(now)
+    if not os.path.exists(saving_path + description + '/'):
+        os.makedirs(saving_path + description + '/')
+
+    path = saving_path + description + '/'
+    a_nmse = []
+    ts_range = y_true.shape[0] if ts_plot == -1 else ts_plot
+    for ts in xrange(ts_range):
+        print('--- Visualize tm at timeslot %i' % ts)
+        y1 = y_true[ts, :]
+        y2 = y_pred[ts, :]
+        sampling = measured_matrix[ts, :]
+        arg_sampling = np.argwhere(sampling == True).squeeze(axis=1)
+        nmse = normalized_mean_squared_error(y_true=y1, y_hat=y2)
+        plt.title('TM prediction at time slot %i' % ts + '\n NMSE: %.3f' % nmse)
+        plt.plot(y1, label='Original Data')
+        plt.plot(y2, label='Prediction Data')
+        plt.legend()
+        plt.xlabel('FlowID')
+        plt.ylabel('Mbps')
+        # Mark the measured data in the predicted data as red start
+        plt.plot(arg_sampling, y2[arg_sampling], 'r*')
+        plt.savefig(path + 'Timeslot_%i.png' % ts)
+        if show:
+            plt.show()
+        plt.close()
+
+        a_nmse.append(nmse)
+    # plt.title('TM estimation error over time')
+    # plt.plot(a_nmse, label='NMSE')
+    # plt.xlabel('Time')
+    # # Mark the measured data in the predicted data as red start
+    # # plt.plot(arg_sampling, y2[arg_sampling], 'r*')
+    # print(a_nmse)
+    # plt.savefig(path + 'TM_estimation_error.png')
+    # plt.close()
+
+
+def plot_flow_acf(data):
+    path = '/home/anle/TM_estimation_figures/ACF/'
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    for flowID in range(data.shape[1]):
+        print('--- Plotting acf of flow %i' % flowID)
+        acf_plt = plot_acf(x=data[:, flowID], lags=288 * 3)
+        plt.show()
+        # acf_plt.savefig(path+'acf_flow_%i.png'%flowID)
+
+
+########################################################################################################################
+#                                                 Data visualization                                                   #
+########################################################################################################################
+
+
+def remove_zero_flow(data, eps=0.001):
+    means = np.mean(data, axis=0)
+    non_zero_data = data[:, means > eps]
+
+    return non_zero_data
+
+
+def get_max_acf(data, interval=5):
+    day_size = 24 * (60 / interval)
+
+    flows_acf = []
+    for flow_id in range(data.shape[1]):
+        flow_acf = acf(data[:, flow_id], nlags=day_size * 3)
+        arg_local_max = argrelextrema(flow_acf, np.greater)
+        flow_acf_local_max_index = np.argmax(flow_acf[arg_local_max[0]])
+        flows_acf.append(arg_local_max[0][flow_acf_local_max_index])
+        plt.plot(flow_acf)
+        plt.plot(arg_local_max[0][flow_acf_local_max_index], flow_acf[arg_local_max[0][flow_acf_local_max_index]], 'r*')
+        plt.show()

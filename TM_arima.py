@@ -1,21 +1,19 @@
+import os
+import time
+import pandas as pd
+import matplotlib
+
+matplotlib.use('Agg')
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima_model import ARIMA
-import requests, pandas as pd, numpy as np
+
 from Utils.DataHelper import *
 from Utils.DataPreprocessing import *
-import os
-from sklearn.metrics import mean_squared_error
-from statsmodels.tsa.stattools import arma_order_select_ic
-import itertools
-from matplotlib import pyplot
-from statsmodels.graphics.tsaplots import plot_pacf, plot_acf
-from matplotlib.pylab import rcParams
 
-rcParams['figure.figsize'] = 15, 6
 from statsmodels.tsa.stattools import adfuller
-from pandas import rolling_mean, rolling_std
 from statsmodels.tsa.stattools import acf, pacf
 from sklearn.metrics import r2_score
-
+from numpy.linalg import LinAlgError
 
 # NOT FINISH YET
 
@@ -45,7 +43,10 @@ LOOK_BACK = 26
 N_EPOCH = 200
 BATCH_SIZE = 1024
 WINDOW = LOOK_BACK
-EPSILON_P = 0.0005
+EPSILON_P = 0.000000001
+P = 1
+D = 0
+Q = 0
 
 
 def test_stationarity(series, eps_p):
@@ -56,76 +57,19 @@ def test_stationarity(series, eps_p):
     :return: test_statistic, p_value, lags_used, n_observations, critical_values
     """
 
-    # rolling mean
-    rmean = series.rolling(window=7, center=False).mean()
-    rstd = series.rolling(window=7, center=False).std()
-
-    # plot statistics
-    # orig = plt.plot(series, color='blue', label='Original')
-    # mean = plt.plot(rmean, color='red', label='Rolling Mean')
-    # std = plt.plot(rstd, color='black', label='Rolling Std')
-    # plt.legend(loc='best')
-    # plt.title('Rolling Mean & Standard Deviation')
-    # plt.show(block=False)
-    # plt.close()
-
-    dftest = adfuller(series, autolag='AIC')
-    dfoutput = pd.Series(dftest[0:4], index=['Test Statistic', 'p-value', '#Lags Used', 'Number of Observations Used'])
-    if dfoutput['p-value'] > eps_p:
-        return False
-
-    for key, value in dftest[4].items():
-        dfoutput['Critical Value (%s)' % key] = value
-
-        if dfoutput['Test Statistic'] > value:
-            return False
-
-    # print (dfoutput)
-    return True
-
-
-def calculate_q_parameters(data, interval):
-    day_size = 24 * (60 / interval)
-
-    flows_acf = []
-    nlags = day_size
-    for flow_id in range(len(data)):
-        print('[calculate_q_parameters] flow %i' %flow_id)
-
-        acf_out, confint = acf(data[flow_id].values, nlags=nlags, alpha=.05)
-        for idx in range(1, len(acf_out)):
-            if acf_out[idx] >= confint[idx, 1]:
-                flows_acf.append(idx)
-                break
-
-    _bincount = np.bincount(flows_acf)
-    q = np.argmax(_bincount)
-
-    return q
-
-
-def calculate_p_parameters(data, interval):
-    day_size = 24 * (60 / interval)
-
-    flows_pacf = []
-    nlags = day_size
-    for flow_id in range(len(data)):
-        print('[calculate_p_parameters] flow %i' %flow_id)
-
-        pacf_out, confint = pacf(data[flow_id].values, nlags=nlags, alpha=.05)
-        for idx in range(len(pacf_out)):
-            if pacf_out[idx] > confint[idx]:
-                flows_pacf.append(idx)
-                break
-
-    _bincount = np.bincount(flows_pacf)
-    p = np.argmax(_bincount)
-
-    return p
+    acf_out, confi = acf(series, alpha=.05)
+    if acf_out[1] <= -0.5:
+        # Overdifferencing - stop differencing
+        return -1
+    elif (acf_out[1] <= eps_p) and (acf_out[1] > -0.5):
+        # Stop differencing
+        return 1
+    elif acf_out[1] > eps_p:
+        # Need more differencing
+        return 0
 
 
 def series_differncing(series, order):
-
     last_series_diff = series - series.shift()
     current_series = series.shift()
 
@@ -137,93 +81,307 @@ def series_differncing(series, order):
     return last_series_diff
 
 
-def calculate_d_parameter(data):
-    flows_diff = []
-    for flow_id in range(len(data)):
-        print('[calculate_d_parameter] flow %i' %flow_id)
-        _d = 0
-        test_result = test_stationarity(data[flow_id], eps_p=EPSILON_P)
+def calculate_parameters(data):
+    _p, _d, _q = 0, 0, 0
+    test_result = test_stationarity(data, eps_p=EPSILON_P)
+    std = data.std()
 
-        while not test_result:
-            _d = _d + 1
-            print('   --[calculate_d_parameter] flow %i - d = %i' % (flow_id, _d))
-            tseries_diff = series_differncing(data[flow_id], order=_d)
-            tseries_diff.dropna(inplace=True)
-            test_result = test_stationarity(tseries_diff, eps_p=EPSILON_P)
+    series_stds = [std]
+    series_diffs = [data]
+    test_results = [test_result]
 
-        flows_diff.append(_d)
+    while test_result == 0:
+        if _d >= 2:
+            break
 
-    _bincount = np.bincount(flows_diff)
-    d = np.argmax(_bincount)
+        _d = _d + 1
+        _data = data.copy()
+        tseries_diff = series_differncing(_data, order=_d)
+        tseries_diff.dropna(inplace=True)
+        test_result = test_stationarity(tseries_diff, eps_p=EPSILON_P)
 
-    return d
+        series_diffs.append(tseries_diff)
+        series_stds.append(tseries_diff.std())
+        test_results.append(test_result)
+
+    series_stds = np.array(series_stds)
+    min_stds_idx = np.argmin(series_stds)
+
+    acf_out, confi = acf(series_diffs[min_stds_idx], alpha=.05)
+    pacf_out, pacf_confi = pacf(series_diffs[min_stds_idx], alpha=.05)
+
+    if test_results[min_stds_idx] == -1:
+        # Overdiferencing case -> Stop differencing and adding MA by looking at the number of lags
+        # that cross the confidence interval of acf
+        _q = 0
+        for idx in range(1, len(acf_out)):
+            if (acf_out[idx] < (confi[idx, 1] - acf_out[idx])) and (acf_out[idx] > (confi[idx, 0] - acf_out[idx])):
+                break
+            _q = _q + 1
+
+        if _q == 0:
+            _q = 1
+        elif _q > 4:
+            _q = 4
+
+    else:
+        # Series is stationary -> stop differencing -> AR term is the number of lags that cross the confidence interval
+        # of pacf
+        _p = 0
+        for idx in range(1, len(pacf_out)):
+            if (pacf_out[idx] < (pacf_confi[idx, 1] - pacf_out[idx])) and (
+                    pacf_out[idx] > (pacf_confi[idx, 0] - pacf_out[idx])):
+                break
+            _p = _p + 1
+
+        if _p == 0:
+            _p = 1
+        elif _p > 4:
+            _p = 4
+
+    return _p, _d, _q
 
 
 def calculate_arima_parameters(data):
-    print('Calculate parameter d')
-    # d = calculate_d_parameter(data)
-    # print('d = %i' % d)
+    p, d, q = calculate_parameters(data)
+    print('(p, d, q) = (%i, %i, %i)' % (p, d, q))
 
-    print('Calculate parameter q')
-    q = calculate_q_parameters(data, interval=5)
-    print('q = %i' % q)
-
-    print('Calculate parameter p')
-    p = calculate_p_parameters(data, interval=5)
-    print('p = %i' % p)
+    # print('Calculate parameter p')
+    # p = calculate_p_parameters(data, interval=5)
+    # print('p = %i' % p)
+    #
+    # print('Calculate parameter q')
+    # q = calculate_q_parameters(data, interval=5)
+    # print('q = %i' % q)
 
     return p, d, q
 
 
-def arima(raw_data, dataset_name):
-
+def arima(raw_data, dataset_name, n_timesteps, sampling_ratio, prediction_steps):
     test_name = 'arima'
-    splitting_ratio = [0.7, 0.3]
-    look_back = 26
+    splitting_ratio = [0.8, 0.2]
+
+    # look_back data
+    look_back_range = [7]
     model_recorded_path = './Model_Recorded/' + dataset_name + '/' + test_name + '/'
-    errors = np.empty((0, 4))
-    sampling_ratio = 0.3
+    errors = np.empty((0, 5))
 
-    seperated_data_set, centers_data_set = mean_std_flows_clustering(raw_data)
-    data_set, data_scalers, data_cluster_lens = different_flows_scaling(seperated_data_set[1:],
-                                                                        centers_data_set[1:])
+    sampling_timesteps_path = 'Sampling_%.3f_timesteps_%i' % (sampling_ratio, n_timesteps)
+    model_name = 'arima'
+    result_path = HOME + '/TM_estimation_results/%s/%s/%s/%s/' % \
+                  (dataset_name, test_name, sampling_timesteps_path, model_name)
 
-    train_set, test_set = prepare_train_test_set(data_set, sampling_itvl=5, splitting_ratio=splitting_ratio)
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
+
+    train_set, test_set = prepare_train_test_set(data=raw_data,
+                                                 sampling_itvl=5,
+                                                 splitting_ratio=splitting_ratio)
+
+    mean_train = np.mean(train_set)
+    std_train = np.std(train_set)
+
+    test_set = np.copy(test_set[0:-864, :])
+
+    training_set = (train_set - mean_train) / std_train
+
+    testing_set = np.copy(test_set)
+    testing_set = (testing_set - mean_train) / std_train
 
     training_set_series = []
-    for flow_id in range(train_set.shape[1]):
-        flow_frame = pd.Series(train_set[:, flow_id])
+    for flow_id in range(training_set.shape[1]):
+        flow_frame = pd.Series(training_set[:, flow_id])
         training_set_series.append(flow_frame)
 
-
-
-    # Calculate p, d, q
-    print('Calculate parameters p, d, q')
-    p, d, q = calculate_arima_parameters(training_set_series)
-
-    figures_saving_path = HOME + '/TM_estimation_figures/' + dataset_name \
-                          + '/' + test_name + '/p%i_d_%i_q_%i/' % (p, d, q)
-
-    if not os.path.exists(figures_saving_path):
-        os.makedirs(figures_saving_path)
-
-    TM_prediction = np.empty((test_set.shape[0], 0))
+    TM_prediction = np.empty((testing_set.shape[0], 0))
     tf = np.array([True, False])
 
-    measured_matrix = np.empty((test_set.shape[0], 0))
+    measured_matrix = np.empty((testing_set.shape[0], 0))
 
-    for flow_id in range(test_set[1]):
-        history = [x for x in train_set[:, flow_id]]
+    day_size = 24 * (60 / 5)
+    p, d, q = 4, 1, 0
+
+    for running_time in range(10, 11, 1):
+
+        ims_pred_tm = np.empty(shape=(testing_set.shape[0], prediction_steps, 0))
+
+        for flow_id in range(testing_set.shape[1]):
+
+            training_set_series[flow_id].dropna(inplace=True)
+            flow_train = training_set_series[flow_id].values
+
+            history = [x for x in flow_train.astype(float)]
+            predictions = list()
+
+            measured_flow = np.random.choice(tf, size=(testing_set.shape[0], 1), p=[sampling_ratio, 1 - sampling_ratio])
+
+            history = history[-int(day_size * n_timesteps):]
+
+            flow_ims_pred = []
+
+            for ts in range(testing_set.shape[0]):
+
+                print('[ARIMA] Predicting traffic flow %i at time slot %i - Sampling%.3f' % (
+                flow_id, ts, sampling_ratio))
+
+                try:
+                    p, d, q = calculate_arima_parameters(pd.Series(history).astype(float))
+                except LinAlgError as LA:
+                    print(LA)
+                    print('PASS LinAlgError')
+                    pass
+                except ValueError as VE:
+                    print(VE)
+                    print('PASS ValueError')
+                    pass
+
+                try:
+                    model = ARIMA(history, order=(p, d, q))
+                    model_fit = model.fit(disp=0, trend='nc')
+                except LinAlgError as LA:
+                    print(LA)
+                    print('PASS LinAlgError')
+                    pass
+                except ValueError as VE:
+                    print(VE)
+                    print('PASS ValueError')
+                    pass
+
+                output = model_fit.forecast(steps=prediction_steps)
+
+                flow_ims_pred.append(output[0])
+
+                yhat = output[0][0]
+                obs = testing_set[ts, flow_id]
+
+                # Semi-recursive predicting
+                if measured_flow[ts]:
+                    history.append(obs)
+                    predictions.append(obs)
+                else:
+                    history.append(yhat)
+                    predictions.append(yhat)
+
+                history = history[-int(day_size * n_timesteps):]
+
+            measured_matrix = np.concatenate([measured_matrix, measured_flow], axis=1)
+
+            TM_prediction = np.concatenate([TM_prediction, np.array(predictions).reshape((testing_set.shape[0], 1))],
+                                           axis=1)
+            flow_ims_pred = np.expand_dims(flow_ims_pred, axis=2)
+            ims_pred_tm = np.concatenate([ims_pred_tm, flow_ims_pred], axis=2)
+
+        pred_tm = TM_prediction * std_train + mean_train
+        ims_pred_tm = ims_pred_tm * std_train + mean_train
+
+        measured_matrix = measured_matrix.astype(bool)
+
+        er = error_ratio(y_true=test_set, y_pred=pred_tm, measured_matrix=measured_matrix)
+        r2 = calculate_r2_score(y_true=test_set, y_pred=pred_tm)
+        rmse = rmse_tm_prediction(y_true=test_set, y_pred=pred_tm)
+        print('ARIMA ERROR RATIO %.3f' % er)
+        print('ARIMA RMSE %.3f' % rmse)
+        print('ARIMA R2 %.3f' % r2)
+
+        np.save(file=result_path + '[nii]Predicted_tm_running_time_%d' % running_time,
+                arr=pred_tm)
+        np.save(file=result_path + '[nii]Predicted_measured_matrix_running_time_%d' % running_time,
+                arr=measured_matrix)
+        np.save(file=result_path + '[nii]Predicted_multistep_tm_running_time_%d' % running_time,
+                arr=ims_pred_tm)
+
+
+def arima_no_ims(raw_data, dataset_name, n_timesteps, sampling_ratio):
+    test_name = 'arima'
+    splitting_ratio = [0.8, 0.2]
+
+    # look_back data
+    look_back_range = [7]
+    model_recorded_path = './Model_Recorded/' + dataset_name + '/' + test_name + '/'
+    errors = np.empty((0, 5))
+
+    sampling_timesteps_path = 'Sampling_%.3f_timesteps_%i' % (sampling_ratio, n_timesteps)
+    model_name = 'arima'
+    result_path = HOME + '/TM_estimation_results/%s/%s/%s/%s/' % \
+                  (dataset_name, test_name, sampling_timesteps_path, model_name)
+
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
+
+    train_set, test_set = prepare_train_test_set(data=raw_data,
+                                                 sampling_itvl=5,
+                                                 splitting_ratio=splitting_ratio)
+
+    mean_train = np.mean(train_set)
+    std_train = np.std(train_set)
+
+    test_set = np.copy(test_set[0:-864, :])
+
+    training_set = (train_set - mean_train) / std_train
+
+    testing_set = np.copy(test_set)
+    testing_set = (testing_set - mean_train) / std_train
+
+    training_set_series = []
+    for flow_id in range(training_set.shape[1]):
+        flow_frame = pd.Series(training_set[:, flow_id])
+        training_set_series.append(flow_frame)
+
+    TM_prediction = np.empty((testing_set.shape[0], 0))
+    tf = np.array([True, False])
+
+    measured_matrix = np.empty((testing_set.shape[0], 0))
+
+    day_size = 24 * (60 / 5)
+    p, d, q = 4, 1, 0
+
+    for flow_id in range(testing_set.shape[1]):
+
+        training_set_series[flow_id].dropna(inplace=True)
+        flow_train = training_set_series[flow_id].values
+
+        history = [x for x in flow_train.astype(float)]
         predictions = list()
-        measured_flow = np.random.choice(tf, size=(test_set.shape[0], 1), p=[sampling_ratio, 1 - sampling_ratio])
 
-        for ts in range(test_set.shape[0]):
-            model = ARIMA(history, order=(p, d, q))
-            model_fit = model.fit(disp=0)
+        measured_flow = np.random.choice(tf, size=(testing_set.shape[0], 1), p=[sampling_ratio, 1 - sampling_ratio])
+
+        history = history[-int(day_size * n_timesteps):]
+
+        prediction_time = []
+
+        for ts in range(testing_set.shape[0]):
+            start_time = time.time()
+            print('[ARIMA] Predicting traffic flow %i at time slot %i - Sampling%.3f' % (flow_id, ts, sampling_ratio))
+
+            try:
+                p, d, q = 4, 1, 0
+            except LinAlgError as LA:
+                print(LA)
+                print('PASS LinAlgError')
+                pass
+            except ValueError as VE:
+                print(VE)
+                print('PASS ValueError')
+                pass
+
+            try:
+                model = ARIMA(history, order=(p, d, q))
+                model_fit = model.fit(disp=0, trend='nc')
+            except LinAlgError as LA:
+                print(LA)
+                print('PASS LinAlgError')
+                pass
+            except ValueError as VE:
+                print(VE)
+                print('PASS ValueError')
+                pass
+
             output = model_fit.forecast()
-            yhat = output[0]
-            predictions.append(yhat)
-            obs = test_set[ts]
+
+            yhat = output[0][0]
+            obs = testing_set[ts, flow_id]
+
+            # Semi-recursive predicting
             if measured_flow[ts]:
                 history.append(obs)
                 predictions.append(obs)
@@ -231,78 +389,44 @@ def arima(raw_data, dataset_name):
                 history.append(yhat)
                 predictions.append(yhat)
 
-            # print('predicted=%f, expected=%f' % (yhat, obs))
+            history = history[-int(day_size * n_timesteps):]
 
+            prediction_time.append(time.time() - start_time)
+
+            if ts > 1000:
+                break
+
+        prediction_time = np.array(prediction_time)
+        np.savetxt('[ARIMA]prediciton_time_one_step.csv', prediction_time, delimiter=',')
+        return
         measured_matrix = np.concatenate([measured_matrix, measured_flow], axis=1)
 
-        TM_prediction = np.concatenate([TM_prediction, np.array(predictions).reshape((test_set.shape[0], 1))], axis=1)
+    TM_prediction = np.concatenate([TM_prediction, np.array(predictions).reshape((testing_set.shape[0], 1))],
+                                   axis=1)
+    pred_tm = TM_prediction * std_train + mean_train
 
-    pred_tm = different_flows_invert_scaling(TM_prediction, scalers=data_scalers, cluster_lens=data_cluster_lens)
-    pred_tm[pred_tm < 0] = 0
-    ytrue = different_flows_invert_scaling(data=test_set, scalers=data_scalers,
-                                           cluster_lens=data_cluster_lens)
+    measured_matrix = measured_matrix.astype(bool)
+
+    er = error_ratio(y_true=test_set, y_pred=pred_tm, measured_matrix=measured_matrix)
+    r2 = calculate_r2_score(y_true=test_set, y_pred=pred_tm)
+    rmse = rmse_tm_prediction(y_true=test_set, y_pred=pred_tm)
+    print('ARIMA ERROR RATIO %.3f' % er)
+    print('ARIMA RMSE %.3f' % rmse)
+    print('ARIMA R2 %.3f' % r2)
 
 
-    errors_by_day = calculate_error_ratio_by_day(y_true=ytrue, y_pred=pred_tm, measured_matrix=measured_matrix,
-                                                 sampling_itvl=5)
-    mean_abs_error_by_day = mean_absolute_errors_by_day(y_true=ytrue, y_pred=pred_tm, sampling_itvl=5)
-
-    rmse_by_day = root_means_squared_error_by_day(y_true=ytrue, y_pred=pred_tm, sampling_itvl=5)
-
-    y3 = ytrue.flatten()
-    y4 = pred_tm.flatten()
-    a_nmse = normalized_mean_squared_error(y_true=y3, y_hat=y4)
-    a_nmae = normalized_mean_absolute_error(y_true=y3, y_hat=y4)
-    pred_confident = r2_score(y3, y4)
-
-    err_rat = error_ratio(y_true=ytrue, y_pred=pred_tm, measured_matrix=measured_matrix)
-
-    error = np.expand_dims(np.array([a_nmae, a_nmse, pred_confident, err_rat]), axis=0)
-
-    errors = np.concatenate([errors, error], axis=0)
-
-    # visualize_results_by_timeslot(y_true=ytrue,
-    #                               y_pred=pred_tm,
-    #                               measured_matrix=measured_matrix,
-    #                               description=test_name + '_sampling_%f' % sampling_ratio,
-    #                               saving_path=HOME + '/TM_estimation_figures/' + dataset_name + '/',
-    #                               ts_plot=288*3)
-    #
-    visualize_retsult_by_flows(y_true=ytrue,
-                               y_pred=pred_tm,
-                               sampling_itvl=5,
-                               description=test_name + '_sampling_%f' % sampling_ratio,
-                               measured_matrix=measured_matrix,
-                               saving_path=HOME + '/TM_estimation_figures/' + dataset_name + '/',
-                               visualized_day=-1)
-
-    print('--- Sampling ratio: %.2f - Means abs errors by day ---' % sampling_ratio)
-    print(mean_abs_error_by_day)
-    print('--- Sampling ratio: %.2f - RMSE by day ---' % sampling_ratio)
-    print(rmse_by_day)
-    print('--- Sampling ratio: %.2f - Error ratio by day ---' % sampling_ratio)
-    print(errors_by_day)
-
-    plt.title('Means abs errors by day\nSampling: %.2f' % sampling_ratio)
-    plt.plot(range(len(mean_abs_error_by_day)), mean_abs_error_by_day)
-    plt.xlabel('Day')
-    plt.savefig(figures_saving_path + 'Means_abs_errors_by_day_sampling_%.2f.png' % sampling_ratio)
-    plt.close()
-
-    plt.title('RMSE by day\nSampling: %.2f' % sampling_ratio)
-    plt.plot(range(len(rmse_by_day)), rmse_by_day)
-    plt.xlabel('Day')
-    plt.savefig(figures_saving_path + 'RMSE_by_day_sampling_%.2f.png' % sampling_ratio)
-    plt.close()
-    print('ERROR of testing at %.2f sampling' % sampling_ratio)
-    print(errors)
-
+# def arima_multistep_tm_prediction(ims_pred_output, ims_tm_pred, flow_id):
 
 def main():
     np.random.seed(10)
 
-    Abilene24s_data = load_Abilene_dataset_from_csv(csv_file_path='./Dataset/Abilene24s.csv')
-    arima(raw_data=Abilene24s_data, dataset_name='Abilene24s')
+    Abilene24 = load_Abilene_dataset_from_csv(csv_file_path='./Dataset/Abilene24.csv')
+    n_timesteps = 28
+    sampling_ratio = 0.15
+
+    # arima(raw_data=Abilene24, dataset_name='Abilene24', n_timesteps=n_timesteps, sampling_ratio=sampling_ratio,
+    #       prediction_steps=12)
+    arima_no_ims(raw_data=Abilene24, dataset_name='Abilene24', n_timesteps=n_timesteps, sampling_ratio=sampling_ratio)
 
 
 if __name__ == '__main__':

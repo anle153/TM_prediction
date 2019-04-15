@@ -28,6 +28,11 @@ def calc_rms(x, scale):
     rms = np.zeros(X.shape[0])
     for e, xcut in enumerate(X):
         coeff = np.polyfit(scale_ax, xcut, 1)
+        plt.plot(scale_ax, xcut)
+        # plt.title('Cumsum')
+        # plt.show()
+        # plt.close()
+
         xfit = np.polyval(coeff, scale_ax)
         # detrending and computing RMS of each window
         rms[e] = np.sqrt(np.mean((xcut - xfit) ** 2))

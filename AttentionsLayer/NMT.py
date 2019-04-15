@@ -22,7 +22,7 @@ def simpleNMT(pad_length=100,
     :param n_chars: the number of characters in the vocabulary
     :param n_labels: the number of possible labelings for each character
     :param embedding_learnable: decides if the one hot embedding should be refinable.
-    :return: keras.models.Model that can be compiled and fit'ed
+    :return: keras.models.Models that can be compiled and fit'ed
 
     *** REFERENCES ***
     Lee, Jason, Kyunghyun Cho, and Thomas Hofmann. 

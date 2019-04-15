@@ -5,15 +5,16 @@ from math import sqrt, log
 import scipy.io as sio
 from pandas import DataFrame
 from pandas import concat
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import acf
 from scipy.signal import argrelextrema
 
 from FlowClassification.SpatialClustering import *
-from dfa import *
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.python.client import device_lib
 
+HOME = os.path.expanduser('~')
 
 ########################################################################################################################
 #         Calculating Error: error_ratio, normalized mean absolute error, normalized mean squred error                 #
@@ -45,7 +46,7 @@ def plot_errors(x_axis, xlabel, errors, filename, title='', saving_path='/home/a
     print('--- Saving figures at %s ---' % saving_path)
 
 
-def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_matrix, sampling_hyperparams):
+def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_matrix, hyperparams):
     """
     Calculated measured weight for determine which flows should be measured in next time slot.
     We measured first K flows which have small weight
@@ -63,9 +64,7 @@ def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_
     :return:
     """
 
-    parameter = [sampling_hyperparams[0], sampling_hyperparams[1]]
-    loss_parameter = [sampling_hyperparams[2], sampling_hyperparams[3], sampling_hyperparams[4]]
-    eps = 0.0000001
+    eps = 10e-5
 
     rnn_first_input_updated = np.expand_dims(backward_pred[:, 1], axis=1)
     rnn_last_input_updated = np.expand_dims(forward_pred[:, -2], axis=1)
@@ -78,33 +77,46 @@ def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_
                                measured_matrix=measured_matrix)
     rl_forward[rl_forward == 0] = eps
 
-    # rl_forward_transformed = MinMaxScaler().fit_transform(np.expand_dims(rl_forward, axis=1))
-    # rl_forward_transformed = rl_forward_transformed.squeeze()
-
     rl_backward = recovery_loss(rnn_input=rnn_input, rnn_updated=rnn_updated_input_backward,
                                 measured_matrix=measured_matrix)
     rl_backward[rl_backward == 0] = eps
 
-    # rl_backward_transformed = MinMaxScaler().fit_transform(np.expand_dims(rl_backward, axis=1))
-    # rl_backward_transformed = rl_backward_transformed.squeeze()
-
     cl = calculate_consecutive_loss(measured_matrix).astype(float)
-    cl_transformed = MinMaxScaler().fit_transform(np.expand_dims(cl, axis=1))
-    cl_transformed[cl_transformed == 0] = eps
-    cl_transformed = cl_transformed.squeeze()
 
-    sum_loss = rl_forward* loss_parameter[0] + rl_backward*loss_parameter[1] + cl*loss_parameter[2]
+    flows_stds = np.std(rnn_input, axis=1)
 
-    recovery_consecutive_loss = 1 / sum_loss
-    recovery_consecutive_loss_transformed = MinMaxScaler().fit_transform(
-        np.expand_dims(recovery_consecutive_loss, axis=1))
-    recovery_consecutive_loss_transformed = recovery_consecutive_loss_transformed.squeeze()
+    w = 1 / (rl_forward * hyperparams[0] +
+             rl_backward * hyperparams[1] +
+             cl * hyperparams[2] +
+             flows_stds * hyperparams[3])
 
-    fl = calculate_flow_fluctuation(rnn_input)
-    fl_transformed = MinMaxScaler().fit_transform(np.expand_dims(fl, axis=1))
-    fl_transformed = fl_transformed.squeeze()
+    return w
 
-    w = recovery_consecutive_loss_transformed * parameter[0] + fl_transformed * parameter[1]
+
+def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matrix, hyperparams):
+    """
+    :param rnn_input: shape = (time, od, od)
+    :param forward_pred: shape = (time, od, od)
+    :param backward_pred: the backward pred has been flipped, shape = (time, od, od)
+    :param measured_matrix: shape = (time, od, od)
+    :return:
+    """
+
+    eps = 10e-5
+
+    cl = calculate_consecutive_loss_3d(measured_matrix).astype(float)
+
+    flows_stds = np.std(rnn_input, axis=0)
+
+    cl_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(cl)
+    flows_stds_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(flows_stds)
+    rl_forward_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(rl_forward)
+    rl_backward_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(rl_backward)
+
+    w = 1 / (rl_forward_scaled * hyperparams[0] +
+             rl_backward_scaled * hyperparams[1] +
+             cl_scaled * hyperparams[2] +
+             flows_stds_scaled * hyperparams[3])
 
     return w
 
@@ -133,7 +145,13 @@ def calculate_flow_fluctuation(rnn_input, show=False):
     fluctuations = []
     for flow_id in range(rnn_input.shape[0]):
         flow = rnn_input[flow_id, :]
+        # plt.plot(flow)
+        # plt.title('Flow')
+        # plt.show()
+        # plt.close()
+
         _s, f, _c = dfa(flow, scale_lim=[log(rnn_input.shape[1], 2) - 1, log(rnn_input.shape[1], 2)], show=show)
+        print('F = %f' % f[-1])
         fluctuations.append(f[-1])
 
     fluctuations = np.asarray(fluctuations)
@@ -162,6 +180,32 @@ def calculate_consecutive_loss(measured_matrix):
                 consecutive_losses.append(labels.shape[1] - measured_idx[-1][0])
 
     consecutive_losses = np.asarray(consecutive_losses)
+    return consecutive_losses
+
+
+def calculate_consecutive_loss_3d(measured_matrix):
+    """
+    Calculate the last consecutive loss count from the last time slot
+    :param measured_matrix: shape=(time, od, od)
+    :return:
+    """
+    labels = measured_matrix.astype(int)
+
+    consecutive_losses = []
+    for flow_id_i in range(labels.shape[1]):
+        for flow_id_j in range(labels.shape[2]):
+            flows_labels = labels[:, flow_id_i, flow_id_j]
+            if flows_labels[-1] == 1:
+                consecutive_losses.append(1)
+            else:
+                measured_idx = np.argwhere(flows_labels == 1)
+                if measured_idx.size == 0:
+                    consecutive_losses.append(labels.shape[0])
+                else:
+                    consecutive_losses.append(labels.shape[0] - measured_idx[-1][0])
+
+    consecutive_losses = np.asarray(consecutive_losses)
+    consecutive_losses = np.reshape(consecutive_losses, newshape=(labels.shape[1], labels.shape[2]))
     return consecutive_losses
 
 
@@ -213,6 +257,44 @@ def recovery_loss(rnn_input, rnn_updated, measured_matrix):
     return r_l
 
 
+def calculate_r2_score(y_true, y_pred):
+    y_true = y_true.flatten()
+    y_pred = y_pred.flatten()
+
+    r2 = r2_score(y_true=y_true, y_pred=y_pred)
+    return r2
+
+
+def recovery_loss_3d(rnn_input, rnn_updated, measured_matrix):
+    """
+    Calculate the recovery loss for each flow using this equation: r_l = sqrt(sum((y_true - y_pred)^2))
+    :param rnn_input: array-like, shape = (time x od x od)
+    :param rnn_updated: array-like, shape = (time x od x od)
+    :param measured_matrix: array-like, shape = (time x od x od)
+    :return: shape = (od, od)
+    """
+    labels = measured_matrix.astype(int)
+    r_l = []
+    for flow_id_i in range(rnn_input.shape[1]):
+        for flow_id_j in range(rnn_input.shape[2]):
+            flow_label = labels[:, flow_id_i, flow_id_j]
+            n_measured_data = np.count_nonzero(flow_label)
+            if n_measured_data == 0:
+                r_l.append(-1)
+            else:
+                # Only consider the data point which is measured
+                observated_idx = np.where(flow_label == 1)
+                flow_true = rnn_input[:, flow_id_i, flow_id_j]
+                flow_pred = rnn_updated[:, flow_id_i, flow_id_j]
+                r_l.append(sqrt(np.sum(np.square(flow_true[observated_idx] - flow_pred[observated_idx]))))
+
+    r_l = np.asarray(r_l)
+    r_l[r_l < 0] = r_l.max() + 1
+    r_l = np.reshape(r_l, newshape=(rnn_input.shape[1], rnn_input.shape[2]))
+
+    return r_l
+
+
 def root_means_squared_error_by_day(y_true, y_pred, sampling_itvl):
     day_size = 24 * (60 / sampling_itvl)
     ndays = y_true.shape[0] / (day_size)
@@ -222,20 +304,20 @@ def root_means_squared_error_by_day(y_true, y_pred, sampling_itvl):
         upperbound = (day + 1) * day_size if (day + 1) * day_size < y_true.shape[0] else y_true.shape[0]
         ytrue_by_day = y_true[day * day_size:upperbound, :]
         y_pred_by_day = y_pred[day * day_size:upperbound, :]
-        rmse_by_day.append(rmse(ytrue_by_day, y_pred_by_day))
+        rmse_by_day.append(rmse_tm_prediction(ytrue_by_day, y_pred_by_day))
     return rmse_by_day
 
 
-def rmse(y_true, y_pred):
-    ytrue = y_true.flatten() / 1000.0
-    ypred = y_pred.flatten() / 1000.0
+def rmse_tm_prediction(y_true, y_pred):
+    ytrue = y_true.flatten()
+    ypred = y_pred.flatten()
     err = sqrt(np.sum(np.square(ytrue - ypred)) / ytrue.size)
     return err
 
 
 def mean_abs_error(y_true, y_pred):
-    ytrue = y_true.flatten() / 1000.0
-    ypred = y_pred.flatten() / 1000.0
+    ytrue = y_true.flatten()
+    ypred = y_pred.flatten()
     return mean_absolute_error(y_true=ytrue, y_pred=ypred)
 
 
@@ -318,16 +400,34 @@ def convert_abilene_24(path_dir='/home/anle/Documents/sokendai/research/TM_estim
         list_files = os.listdir(path_dir)
         list_files = sorted(list_files, key=lambda x: x[:-4])
 
-        TM = np.empty((0, ABILENE24_DIM))
+        TM = np.empty((12, 12, 0))
         for raw_file in list_files:
             if raw_file.endswith('.dat'):
                 print(raw_file)
                 _tm = np.genfromtxt(path_dir + '/' + raw_file, delimiter=',')
-                _tm = np.expand_dims(_tm.flatten(), axis=0)
+                _tm = np.expand_dims(_tm, axis=2)
+                TM = np.concatenate([TM, _tm], axis=2)
+
+    print('--- Finish load original Abilene3d to csv. Saving at ./Dataset/Abilene3d')
+    np.save('./Dataset/Abilene3d', TM)
+
+
+def load_abilene_3d(path_dir='/home/anle/Documents/sokendai/research/TM_estimation_RNN/Dataset'
+                                '/Abilene_24/Abilene/2004/Measured'):
+    if os.path.exists(path_dir):
+        list_files = os.listdir(path_dir)
+        list_files = sorted(list_files, key=lambda x: x[:-4])
+
+        TM = np.empty((12, 12, 0))
+        for raw_file in list_files:
+            if raw_file.endswith('.dat'):
+                print(raw_file)
+                _tm = np.genfromtxt(path_dir + '/' + raw_file, delimiter=',')
+                _tm = np.expand_dims(_tm, axis=0)
                 TM = np.concatenate([TM, _tm], axis=0) if TM.size else _tm
 
-    print('--- Finish converting Abilene24 to csv. Saing at ./Dataset/Abilene24_original.csv')
-    np.savetxt('./Dataset/Abilene24_original.csv', TM, delimiter=',')
+    print('--- Finish converting Abilene24 to csv. Saing at ./Dataset/Abilene24_3.csv')
+    np.save(HOME + '/TM_estimation_dataset/Abilene24_3d/Abilene24_3d', TM)
 
 
 def load_Abilene_dataset_from_matlab(path='./Dataset/abilene.mat'):
@@ -529,7 +629,7 @@ def visualize_retsult_by_flows(y_true,
                 sampling = measured_matrix[day * n_ts_day:upperbound, flowID]
                 arg_sampling = np.argwhere(sampling == True).squeeze(axis=1)
 
-                rmse_by_day = rmse(y_true=np.expand_dims(y1, axis=1), y_pred=np.expand_dims(y2, axis=1))
+                rmse_by_day = rmse_tm_prediction(y_true=np.expand_dims(y1, axis=1), y_pred=np.expand_dims(y2, axis=1))
 
                 plt.title('Flow %i prediction result - Day %i \n RMSE: %f' % (flowID, day, rmse_by_day))
                 plt.plot(y1, label='Original Data')
@@ -545,60 +645,60 @@ def visualize_retsult_by_flows(y_true,
                 plt.close()
 
 
-def visualize_results_by_timeslot(y_true,
-                                  y_pred,
-                                  measured_matrix,
-                                  saving_path='/home/anle/TM_estimation_figures/',
-                                  description='',
-                                  ts_plot=-1,
-                                  show=False):
-    """
-
-    Visualize the original TM and the predicted TM of each measured time slot
-    :param y_true: (numpy.ndarray) the measured TM
-    :param y_pred: (numpy.ndarray) the predicted TM
-    :param measured_matrix: (numpy.ndarray) identify which elements in the predicted TM are predicted using RNN
-    :param saving_path: (str) path to saved figures directory
-    :param description: (str) (optional) the description of this visualization
-    :return:
-    """
-    now = datetime.datetime.now()
-    description = description + '_' + str(now)
-    if not os.path.exists(saving_path + description + '/'):
-        os.makedirs(saving_path + description + '/')
-
-    path = saving_path + description + '/'
-    a_nmse = []
-    ts_range = y_true.shape[0] if ts_plot == -1 else ts_plot
-    for ts in xrange(ts_range):
-        print('--- Visualize tm at timeslot %i' % ts)
-        y1 = y_true[ts, :]
-        y2 = y_pred[ts, :]
-        sampling = measured_matrix[ts, :]
-        arg_sampling = np.argwhere(sampling == True).squeeze(axis=1)
-        nmse = normalized_mean_squared_error(y_true=y1, y_hat=y2)
-        plt.title('TM prediction at time slot %i' % ts + '\n NMSE: %.3f' % nmse)
-        plt.plot(y1, label='Original Data')
-        plt.plot(y2, label='Prediction Data')
-        plt.legend()
-        plt.xlabel('FlowID')
-        plt.ylabel('Mbps')
-        # Mark the measured data in the predicted data as red start
-        plt.plot(arg_sampling, y2[arg_sampling], 'r*')
-        plt.savefig(path + 'Timeslot_%i.png' % ts)
-        if show:
-            plt.show()
-        plt.close()
-
-        a_nmse.append(nmse)
-    # plt.title('TM estimation error over time')
-    # plt.plot(a_nmse, label='NMSE')
-    # plt.xlabel('Time')
-    # # Mark the measured data in the predicted data as red start
-    # # plt.plot(arg_sampling, y2[arg_sampling], 'r*')
-    # print(a_nmse)
-    # plt.savefig(path + 'TM_estimation_error.png')
-    # plt.close()
+# def visualize_results_by_timeslot(y_true,
+#                                   y_pred,
+#                                   measured_matrix,
+#                                   saving_path='/home/anle/TM_estimation_figures/',
+#                                   description='',
+#                                   ts_plot=-1,
+#                                   show=False):
+#     """
+#
+#     Visualize the original TM and the predicted TM of each measured time slot
+#     :param y_true: (numpy.ndarray) the measured TM
+#     :param y_pred: (numpy.ndarray) the predicted TM
+#     :param measured_matrix: (numpy.ndarray) identify which elements in the predicted TM are predicted using RNN
+#     :param saving_path: (str) path to saved figures directory
+#     :param description: (str) (optional) the description of this visualization
+#     :return:
+#     """
+#     now = datetime.datetime.now()
+#     description = description + '_' + str(now)
+#     if not os.path.exists(saving_path + description + '/'):
+#         os.makedirs(saving_path + description + '/')
+#
+#     path = saving_path + description + '/'
+#     a_nmse = []
+#     ts_range = y_true.shape[0] if ts_plot == -1 else ts_plot
+#     for ts in xrange(ts_range):
+#         print('--- Visualize tm at timeslot %i' % ts)
+#         y1 = y_true[ts, :]
+#         y2 = y_pred[ts, :]
+#         sampling = measured_matrix[ts, :]
+#         arg_sampling = np.argwhere(sampling == True).squeeze(axis=1)
+#         nmse = normalized_mean_squared_error(y_true=y1, y_hat=y2)
+#         plt.title('TM prediction at time slot %i' % ts + '\n NMSE: %.3f' % nmse)
+#         plt.plot(y1, label='Original Data')
+#         plt.plot(y2, label='Prediction Data')
+#         plt.legend()
+#         plt.xlabel('FlowID')
+#         plt.ylabel('Mbps')
+#         # Mark the measured data in the predicted data as red start
+#         plt.plot(arg_sampling, y2[arg_sampling], 'r*')
+#         plt.savefig(path + 'Timeslot_%i.png' % ts)
+#         if show:
+#             plt.show()
+#         plt.close()
+#
+#         a_nmse.append(nmse)
+#     # plt.title('TM estimation error over time')
+#     # plt.plot(a_nmse, label='NMSE')
+#     # plt.xlabel('Time')
+#     # # Mark the measured data in the predicted data as red start
+#     # # plt.plot(arg_sampling, y2[arg_sampling], 'r*')
+#     # print(a_nmse)
+#     # plt.savefig(path + 'TM_estimation_error.png')
+#     # plt.close()
 
 
 def plot_flow_acf(data):
@@ -637,3 +737,8 @@ def get_max_acf(data, interval=5):
         plt.plot(flow_acf)
         plt.plot(arg_local_max[0][flow_acf_local_max_index], flow_acf[arg_local_max[0][flow_acf_local_max_index]], 'r*')
         plt.show()
+
+
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU']

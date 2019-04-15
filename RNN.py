@@ -37,14 +37,14 @@ class RNN(object):
                                                monitor='val_acc', verbose=1,
                                                save_best_only=False,
                                                save_weights_only=True,
-                                               mode='auto', period=10)
+                                               mode='auto', period=1)
             self.callbacks_list = [self.checkpoints]
         if early_stopping:
             self.earlystop = EarlyStopping(monitor='val_acc', min_delta=0.0001, patience=50,
                                            verbose=1, mode='auto')
             self.callbacks_list.append(self.earlystop)
 
-    def modelContruction(self, input_shape, output_dim):
+    def normal_model_contruction(self, input_shape, output_dim):
         """
         Construct RNN model from the beginning
         :param input_shape:
@@ -67,6 +67,19 @@ class RNN(object):
         self.model.add(LSTM(self.hidden_dim, input_shape=(n_timesteps, n_features), return_sequences=True))
         self.model.add(Dropout(drop_out))
         self.model.add(TimeDistributed(Dense(1)))
+
+    def seq2seq_deep_model_construction(self, n_layers, n_timesteps, n_features, drop_out=0.2):
+        self.model = Sequential()
+        for layer in range(n_layers):
+
+            if layer != (n_layers - 1):
+                self.model.add(LSTM(self.hidden_dim, input_shape=(n_timesteps, n_features), return_sequences=True))
+            else:
+                self.model.add(LSTM(self.hidden_dim, input_shape=(n_timesteps, n_features), return_sequences=True))
+                self.model.add(TimeDistributed(Dense(1)))
+
+            if layer != 0:
+                self.model.add(Dropout(drop_out))
 
     def seq2seq_modelContruction_with_Attention(self, n_timesteps, n_features):
         """
@@ -95,7 +108,7 @@ class RNN(object):
     def bidirectional_model_construction(self, input_shape, drop_out=0.3):
         self.model = Sequential()
         self.model.add(
-            Bidirectional(LSTM(self.hidden_dim, return_sequences=True), merge_mode='ave', input_shape=input_shape))
+            Bidirectional(LSTM(self.hidden_dim, return_sequences=True), input_shape=input_shape))
         self.model.add(Dropout(drop_out))
         self.model.add(TimeDistributed(Dense(1)))
 
@@ -142,7 +155,7 @@ class RNN(object):
         self.model.load_weights(self.saving_path + model_weight_file)
         self.saving_path = self.saving_path
 
-        print('----> [RNN-load_model_from_disk]--- Model has been loaded from %s' % (self.saving_path + model_json_file))
+        print('----> [RNN-load_model_from_disk]--- Models has been loaded from %s' % (self.saving_path + model_json_file))
         return True
 
     def plot_model_history(self, model_history, show=False):
@@ -150,7 +163,7 @@ class RNN(object):
         # summarize history for accuracy
         axs[0].plot(range(1, len(model_history.history['acc']) + 1), model_history.history['acc'])
         axs[0].plot(range(1, len(model_history.history['val_acc']) + 1), model_history.history['val_acc'])
-        axs[0].set_title('Model Accuracy')
+        axs[0].set_title('Models Accuracy')
         axs[0].set_ylabel('Accuracy')
         axs[0].set_xlabel('Epoch')
         axs[0].set_xticks(np.arange(1, len(model_history.history['acc']) + 1), len(model_history.history['acc']) / 10)
@@ -158,7 +171,7 @@ class RNN(object):
         # summarize history for loss
         axs[1].plot(range(1, len(model_history.history['loss']) + 1), model_history.history['loss'])
         axs[1].plot(range(1, len(model_history.history['val_loss']) + 1), model_history.history['val_loss'])
-        axs[1].set_title('Model Loss')
+        axs[1].set_title('Models Loss')
         axs[1].set_ylabel('Loss')
         axs[1].set_xlabel('Epoch')
         axs[1].set_xticks(np.arange(1, len(model_history.history['loss']) + 1), len(model_history.history['loss']) / 10)
@@ -209,7 +222,7 @@ class RNN(object):
                 else:
                     return -1
             else:
-                print('----> [RNN-load_model_from_check_point] --- Model saving path dose not exist')
+                print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
                 return -1
         else:
             if os.path.exists(self.saving_path):
@@ -239,6 +252,18 @@ class RNN(object):
                 else:
                     return -1
             else:
-                print('----> [RNN-load_model_from_check_point] --- Model saving path dose not exist')
+                print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
                 return -1
 
+    def plot_model_metrics(self, model_history, plot_prefix_name):
+        plt.plot(model_history.history['mean_squared_error'], label='mse')
+        plt.plot(model_history.history['val_mean_squared_error'], label='val_mse')
+        plt.legend()
+        plt.savefig(self.saving_path + plot_prefix_name + '_mse.png')
+        plt.close()
+
+        plt.plot(model_history.history['mean_absolute_error'], label='mae')
+        plt.plot(model_history.history['val_mean_absolute_error'], label='val_mae')
+        plt.legend()
+        plt.savefig(self.saving_path + plot_prefix_name + '_mae.png')
+        plt.close()

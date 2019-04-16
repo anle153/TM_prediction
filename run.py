@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
@@ -50,3 +52,7 @@ def main(args):
     #     test(args)
 
     return
+
+
+if __name__ == '__main__':
+    main(sys.argv)

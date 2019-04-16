@@ -3,8 +3,6 @@ import xml.etree.ElementTree as et
 from math import sqrt, log
 
 import scipy.io as sio
-from pandas import DataFrame
-from pandas import concat
 from scipy.signal import argrelextrema
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from statsmodels.graphics.tsaplots import plot_acf
@@ -12,8 +10,10 @@ from statsmodels.tsa.stattools import acf
 from tensorflow.python.client import device_lib
 
 from FlowClassification.SpatialClustering import *
+from common import Config
 
 HOME = os.path.expanduser('~')
+
 
 ########################################################################################################################
 #         Calculating Error: error_ratio, normalized mean absolute error, normalized mean squred error                 #
@@ -384,7 +384,7 @@ def convert_abilene_24(path_dir='/home/anle/Documents/sokendai/research/TM_estim
 
 
 def load_abilene_3d(path_dir='/home/anle/Documents/sokendai/research/TM_estimation_RNN/Dataset'
-                                '/Abilene_24/Abilene/2004/Measured'):
+                             '/Abilene_24/Abilene/2004/Measured'):
     if os.path.exists(path_dir):
         list_files = os.listdir(path_dir)
         list_files = sorted(list_files, key=lambda x: x[:-4])
@@ -462,30 +462,14 @@ def noise_removed(data, sampling_interval=5, threshold=50):
             traffics_by_day[traffics_by_day > flow_means * threshold] / threshold
 
 
-# convert series to supervised learning
-def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
-    n_vars = 1 if type(data) is list else data.shape[1]
-    df = DataFrame(data)
-    cols, names = list(), list()
-    # input sequence (t-n, ... t-1)
-    for i in range(n_in, 0, -1):
-        cols.append(df.shift(i))
-        names += [('var%d(t-%d)' % (j + 1, i)) for j in range(n_vars)]
-    # forecast sequence (t, t+1, ... t+n)
-    for i in range(0, n_out):
-        cols.append(df.shift(-i))
-        if i == 0:
-            names += [('var%d(t)' % (j + 1)) for j in range(n_vars)]
-        else:
-            names += [('var%d(t+%d)' % (j + 1, i)) for j in range(n_vars)]
-    # put it all together
-    agg = concat(cols, axis=1)
-    agg.columns = names
-    # drop rows with NaN values
-    if dropnan:
-        agg.dropna(inplace=True)
-    return agg
+def create_abilene_data_3d(path):
+    tm_3d = np.zeros(shape=(2016 * 24, 12, 12))
+    for i in range(1, 24, 1):
+        raw_data = np.genfromtxt(path + 'X{:2d}'.format(i), delimiter=' ')
+        tm = raw_data[:, range(0, 720, 5)].reshape(2016, 12, 12)
+        tm_3d[i:i * 2016, :, :] = tm
 
+    np.save(Config.DATA_PATH + 'Abilene.npy', tm_3d)
 
 ########################################################################################################################
 #                             Loading GEANT Traffic trace into Traffic Matrix from XML files                           #

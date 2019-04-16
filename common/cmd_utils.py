@@ -12,6 +12,7 @@ def common_arg_parser():
     """
     parser = arg_parser()
     parser.add_argument('--run_mode', help='training/testing mode. Default: training', type=str, default='training')
+    parser.add_argument('--data_name', help='Dataset name. Default: training', type=str, default='Abilene')
     parser.add_argument('--seed', help='Seed. Default: None', type=int, default=None)
     parser.add_argument('--alg', help='Algorithm. Default: None', type=str, default=None)
     parser.add_argument('--tag', help='Algorithm_tag. Default: None', type=str, default=None)

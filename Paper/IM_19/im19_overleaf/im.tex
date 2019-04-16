@@ -1,0 +1,149 @@
+\documentclass[conference]{IEEEtran}
+%\usepackage{graphics}
+\usepackage[skip=-3pt]{caption}
+%\usepackage[tableposition=top]{caption}
+%\usepackage{caption}
+%\captionsetup{font=footnotesize,justification=centering,labelsep=period}
+\usepackage{floatrow}
+\floatsetup[table]{capposition=top}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage[tight,footnotesize]{subfigure}
+%\usepackage[caption=false]{caption}
+%\usepackage[font=footnotesize]{subfig}
+\usepackage{array}
+\usepackage{amsfonts}
+%\usepackage{amssymb}
+\usepackage{amsmath, amssymb}
+\DeclareMathOperator*{\argmax}{argmax}
+\usepackage[export]{adjustbox}
+%\usepackage{subcaption}
+%\usepackage{cite}
+%\usepackage{times}
+\usepackage{color}
+\usepackage{fixltx2e}  
+\usepackage{graphicx,tipa}% http://ctan.org/pkg/{graphicx,tipa}
+%\usepackage{autoref}
+%\usepackage{amsthm}
+%\usepackage{algorithmicx}% http://ctan.org/pkg/algorithm
+%\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+%\usepackage{algorithm}
+\usepackage[ruled,linesnumbered,vlined]{algorithm2e}
+\SetAlFnt{\footnotesize}
+\SetKw{KwDownTo}{downto}
+\SetKw{KwTrue}{true}
+\SetKw{KwFalse}{false}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+\SetKw{KwAnd}{and}
+
+\usepackage{algorithmic}
+\renewcommand*{\algorithmcfname}{\footnotesize{Algorithm}}
+\newcommand{\LineIf}[2]{ \State \algorithmicif\ {#1}\ \algorithmicthen\ {#2} \algorithmicend\ \algorithmicif }
+\newcommand{\LINEFOR}[2]{%
+    \STATE\algorithmicfor\ {#1}\ \algorithmicdo\ {#2} \algorithmicend\ \algorithmicfor%
+}
+%%%%%%%%% theorem environment 
+\usepackage{amsthm}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\newcommand{\algorithmicbreak}{\textbf{break}}
+\newcommand{\BREAK}{\STATE \algorithmicbreak}
+\newcommand{\algorithmiccontinue}{\textbf{continue}}
+\newcommand{\CONTINUE}{\STATE \algorithmiccontinue}
+\renewcommand{\algorithmiccomment}[1]{// #1}
+\usepackage{capt-of}
+%\usepackage[keeplastbox]{flushend} %to adjust the height of two column at the last page
+\newcommand{\subparagraph}{}
+\usepackage{titlesec} 
+\titlespacing\section{0pt}{3pt plus 0pt minus 2pt}{3pt plus 0pt minus 2pt}
+\titlespacing\subsection{0pt}{2pt plus 0pt minus 2pt}{2pt plus 0pt minus 2pt}
+\renewcommand{\IEEEQED}{\QEDopen}
+%\def\IEEEbibitemsep{0pt plus 0pt}
+%\renewcommand{\baselinestretch}{0.98}
+%\IEEEilabelindent 0.1in
+%\IEEEiednormlabelsep 0.1in
+%\IEEEiedtopsep 0in
+%\IEEEiedmathlabelsep 0in
+%\setlength{\abovedisplayskip}{0pt plus0pt minus4pt}%
+%\setlength{\belowdisplayskip}{\abovedisplayskip}%
+%\setlength{\abovedisplayshortskip}{0pt plus0pt}%
+%\setlength{\belowdisplayshortskip}{0pt plus0pt minus4pt}
+\setlength{\abovecaptionskip}{0ex}
+\setlength{\belowcaptionskip}{0ex}
+%\setlength\floatsep{0pt plus 0pt minus 0pt} % define the vertical space two adjacent floats
+%\setlength\textfloatsep{5pt plus 2pt minus 0pt} % for floats on top and bottom of text only; For floats at top - length between float and text below it. For floats at bottom - length between float and text above it
+%\setlength\intextsep{0pt plus 0pt minus 0pt} %  for floats in the middle of text only - length between text above it, and text below it.
+\begin{document}
+%
+% paper title
+% can use linebreaks \\ within to get better formatting as desired
+%\title{Hole Bypassing Geographic Routing Protocol with Delay Guarantee in WSNs}
+%A Delay Delay Guaranteed Geographic Routing Protocol with Hole Avoidance in WSNs
+%\title{A Geographic Routing Protocol with Delay Guarantee and Hole Avoidance for WSNs} 
+\title{Deep Convolutional LSTM Network-based Traffic Matrix Prediction with Partial Information} 
+%Hole Avoidance Geographic Routing Protocol with 
+%Geographic Routing with Delay Guarantee and Hole Avoidance in WSNs} 
+% author names and affiliations
+% use a multiple column layout for up to three different
+% affiliations
+\author{ \IEEEauthorblockN{Van An Le\IEEEauthorrefmark{1}, Phi Le Nguyen\IEEEauthorrefmark{1}, Yusheng Ji\IEEEauthorrefmark{1}\IEEEauthorrefmark{2},}
+    \IEEEauthorblockA{\IEEEauthorrefmark{1}Department of Informatics, SOKENDAI (The Graduate University for Advanced Studies), Tokyo, Japan} 
+    \IEEEauthorblockA{\IEEEauthorrefmark{2}National Institute of Informatics, Tokyo, Japan} 
+    \IEEEauthorblockA{Email: \IEEEauthorrefmark{1}\{anle, nguyenle, kei\}@nii.ac.jp}
+}
+% make the title area
+\maketitle
+\begin{abstract}
+Accurate prediction of the future network traffic plays an important role in various network problems (e.g. traffic engineering, capacity planning, quality of service provisioning, etc.). However, the modern network communication is extremely complicated and dynamic, which makes the tasks of modeling and predicting the network behavior very difficult. 
+%Moreover, although the prediction accuracy largely depends on the amount of historical data, measuring all the network traffic is impossible or impractical due to the monitoring resources constraints as well as the dynamics of temporal/spatial fluctuations of the traffic. 
+To this end, a common approach is to apply the traditional time series prediction techniques such as Autoregressive Integrated Moving Average or Linear Regression. 
+Besides that, there are some studies exploiting Deep Learning techniques such as Restricted Boltzmann Machine or Recurrent Neural Network (RNN) to estimate the traffic volume. 
+%Unfortunately, all of the existing algorithms require precise historical data as the input. However, measuring all the network traffic is impossible or impractical due to the monitoring resources constraints as well as the dynamics of temporal/spatial fluctuations of the traffic.  
+Although the prediction accuracy largely depends on the amount of historical data, measuring all the network traffic is impossible or impractical due to the monitoring resources constraints as well as the dynamics of temporal/spatial fluctuations of the traffic. Thus, the state-of-the-art proposals reveal poor performance regarding the traffic inference when lacking ground-truth input.
+
+In this paper, we propose a highly accurate traffic prediction algorithm by leveraging the Convolutional LSTM network (ConvLSTM), which is the integrated model of Convolutional Neural Network (CNN) and Long Short-Term Memory (LSTM) network, for spatiotemporal modeling and estimating the future network traffic. We also propose a technique which exploits the RNN to correct the imprecise data in the input. 
+To evaluate the proposed algorithm, we conduct extensive experiments using the Abilene dataset which contains the real network traffic trace. The experiment results show that our proposed approach outperforms the existing algorithms in terms of several metrics including error ratio, root mean square error, and coefficient of determination, in both one-step-ahead and multi-step-ahead prediction with partial information.
+%can achieve significantly better prediction accuracy in terms of several metrics including error ratio, root mean square error, and coefficient of determination in both one-step-ahead and multi-step-ahead prediction under the extreme condition of missing ground-truth input.
+
+\end{abstract}
+%%%%%%%%%%%%%%%%%%%
+\newtheorem{mydef}{Definition}
+\newtheorem{mylemma}{Lemma}
+\newtheorem{mytheorem}{Theorem}
+\newtheorem{myalgo}{Algorithm}
+\newtheorem*{myproof}{Proof}
+\newtheorem{myproposition}{Proposition}
+\newtheorem{mycon}{Condition}
+
+\section{Introduction}
+\label{sec:introduction}
+\input{intro_phile}
+\section{Preliminaries}
+\label{sec:preliminaries}
+\input{preliminaries}
+\section{Proposed Prediction Model}
+\label{sec:proposed_prediction_model}
+\input{proposed_prediction_model}
+\section{Performance evaluation}
+\label{sec:performance_evaluation}
+\input{performance_evaluation}
+\section{Related work}
+\label{sec:related_work}
+\input{related_work}
+\section{Conclusion}
+\label{sec:conclusion}
+\input{conclusion}
+%\section*{Acknowledgment} 
+%This research is supported in part by 
+\newcommand{\BIBdecl}{\setlength{\itemsep}{0.25 em}}
+\bibliographystyle{unsrt}
+\bibliography{im}
+% \appendix
+% \label{sec:appendix}
+% \input{appendix}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\IEEEpeerreviewmaketitle
+\end{document}
+
+

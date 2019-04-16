@@ -1,8 +1,9 @@
 from multiprocessing import cpu_count
 
-from Models.ConvLSTM_model import *
-from Utils.DataHelper import *
 from Utils.DataPreprocessing import *
+
+from Models.ConvLSTM_model import *
+from common.DataHelper import *
 
 # PATH CONFIGURATION
 FIGURE_DIR = './figures/'

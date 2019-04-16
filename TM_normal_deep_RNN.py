@@ -5,7 +5,7 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 from RNN import *
-from Utils.DataHelper import *
+from common.DataHelper import *
 from Utils.DataPreprocessing import *
 from multiprocessing import cpu_count
 

@@ -4,7 +4,7 @@ config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
-from Utils.DataHelper import *
+from common.DataHelper import *
 from Utils.DataPreprocessing import *
 # from Models.CnnLSTM_model import *
 from Models.ConvLSTM_model import *

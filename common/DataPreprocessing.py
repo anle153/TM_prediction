@@ -1,8 +1,8 @@
-import numpy as np
-from multiprocessing import Process, Manager, Pool, Array, Pipe
+from multiprocessing import Process, Pipe
+
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
 from FlowClassification.SpatialClustering import *
-import random
 
 
 def shuffling_data_3d_by_day(data, sampling_itvl=5):

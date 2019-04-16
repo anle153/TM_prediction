@@ -1,7 +1,8 @@
 from multiprocessing import cpu_count
 
-from Utils.DataHelper import *
 from Utils.DataPreprocessing import *
+
+from common.DataHelper import *
 
 
 def create_xy_set_2d(raw_data, dataset_name, n_timesteps):

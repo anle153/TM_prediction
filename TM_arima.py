@@ -1,18 +1,15 @@
-import os
 import time
-import pandas as pd
+
 import matplotlib
+import pandas as pd
 
 matplotlib.use('Agg')
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima_model import ARIMA
 
-from Utils.DataHelper import *
+from common.DataHelper import *
 from Utils.DataPreprocessing import *
 
-from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import acf, pacf
-from sklearn.metrics import r2_score
 from numpy.linalg import LinAlgError
 
 # NOT FINISH YET

@@ -6,7 +6,7 @@ session = tf.Session(config=config)
 
 import time
 
-from Utils.DataHelper import *
+from common.DataHelper import *
 from Utils.DataPreprocessing import *
 # from Models.CnnLSTM_model import *
 from Models.ConvLSTM_model import *

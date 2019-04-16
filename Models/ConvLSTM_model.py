@@ -2,19 +2,22 @@ import fnmatch
 import os
 
 import matplotlib.pyplot as plt
-from keras.callbacks import ModelCheckpoint
 from keras.layers import *
 from keras.layers import Activation
 from keras.models import Sequential
 from keras.models import model_from_json
 
+from Models.AbstractModel import AbstractModel
 
-class ConvLSTM():
 
-    def __init__(self, n_timsteps, height, weight, depth,
-                 cnn_layers, a_filters, a_strides, dropouts, kernel_sizes,
-                 rnn_dropouts,
-                 saving_path, check_point=False):
+class ConvLSTM(AbstractModel):
+
+    def __init__(self, saving_path, input_shape, output_shape,
+                 cnn_layers, a_filters, a_strides, dropouts, kernel_sizes, rnn_dropouts,
+                 alg_name=None, tag_name=None, early_stopping=False, check_point=False):
+
+        super().__init__(alg_name=alg_name, tag_name=tag_name, early_stopping=early_stopping, check_point=check_point,
+                         saving_path=saving_path)
 
         if cnn_layers != len(a_filters) or cnn_layers != len(a_strides) or cnn_layers != len(
                 rnn_dropouts) or cnn_layers != len(dropouts):
@@ -28,21 +31,13 @@ class ConvLSTM():
         self.rnn_dropout = rnn_dropouts
         self.kernel_sizes = kernel_sizes
 
-        self.n_timsteps = n_timsteps
-        self.height = height
-        self.weight = weight
-        self.depth = depth
+        self.n_timsteps = input_shape[0]
+        self.height = input_shape[1]
+        self.weight = input_shape[2]
+        self.depth = input_shape[3]
         self.saving_path = saving_path
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
-
-        if check_point:
-            self.checkpoints = ModelCheckpoint(self.saving_path + "weights-{epoch:02d}-{val_acc:.2f}.hdf5",
-                                               monitor='val_acc', verbose=1,
-                                               save_best_only=False,
-                                               save_weights_only=True,
-                                               mode='auto', period=1)
-            self.callbacks_list = [self.checkpoints]
 
         self.model = Sequential()
 

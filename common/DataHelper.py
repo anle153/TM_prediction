@@ -5,14 +5,14 @@ from math import sqrt, log
 import scipy.io as sio
 from pandas import DataFrame
 from pandas import concat
+from scipy.signal import argrelextrema
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.preprocessing import MinMaxScaler
 from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import acf
-from scipy.signal import argrelextrema
+from tensorflow.python.client import device_lib
 
 from FlowClassification.SpatialClustering import *
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.python.client import device_lib
 
 HOME = os.path.expanduser('~')
 

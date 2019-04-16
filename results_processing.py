@@ -1,5 +1,6 @@
-from Utils.DataHelper import *
 from Utils.DataPreprocessing import *
+
+from common.DataHelper import *
 
 HIDDEN_DIM = 100
 

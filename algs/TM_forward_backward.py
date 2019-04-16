@@ -4,7 +4,7 @@ config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
-from RNN import *
+from algs.RNN import *
 from common.DataHelper import *
 from Utils.DataPreprocessing import *
 

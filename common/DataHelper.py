@@ -7,7 +7,6 @@ from pandas import DataFrame
 from pandas import concat
 from scipy.signal import argrelextrema
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.preprocessing import MinMaxScaler
 from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import acf
 from tensorflow.python.client import device_lib
@@ -89,34 +88,6 @@ def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_
              rl_backward * hyperparams[1] +
              cl * hyperparams[2] +
              flows_stds * hyperparams[3])
-
-    return w
-
-
-def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matrix, hyperparams):
-    """
-    :param rnn_input: shape = (time, od, od)
-    :param forward_pred: shape = (time, od, od)
-    :param backward_pred: the backward pred has been flipped, shape = (time, od, od)
-    :param measured_matrix: shape = (time, od, od)
-    :return:
-    """
-
-    eps = 10e-5
-
-    cl = calculate_consecutive_loss_3d(measured_matrix).astype(float)
-
-    flows_stds = np.std(rnn_input, axis=0)
-
-    cl_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(cl)
-    flows_stds_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(flows_stds)
-    rl_forward_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(rl_forward)
-    rl_backward_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(rl_backward)
-
-    w = 1 / (rl_forward_scaled * hyperparams[0] +
-             rl_backward_scaled * hyperparams[1] +
-             cl_scaled * hyperparams[2] +
-             flows_stds_scaled * hyperparams[3])
 
     return w
 

@@ -2,12 +2,11 @@ import fnmatch
 import os
 
 import matplotlib.pyplot as plt
-import numpy as np
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import model_from_json
 
 
-def plot_model_history(alg_name, tag, saving_path, model_history):
+def plot_training_history(alg_name, tag, saving_path, model_history):
     plt.plot(model_history.history['mean_absolute_error'], label='mae')
     plt.plot(model_history.history['val_mean_absolute_error'], label='val_mae')
     plt.legend()
@@ -17,9 +16,9 @@ def plot_model_history(alg_name, tag, saving_path, model_history):
 
 class AbstractModel(object):
 
-    def __init__(self, saving_path, alg_name=None, tag_name=None, early_stopping=False, check_point=False, **kwargs):
+    def __init__(self, saving_path, alg_name=None, tag=None, early_stopping=False, check_point=False, **kwargs):
         self.alg_name = alg_name
-        self.tag_name = tag_name
+        self.tag = tag
         self.saving_path = os.path.expanduser(saving_path)
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
@@ -27,11 +26,11 @@ class AbstractModel(object):
         self.callbacks_list = []
 
         if check_point:
-            if not os.path.isdir(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag_name)):
-                os.makedirs(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag_name))
+            if not os.path.isdir(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag)):
+                os.makedirs(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag))
             self.checkpoints = ModelCheckpoint(
                 self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name,
-                                                                self.tag_name) + "weights-{epoch:02d}-{val_acc:.2f}.hdf5",
+                                                                self.tag) + "weights-{epoch:02d}-{val_acc:.2f}.hdf5",
                 monitor='val_loss', verbose=1,
                 save_best_only=False,
                 save_weights_only=True,
@@ -52,7 +51,6 @@ class AbstractModel(object):
 
         # Serialize weights to HDF5
         self.model.save_weights(self.saving_path + model_weight_filename)
-        logger.log("RNN model was saved at {}".format(self.saving_path + model_json_filename))
 
     def load(self, model_json_file='trained_model.json', model_weight_file='trained_model.h5'):
 
@@ -66,29 +64,7 @@ class AbstractModel(object):
         self.model = model_from_json(model_json)
         self.model.load_weights(self.saving_path + model_weight_file)
 
-        logger.log("Models has been loaded from {}".format(self.saving_path + model_json_file))
         return True
-
-    def plot_model_history(self, model_history):
-        fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-        # summarize history for accuracy
-        axs[0].plot(range(1, len(model_history.history['acc']) + 1), model_history.history['acc'])
-        axs[0].plot(range(1, len(model_history.history['val_acc']) + 1), model_history.history['val_acc'])
-        axs[0].set_title('Models Accuracy')
-        axs[0].set_ylabel('Accuracy')
-        axs[0].set_xlabel('Epoch')
-        axs[0].set_xticks(np.arange(1, len(model_history.history['acc']) + 1), len(model_history.history['acc']) / 10)
-        axs[0].legend(['train', 'val'], loc='best')
-        # summarize history for loss
-        axs[1].plot(range(1, len(model_history.history['loss']) + 1), model_history.history['loss'])
-        axs[1].plot(range(1, len(model_history.history['val_loss']) + 1), model_history.history['val_loss'])
-        axs[1].set_title('Models Loss')
-        axs[1].set_ylabel('Loss')
-        axs[1].set_xlabel('Epoch')
-        axs[1].set_xticks(np.arange(1, len(model_history.history['loss']) + 1), len(model_history.history['loss']) / 10)
-        axs[1].legend(['train', 'val'], loc='best')
-        plt.savefig(self.saving_path + 'model_history.png')
-        plt.close()
 
     def load_trained_model(self, path, weight_file):
 
@@ -167,8 +143,8 @@ class AbstractModel(object):
                 print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
                 return -1
 
-    def plot_model_metrics(self, model_history):
-        plot_model_history(alg_name=self.alg_name,
-                           tag=self.tag_name,
+    def plot_training_history(self, model_history):
+        plot_training_history(alg_name=self.alg_name,
+                              tag=self.tag,
                            saving_path=self.saving_path,
                            model_history=model_history)

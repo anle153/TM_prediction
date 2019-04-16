@@ -49,7 +49,7 @@ def prepare_train_test_valid_set_3d(data, sampling_itvl=5, splitting_ratio=[0.6,
     return train_set, test_set, valid_set
 
 
-def prepare_train_test_set_3d(data, sampling_itvl=5, splitting_ratio=[0.8, 0.2]):
+def prepare_train_test_set_3d(data):
     """
     Divide raw dataset into train, test and valid set based on the splitting_ratio
     :param data: (numpy.ndarray) the raw data (the m x n Traffic Matrix)
@@ -58,15 +58,18 @@ def prepare_train_test_set_3d(data, sampling_itvl=5, splitting_ratio=[0.8, 0.2])
     :return: (numpy.ndarray) the train set, test set and valid set
     """
     n_timeslots = data.shape[0]
-    day_size = 24 * (60 / sampling_itvl)
+    day_size = 24 * (60 / 5)
     n_days = n_timeslots / day_size
 
-    train_size = int(n_days * splitting_ratio[0] * day_size)
+    train_size = int(n_days * 0.6 * day_size)
+
+    valid_size = int(n_days * 0.2 * day_size)
 
     train_set = data[0:train_size, :, :]
-    test_set = data[train_size:, :, :]
+    valid_set = data[train_size:train_size + valid_size, :, :]
+    test_set = data[train_size + valid_size:, :, :]
 
-    return train_set, test_set
+    return train_set, valid_set, test_set
 
 
 def prepare_train_test_valid_set(data, sampling_itvl=5, splitting_ratio=[0.6, 0.2, 0.2]):
@@ -735,7 +738,6 @@ def tm_3d_normalization(tm3d):
 
 ########################################################################################################################
 #                                            Convert TM into one hot vector                                            #
-########################################################################################################################
 
 def one_hot_encoder(data, max_v, min_v, unique_step, n_unique, connection=None):
     encoded_tm = np.empty((data.shape[0], 0, n_unique))
@@ -863,3 +865,97 @@ def parallel_create_xy_set_encoded(data, look_back, nproc):
         dataY = np.concatenate([dataY, ret_xy[proc_id][1]], axis=0)
 
     return dataX, dataY
+
+
+########################################################################################################################
+#                                        Generator training data                                                       #
+
+
+def generator_convlstm_train_data(data, input_shape, mon_ratio, eps, batch_size):
+    _tf = np.array([True, False])
+
+    ntimesteps = input_shape[0]
+    wide = input_shape[1]
+    high = input_shape[2]
+    channel = input_shape[3]
+
+    measured_matrix = np.empty(shape=(0, data.shape[1], data.shape[2]))
+
+    sampling_ratio_range = np.random.uniform(0.1, 0.4, data.shape[0])
+    for sampling_ratio in sampling_ratio_range:
+        measured_row = np.random.choice(_tf,
+                                        size=(1, data.shape[1], data.shape[2]),
+                                        p=(sampling_ratio, 1 - sampling_ratio))
+
+        measured_matrix = np.concatenate([measured_matrix, measured_row], axis=0)
+
+    _labels = measured_matrix.astype(int)
+    _data = np.copy(data)
+
+    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+
+    _data = np.expand_dims(_data, axis=3)
+    _labels = np.expand_dims(_labels, axis=3)
+
+    _data = np.concatenate([_data, _labels], axis=3)
+
+    dataX = np.zeros((batch_size, ntimesteps, wide, high, channel))
+    dataY = np.zeros((batch_size, ntimesteps, wide, high, 1))
+
+    while True:
+
+        indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
+        for i in range(batch_size):
+            idx = indices[i]
+
+            _x = _data[idx: (idx + ntimesteps), :, :, :]
+
+            dataX[i] = _x
+
+            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :]
+
+            dataY[i] = _y
+
+        yield dataX, dataX
+
+
+def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, batch_size):
+    _tf = np.array([True, False])
+
+    ntimesteps = input_shape[0]
+    wide = input_shape[1]
+    high = input_shape[2]
+    channel = input_shape[3]
+
+    measured_matrix = np.random.choice(_tf,
+                                       size=(data.shape[0], data.shape[1], data.shape[2]),
+                                       p=(mon_ratio, 1 - mon_ratio))
+    _labels = measured_matrix.astype(int)
+    _data = np.copy(data)
+
+    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+
+    _data = np.expand_dims(_data, axis=3)
+    _labels = np.expand_dims(_labels, axis=3)
+
+    _data = np.concatenate([_data, _labels], axis=3)
+
+    dataX = np.zeros((batch_size, ntimesteps, wide, high, channel))
+    dataY = np.zeros((batch_size, ntimesteps, wide, high, 1))
+
+    while True:
+
+        indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
+        for i in range(batch_size):
+            idx = indices[i]
+
+            _x = _data[idx: (idx + ntimesteps), :, :, :]
+
+            dataX[i] = _x
+
+            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :]
+
+            dataY[i] = _y
+
+        yield dataX, dataX

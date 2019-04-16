@@ -1,12 +1,13 @@
-from keras.layers import LSTM, Dense, Dropout, Activation, Bidirectional, TimeDistributed, RepeatVector
+import fnmatch
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed
 from keras.models import Sequential
 from keras.models import model_from_json
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
-import os, fnmatch
-import numpy as np
+
 from AttentionsLayer.custom_recurrents import AttentionDecoder
 
 

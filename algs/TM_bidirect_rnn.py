@@ -1,7 +1,6 @@
 from Utils.DataPreprocessing import *
-from sklearn.metrics import r2_score
 
-from RNN import *
+from algs.RNN import *
 from common.DataHelper import *
 
 # PATH CONFIGURATION

@@ -464,10 +464,10 @@ def noise_removed(data, sampling_interval=5, threshold=50):
 
 def create_abilene_data_3d(path):
     tm_3d = np.zeros(shape=(2016 * 24, 12, 12))
-    for i in range(1, 24, 1):
+    for i in range(1, 25, 1):
         raw_data = np.genfromtxt(path + 'X{:02d}'.format(i), delimiter=' ')
         tm = raw_data[:, range(0, 720, 5)].reshape(2016, 12, 12)
-        tm_3d[i:i * 2016, :, :] = tm
+        tm_3d[i - 1:i * 2016, :, :] = tm
 
     np.save(Config.DATA_PATH + 'Abilene.npy', tm_3d)
 

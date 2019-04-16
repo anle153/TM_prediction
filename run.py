@@ -1,9 +1,9 @@
 import numpy as np
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
+from common.Config import DATA_PATH
 from common.DataHelper import create_abilene_data_3d
 from common.cmd_utils import parse_unknown_args
-from common.convlstm_config import DATA_PATH
 
 
 def train(args):

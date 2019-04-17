@@ -37,14 +37,22 @@ def parse_cmdline_kwargs(args):
 
 
 def main(args):
+    import tensorflow as tf
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
     extra_args = parse_cmdline_kwargs(unknown_args)
 
-    if args.run_mode == 'training':
-        train(args)
-    else:
-        test(args)
+    gpu = args.gpu
+
+    if gpu is None:
+        gpu = 0
+
+    with tf.device('/device:GPU:{}'.format(gpu)):
+
+        if args.run_mode == 'training':
+            train(args)
+        else:
+            test(args)
 
     return
 

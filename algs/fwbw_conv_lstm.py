@@ -408,7 +408,7 @@ def train_fwbw_conv_lstm(data, args):
                 validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=fw_net.callbacks_list,
                 use_multiprocessing=True,
-                workers=4,
+                workers=2,
                 max_queue_size=1028)
         else:
             print('|--- Training new forward model.')
@@ -430,7 +430,7 @@ def train_fwbw_conv_lstm(data, args):
                 validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=fw_net.callbacks_list,
                 use_multiprocessing=True,
-                workers=4,
+                workers=2,
                 max_queue_size=1028)
 
         # Plot the training history
@@ -470,7 +470,7 @@ def train_fwbw_conv_lstm(data, args):
                 validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=bw_net.callbacks_list,
                 use_multiprocessing=True,
-                workers=4,
+                workers=2,
                 max_queue_size=1028)
 
         else:
@@ -495,7 +495,7 @@ def train_fwbw_conv_lstm(data, args):
                 validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=bw_net.callbacks_list,
                 use_multiprocessing=True,
-                workers=4,
+                workers=2,
                 max_queue_size=1028)
         if training_bw_history is not None:
             bw_net.plot_training_history(training_bw_history)

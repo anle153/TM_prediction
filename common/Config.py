@@ -1,5 +1,5 @@
 # Data Config
-DATA_PATH = './dataset/'
+DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
 

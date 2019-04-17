@@ -12,7 +12,7 @@ def train(args):
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    if 'fwbw-convlstm' in alg_name:
+    if 'fwbw-conv-lstm' in alg_name:
         train_func = train_fwbw_conv_lstm
     else:
         raise ValueError('Unkown alg!')

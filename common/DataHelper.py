@@ -466,8 +466,9 @@ def create_abilene_data_3d(path):
     tm_3d = np.zeros(shape=(2016 * 24, 12, 12))
     for i in range(24):
         raw_data = np.genfromtxt(path + 'X{:02d}'.format(i + 1), delimiter=' ')
-        tm = raw_data[:, range(0, 720, 5)].reshape(2016, 12, 12)
-        tm_3d[i * 2016:(i + 1) * 2016, :, :] = tm
+        tm = raw_data[:, range(0, 720, 5)]
+        for j in range(2016):
+            tm_3d[i * 2016 + j, :, :] = tm[j].reshape((12, 12))
 
     np.save(Config.DATA_PATH + 'Abilene.npy', tm_3d)
 

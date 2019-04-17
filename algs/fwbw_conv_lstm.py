@@ -406,7 +406,10 @@ def train_fwbw_conv_lstm(data, args):
                                                               0.5,
                                                               Config.BATCH_SIZE),
                 validation_steps=int(Config.NUM_ITER * 0.2),
-                callbacks=fw_net.callbacks_list)
+                callbacks=fw_net.callbacks_list,
+                use_multiprocessing=True,
+                workers=4,
+                max_queue_size=1028)
         else:
             print('|--- Training new forward model.')
 
@@ -425,7 +428,10 @@ def train_fwbw_conv_lstm(data, args):
                                                               0.5,
                                                               Config.BATCH_SIZE),
                 validation_steps=int(Config.NUM_ITER * 0.2),
-                callbacks=fw_net.callbacks_list)
+                callbacks=fw_net.callbacks_list,
+                use_multiprocessing=True,
+                workers=4,
+                max_queue_size=1028)
 
         # Plot the training history
         if training_fw_history is not None:
@@ -462,7 +468,10 @@ def train_fwbw_conv_lstm(data, args):
                                                               0.5,
                                                               Config.BATCH_SIZE),
                 validation_steps=int(Config.NUM_ITER * 0.2),
-                callbacks=bw_net.callbacks_list)
+                callbacks=bw_net.callbacks_list,
+                use_multiprocessing=True,
+                workers=4,
+                max_queue_size=1028)
 
         else:
             print('|--- Training new backward model.')
@@ -484,7 +493,10 @@ def train_fwbw_conv_lstm(data, args):
                                                               0.5,
                                                               Config.BATCH_SIZE),
                 validation_steps=int(Config.NUM_ITER * 0.2),
-                callbacks=bw_net.callbacks_list)
+                callbacks=bw_net.callbacks_list,
+                use_multiprocessing=True,
+                workers=4,
+                max_queue_size=1028)
         if training_bw_history is not None:
             bw_net.plot_training_history(training_bw_history)
 

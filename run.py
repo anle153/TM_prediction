@@ -45,7 +45,7 @@ def main(args):
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    print(data[0, :, :])
+    print(data[0:2, :, :])
 
     #
     # if args.run_mode == 'training':

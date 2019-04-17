@@ -917,7 +917,7 @@ def generator_convlstm_train_data(data, input_shape, mon_ratio, eps, batch_size)
 
             dataY[i] = _y
 
-        yield dataX, dataX
+        yield dataX, dataY
 
 
 def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, batch_size):
@@ -955,8 +955,9 @@ def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, b
 
             dataX[i] = _x
 
-            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :]
+            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
+            _y = np.expand_dims(_y, axis=3)
 
             dataY[i] = _y
 
-        yield dataX, dataX
+        yield dataX, dataY

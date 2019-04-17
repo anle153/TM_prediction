@@ -912,7 +912,8 @@ def generator_convlstm_train_data(data, input_shape, mon_ratio, eps, batch_size)
 
             dataX[i] = _x
 
-            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :]
+            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
+            _y = np.expand_dims(_y, axis=3)
 
             dataY[i] = _y
 

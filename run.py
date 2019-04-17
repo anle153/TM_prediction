@@ -4,7 +4,7 @@ import numpy as np
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
 from common.Config import DATA_PATH
-from common.DataHelper import create_abilene_data_3d
+# from common.DataHelper import create_abilene_data_3d
 from common.cmd_utils import parse_unknown_args
 
 
@@ -38,10 +38,10 @@ def parse_cmdline_kwargs(args):
 
 
 def main(args):
-    # configure logger, disable logging in child MPI processes (with rank > 0)
+    # create_abilene_data_3d('/home/anle/AbileneTM-all/')
+    data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    create_abilene_data_3d('/home/anle/AbileneTM-all/')
-
+    print(data[0, :, :])
     # arg_parser = common_arg_parser()
     # args, unknown_args = arg_parser.parse_known_args(args)
     # extra_args = parse_cmdline_kwargs(unknown_args)

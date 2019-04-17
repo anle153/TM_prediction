@@ -342,7 +342,7 @@ def build_model(args, input_shape):
                       alg_name=alg_name,
                       tag=tag,
                       check_point=True,
-                      saving_path=ConvlstmConfig.MODEL_SAVE + '[fw]{}-{}-{}/'.format(data_name, alg_name, tag))
+                      saving_path=Config.MODEL_SAVE + '[fw]{}-{}-{}/'.format(data_name, alg_name, tag))
 
     # CNN_BRNN backward model
     bw_net = ConvLSTM(input_shape=input_shape,
@@ -355,7 +355,7 @@ def build_model(args, input_shape):
                       alg_name=alg_name,
                       tag=tag,
                       check_point=True,
-                      saving_path=ConvlstmConfig.MODEL_SAVE + '[bw]{}-{}-{}/'.format(data_name, alg_name, tag))
+                      saving_path=Config.MODEL_SAVE + '[bw]{}-{}-{}/'.format(data_name, alg_name, tag))
 
     return fw_net, bw_net
 
@@ -381,9 +381,9 @@ def train_fwbw_conv_lstm(data, args):
     else:
         generator_train_data = generator_convlstm_train_data
 
-    if os.path.isfile(path=fw_net.saving_path + 'weights-%i-0.00.hdf5' % ConvlstmConfig.N_EPOCH):
+    if os.path.isfile(path=fw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
         print('|--- Forward model exist!')
-        fw_net.load_model_from_check_point(_from_epoch=ConvlstmConfig.N_EPOCH, weights_file_type='hdf5')
+        fw_net.load_model_from_check_point(_from_epoch=Config.N_EPOCH, weights_file_type='hdf5')
     else:
         print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
 
@@ -398,14 +398,14 @@ def train_fwbw_conv_lstm(data, args):
                                      input_shape,
                                      ConvlstmConfig.MON_RAIO,
                                      0.5,
-                                     ConvlstmConfig.BATCH_SIZE),
-                epochs=ConvlstmConfig.N_EPOCH,
-                steps_per_epoch=ConvlstmConfig.NUM_ITER,
+                                     Config.BATCH_SIZE),
+                epochs=Config.N_EPOCH,
+                steps_per_epoch=Config.NUM_ITER,
                 initial_epoch=from_epoch,
                 validation_data=generator_convlstm_train_data(valid_data, input_shape, ConvlstmConfig.MON_RAIO,
                                                               0.5,
-                                                              ConvlstmConfig.BATCH_SIZE),
-                validation_steps=int(ConvlstmConfig.NUM_ITER * 0.2),
+                                                              Config.BATCH_SIZE),
+                validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=fw_net.callbacks_list)
         else:
             print('|--- Training new forward model.')
@@ -418,13 +418,13 @@ def train_fwbw_conv_lstm(data, args):
                                      input_shape,
                                      None,
                                      0.5,
-                                     ConvlstmConfig.BATCH_SIZE),
-                epochs=ConvlstmConfig.N_EPOCH,
-                steps_per_epoch=ConvlstmConfig.NUM_ITER,
+                                     Config.BATCH_SIZE),
+                epochs=Config.N_EPOCH,
+                steps_per_epoch=Config.NUM_ITER,
                 validation_data=generator_convlstm_train_data(valid_data, input_shape, ConvlstmConfig.MON_RAIO,
                                                               0.5,
-                                                              ConvlstmConfig.BATCH_SIZE),
-                validation_steps=int(ConvlstmConfig.NUM_ITER * 0.2),
+                                                              Config.BATCH_SIZE),
+                validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=fw_net.callbacks_list)
 
         # Plot the training history
@@ -435,9 +435,9 @@ def train_fwbw_conv_lstm(data, args):
     vallid_data_bw = np.flip(valid_data, axis=0)
 
     # Training cnn_brnn backward model
-    if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % ConvlstmConfig.N_EPOCH):
+    if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
         print('|--- Backward model exist!')
-        bw_net.load_model_from_check_point(_from_epoch=ConvlstmConfig.N_EPOCH, weights_file_type='hdf5')
+        bw_net.load_model_from_check_point(_from_epoch=Config.N_EPOCH, weights_file_type='hdf5')
     else:
         print('|---Compile model. Saving path: %s' % bw_net.saving_path)
         # Load model from check point
@@ -452,16 +452,16 @@ def train_fwbw_conv_lstm(data, args):
                                      input_shape,
                                      ConvlstmConfig.MON_RAIO,
                                      0.5,
-                                     ConvlstmConfig.BATCH_SIZE),
-                epochs=ConvlstmConfig.N_EPOCH,
-                steps_per_epoch=ConvlstmConfig.NUM_ITER,
+                                     Config.BATCH_SIZE),
+                epochs=Config.N_EPOCH,
+                steps_per_epoch=Config.NUM_ITER,
                 initial_epoch=from_epoch_backward,
                 validation_data=generator_convlstm_train_data(vallid_data_bw,
                                                               input_shape,
                                                               ConvlstmConfig.MON_RAIO,
                                                               0.5,
-                                                              ConvlstmConfig.BATCH_SIZE),
-                validation_steps=int(ConvlstmConfig.NUM_ITER * 0.2),
+                                                              Config.BATCH_SIZE),
+                validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=bw_net.callbacks_list)
 
         else:
@@ -475,15 +475,15 @@ def train_fwbw_conv_lstm(data, args):
                                      input_shape,
                                      ConvlstmConfig.MON_RAIO,
                                      0.5,
-                                     ConvlstmConfig.BATCH_SIZE),
-                epochs=ConvlstmConfig.N_EPOCH,
-                steps_per_epoch=ConvlstmConfig.NUM_ITER,
+                                     Config.BATCH_SIZE),
+                epochs=Config.N_EPOCH,
+                steps_per_epoch=Config.NUM_ITER,
                 validation_data=generator_convlstm_train_data(vallid_data_bw,
                                                               input_shape,
                                                               ConvlstmConfig.MON_RAIO,
                                                               0.5,
-                                                              ConvlstmConfig.BATCH_SIZE),
-                validation_steps=int(ConvlstmConfig.NUM_ITER * 0.2),
+                                                              Config.BATCH_SIZE),
+                validation_steps=int(Config.NUM_ITER * 0.2),
                 callbacks=bw_net.callbacks_list)
         if training_bw_history is not None:
             bw_net.plot_training_history(training_bw_history)
@@ -530,12 +530,12 @@ def test_fwbw_conv_lstm(data, args):
 
     fw_net, bw_net = build_model(args, input_shape)
 
-    results_summary = pd.read_csv(ConvlstmConfig.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag))
+    results_summary = pd.read_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag))
 
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
-    for i in range(ConvlstmConfig.TESTING_TIME):
+    for i in range(Config.TESTING_TIME):
         tm_labels, iterated_multi_steps_tm = predict_fwbw_conv_lstm(test_data=test_data_normalized,
                                                                     forward_model=fw_net.model,
                                                                     backward_model=bw_net.model)
@@ -561,7 +561,7 @@ def test_fwbw_conv_lstm(data, args):
         r2_score_ims.append(calculate_r2_score(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
         rmse_ims.append(rmse_tm_prediction(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
 
-    results_summary['running_time'] = range(ConvlstmConfig.TESTING_TIME)
+    results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2_score'] = r2_score
     results_summary['rmse'] = rmse
@@ -569,7 +569,7 @@ def test_fwbw_conv_lstm(data, args):
     results_summary['r2_score_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(ConvlstmConfig.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
                            index=False)
 
     return

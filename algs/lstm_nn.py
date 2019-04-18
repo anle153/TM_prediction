@@ -115,6 +115,11 @@ def build_model(args, input_shape):
                alg_name=alg_name, tag=tag, check_point=True,
                saving_path=Config.MODEL_SAVE + '{}-{}-{}/fw/'.format(data_name, alg_name, tag))
 
+    if 'deep-lstm-nn' in alg_name:
+        net.seq2seq_deep_model_construction(n_layers=3)
+    else:
+        net.seq2seq_model_construction()
+
     return net
 
 
@@ -132,7 +137,6 @@ def train_lstm_nn(data, args):
 
     lstm_net = build_model(args, input_shape)
 
-    lstm_net.seq2seq_model_construction()
 
     if os.path.isfile(path=lstm_net.saving_path + 'model.json'):
         lstm_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')

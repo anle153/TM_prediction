@@ -52,21 +52,12 @@ class lstm(AbstractModel):
                 self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
             else:
                 self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
+                self.model.add(TimeDistributed(Dense(64)))
+                self.model.add(TimeDistributed(Dense(32)))
                 self.model.add(TimeDistributed(Dense(1)))
-
             if layer != 0:
                 self.model.add(Dropout(self.drop_out))
-
-    # def seq2seq_modelContruction_with_Attention(self):
-    #     """
-    #     Construct RNN model from the beginning
-    #     :param input_shape:
-    #     :param output_dim:
-    #     :return:
-    #     """
-    #     self.model = Sequential()
-    #     self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
-    #     self.model.add(AttentionDecoder(self.hidden, n_features))
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def deep_rnn_io_model_construction(self, n_layers=3):
         self.model = Sequential()

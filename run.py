@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
+from algs.lstm_nn import train_lstm_nn
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
 
@@ -19,6 +20,8 @@ def train(args):
 
     if 'fwbw-conv-lstm' in alg_name:
         train_func = train_fwbw_conv_lstm
+    elif 'lstm-nn' in alg_name:
+        train_func = train_lstm_nn
     else:
         raise ValueError('Unkown alg!')
 

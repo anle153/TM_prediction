@@ -1,6 +1,6 @@
 from Utils.DataPreprocessing import *
 
-from algs.RNN import *
+from Models.RNN_LSTM import *
 from common.DataHelper import *
 
 # PATH CONFIGURATION

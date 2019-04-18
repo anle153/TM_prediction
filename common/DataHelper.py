@@ -436,32 +436,6 @@ def load_Abilene_dataset_from_csv(csv_file_path='./Dataset/Abilene.csv'):
         return np.genfromtxt(csv_file_path, delimiter=',')
 
 
-def noise_removed(data, sampling_interval=5, threshold=50):
-    """
-    Remove noises in the data set
-    :param data: the raw data
-    :param sampling_interval: the sampling interval
-    :param threshold: if data > mean * threshold => data = data / threshold
-    :return:
-    """
-
-    # Split the traffic of each flow by day
-    day_size = date_size = 24 * 60 / sampling_interval
-    ndays = int(data.shape[0] / date_size) + (data.shape[0] % date_size > 0)
-
-    for day in xrange(ndays):
-        # Get flow by day
-        upper_bound = (day + 1) * date_size
-        if upper_bound > data.shape[0]:
-            upper_bound = data.shape[0]
-
-        traffics_by_day = data[day * date_size:upper_bound, :]
-        flow_means = np.expand_dims(np.mean(traffics_by_day, axis=0), axis=0)
-
-        traffics_by_day[traffics_by_day > flow_means * threshold] = \
-            traffics_by_day[traffics_by_day > flow_means * threshold] / threshold
-
-
 def create_abilene_data_3d(path):
     tm_3d = np.zeros(shape=(2016 * 24, 12, 12))
     for i in range(24):
@@ -471,6 +445,17 @@ def create_abilene_data_3d(path):
         tm_3d[i * 2016: (i + 1) * 2016, :, :] = tm
 
     np.save(Config.DATA_PATH + 'Abilene.npy', tm_3d)
+
+
+def create_abilene_data_2d(path):
+    tm_2d = np.zeros(shape=(2016 * 24, 144))
+    for i in range(24):
+        print('Read file X{:02d}'.format(i + 1))
+        raw_data = np.genfromtxt(path + 'X{:02d}'.format(i + 1), delimiter=' ')
+        tm = raw_data[:, range(0, 720, 5)]
+        tm_2d[i * 2016: (i + 1) * 2016, :] = tm
+
+    np.save(Config.DATA_PATH + 'Abilene2d.npy', tm_2d)
 
 ########################################################################################################################
 #                             Loading GEANT Traffic trace into Traffic Matrix from XML files                           #
@@ -601,62 +586,6 @@ def visualize_retsult_by_flows(y_true,
                 plt.close()
 
 
-# def visualize_results_by_timeslot(y_true,
-#                                   y_pred,
-#                                   measured_matrix,
-#                                   saving_path='/home/anle/TM_estimation_figures/',
-#                                   description='',
-#                                   ts_plot=-1,
-#                                   show=False):
-#     """
-#
-#     Visualize the original TM and the predicted TM of each measured time slot
-#     :param y_true: (numpy.ndarray) the measured TM
-#     :param y_pred: (numpy.ndarray) the predicted TM
-#     :param measured_matrix: (numpy.ndarray) identify which elements in the predicted TM are predicted using RNN
-#     :param saving_path: (str) path to saved figures directory
-#     :param description: (str) (optional) the description of this visualization
-#     :return:
-#     """
-#     now = datetime.datetime.now()
-#     description = description + '_' + str(now)
-#     if not os.path.exists(saving_path + description + '/'):
-#         os.makedirs(saving_path + description + '/')
-#
-#     path = saving_path + description + '/'
-#     a_nmse = []
-#     ts_range = y_true.shape[0] if ts_plot == -1 else ts_plot
-#     for ts in xrange(ts_range):
-#         print('--- Visualize tm at timeslot %i' % ts)
-#         y1 = y_true[ts, :]
-#         y2 = y_pred[ts, :]
-#         sampling = measured_matrix[ts, :]
-#         arg_sampling = np.argwhere(sampling == True).squeeze(axis=1)
-#         nmse = normalized_mean_squared_error(y_true=y1, y_hat=y2)
-#         plt.title('TM prediction at time slot %i' % ts + '\n NMSE: %.3f' % nmse)
-#         plt.plot(y1, label='Original Data')
-#         plt.plot(y2, label='Prediction Data')
-#         plt.legend()
-#         plt.xlabel('FlowID')
-#         plt.ylabel('Mbps')
-#         # Mark the measured data in the predicted data as red start
-#         plt.plot(arg_sampling, y2[arg_sampling], 'r*')
-#         plt.savefig(path + 'Timeslot_%i.png' % ts)
-#         if show:
-#             plt.show()
-#         plt.close()
-#
-#         a_nmse.append(nmse)
-#     # plt.title('TM estimation error over time')
-#     # plt.plot(a_nmse, label='NMSE')
-#     # plt.xlabel('Time')
-#     # # Mark the measured data in the predicted data as red start
-#     # # plt.plot(arg_sampling, y2[arg_sampling], 'r*')
-#     # print(a_nmse)
-#     # plt.savefig(path + 'TM_estimation_error.png')
-#     # plt.close()
-
-
 def plot_flow_acf(data):
     path = '/home/anle/TM_estimation_figures/ACF/'
     if not os.path.exists(path):
@@ -667,11 +596,6 @@ def plot_flow_acf(data):
         acf_plt = plot_acf(x=data[:, flowID], lags=288 * 3)
         plt.show()
         # acf_plt.savefig(path+'acf_flow_%i.png'%flowID)
-
-
-########################################################################################################################
-#                                                 Data visualization                                                   #
-########################################################################################################################
 
 
 def remove_zero_flow(data, eps=0.001):

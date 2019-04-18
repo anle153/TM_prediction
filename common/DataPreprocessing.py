@@ -94,24 +94,20 @@ def prepare_train_test_valid_set(data, sampling_itvl=5, splitting_ratio=[0.6, 0.
     return train_set, test_set, valid_set
 
 
-def prepare_train_test_set(data, sampling_itvl=5, splitting_ratio=[0.7, 0.3]):
-    """
-    Divide raw dataset into train and test set based on the splitting ratio.
-    :param data: (numpy.ndarray) the raw data (the m x n Traffic Matrix)
-    :param sampling_itvl: (int) the interval between each sample
-    :param splitting_ratio: (array) splitting ratio. Default: train 70%, test 35%
-    :return: (numpy.ndarray) the train set and test set
-    """
+def prepare_train_test_set(data):
     n_timeslots = data.shape[0]
-    day_size = 24 * (60 / sampling_itvl)
+    day_size = 24 * (60 / 5)
     n_days = n_timeslots / day_size
 
-    train_size = int(n_days * splitting_ratio[0]) * day_size
+    train_size = int(n_days * 0.6 * day_size)
+
+    valid_size = int(n_days * 0.2 * day_size)
 
     train_set = data[0:train_size, :]
-    test_set = data[train_size:, :]
+    valid_set = data[train_size:train_size + valid_size, :]
+    test_set = data[train_size + valid_size:, :]
 
-    return train_set, test_set
+    return train_set, valid_set, test_set
 
 
 def create_xy_set(data, look_back):
@@ -957,6 +953,43 @@ def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, b
 
             _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
             _y = np.expand_dims(_y, axis=3)
+
+            dataY[i] = _y
+
+        yield dataX, dataY
+
+
+def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
+    ntimesteps = input_shape[0]
+    features = input_shape[1]
+
+    _tf = np.array([True, False])
+    measured_matrix = np.random.choice(_tf,
+                                       size=(data.shape[0], data.shape[1]),
+                                       p=(mon_ratio, 1 - mon_ratio))
+    _labels = measured_matrix.astype(int)
+    dataX = np.zeros((batch_size, ntimesteps, features))
+    dataY = np.zeros((batch_size, ntimesteps))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+
+    while True:
+        flows = np.random.randint(0, _data.shape[0], size=batch_size)
+        indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
+
+        for i in range(batch_size):
+            flow = flows[i]
+            idx = indices[i]
+
+            _x = data[idx: (idx + ntimesteps), flow]
+            _label = _labels[idx: (idx + ntimesteps), flow]
+
+            _sample = np.array([_x, _label]).T
+            dataX[i] = _sample
+
+            _y = _data[(idx + 1):(idx + ntimesteps + 1), flow]
 
             dataY[i] = _y
 

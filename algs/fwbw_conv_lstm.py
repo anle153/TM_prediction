@@ -1,14 +1,9 @@
 import pandas as pd
-import tensorflow as tf
 
 import common.convlstm_config as ConvlstmConfig
 from Models.ConvLSTM_model import *
 from common.DataHelper import *
 from common.DataPreprocessing import *
-
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
 
 # PATH CONFIGURATION
 FIGURE_DIR = './figures/'
@@ -342,7 +337,7 @@ def build_model(args, input_shape):
                       alg_name=alg_name,
                       tag=tag,
                       check_point=True,
-                      saving_path=Config.MODEL_SAVE + '[fw]{}-{}-{}/'.format(data_name, alg_name, tag))
+                      saving_path=Config.MODEL_SAVE + '{}-{}-{}/fw/'.format(data_name, alg_name, tag))
 
     # CNN_BRNN backward model
     bw_net = ConvLSTM(input_shape=input_shape,
@@ -355,7 +350,7 @@ def build_model(args, input_shape):
                       alg_name=alg_name,
                       tag=tag,
                       check_point=True,
-                      saving_path=Config.MODEL_SAVE + '[bw]{}-{}-{}/'.format(data_name, alg_name, tag))
+                      saving_path=Config.MODEL_SAVE + '{}-{}-{}/bw/'.format(data_name, alg_name, tag))
 
     return fw_net, bw_net
 

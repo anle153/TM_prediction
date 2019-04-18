@@ -1,10 +1,15 @@
 import sys
 
 import numpy as np
+import tensorflow as tf
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
 
 
 def train(args):
@@ -37,7 +42,6 @@ def parse_cmdline_kwargs(args):
 
 
 def main(args):
-    import tensorflow as tf
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
     extra_args = parse_cmdline_kwargs(unknown_args)

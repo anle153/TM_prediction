@@ -31,8 +31,10 @@ LSTM_STEP = 26
 LSTM_FEATURES = 2
 LSTM_HIDDEN_UNIT = 64
 LSTM_DROPOUT = 0.5
-
 IMS_STEP = 26
+
+# Arima Config
+HISTORY_LENGTH = 10
 
 # Problem hyperparams
 MON_RAIO = None

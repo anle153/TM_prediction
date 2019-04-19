@@ -216,7 +216,7 @@ def test_lstm_nn(data, args):
 
     lstm_net = build_model(args, input_shape)
 
-    results_summary = pd.read_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag))
+    results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
 
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []

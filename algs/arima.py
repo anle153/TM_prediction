@@ -100,8 +100,6 @@ def test_arima(data, args):
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
     tf = np.array([True, False])
 
-    measured_matrix = np.random.choice(tf, size=(test_data_normalized.shape[0], test_data_normalized.shape[1]),
-                                       p=[Config.MON_RAIO, 1 - Config.MON_RAIO])
 
     results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
 
@@ -115,6 +113,9 @@ def test_arima(data, args):
 
         ims_pred_tm = np.zeros(
             shape=(test_data_normalized.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data_normalized.shape[1]))
+
+        measured_matrix = np.random.choice(tf, size=(test_data_normalized.shape[0], test_data_normalized.shape[1]),
+                                           p=[Config.MON_RAIO, 1 - Config.MON_RAIO])
 
         for flow_id in tqdm(range(test_data_normalized.shape[1])):
             training_set_series[flow_id].dropna(inplace=True)

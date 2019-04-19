@@ -35,9 +35,9 @@ def build_auto_arima(data):
 def calculate_ims_tm_test_data(test_data):
     ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data.shape[1]))
 
-    for ts in range(test_data.shape[0] - Config.IMS_STEP):
-        multi_step_test_set = test_data[(ts + Config.LSTM_STEP): (ts + Config.LSTM_STEP + Config.IMS_STEP), :]
-        ims_test_set[ts] = multi_step_test_set
+    for i in range(test_data.shape[0] - Config.IMS_STEP):
+        multi_step_test_set = test_data[(i + 1): (i + 1 + Config.IMS_STEP), :]
+        ims_test_set[i] = multi_step_test_set
 
     return ims_test_set
 
@@ -138,7 +138,8 @@ def test_arima(data, args):
 
                 output = model.predict(n_periods=Config.IMS_STEP)
 
-                flow_ims_pred.append(output)
+                if ts < (test_data_normalized.shape[0] - Config.IMS_STEP):
+                    flow_ims_pred.append(output)
 
                 yhat = output[0]
                 obs = test_data_normalized[ts, flow_id]
@@ -152,7 +153,7 @@ def test_arima(data, args):
                     predictions.append(yhat)
 
             pred_tm[:, flow_id] = predictions
-            ims_pred_tm[:, :, flow_id] = flow_ims_pred
+            ims_pred_tm[:, :, flow_id] = np.array(flow_ims_pred)
 
         pred_tm = pred_tm * std_train + mean_train
         ims_pred_tm = ims_pred_tm * std_train + mean_train

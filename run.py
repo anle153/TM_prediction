@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
 from algs.lstm_nn import train_lstm_nn
-from algs.arima import train_test_arima
+from algs.arima import train_arima
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
 
@@ -32,7 +32,7 @@ def train(args):
         elif 'lstm-nn' in alg_name:
             train_func = train_lstm_nn
         elif 'arima' in alg_name:
-            train_func = train_test_arima
+            train_func = train_arima
         else:
             raise ValueError('Unkown alg!')
 

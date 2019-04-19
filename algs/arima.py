@@ -9,6 +9,7 @@ from common.DataPreprocessing import prepare_train_test_set
 
 from pmdarima.arima import auto_arima
 from common import Config
+import pickle
 
 
 def build_auto_arima(data):
@@ -40,7 +41,43 @@ def calculate_ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def train_test_arima(args, data):
+def train_arima(args, data):
+    alg_name = args.alg
+    tag = args.tag
+    data_name = args.data_name
+
+    train_data, valid_data, test_data = prepare_train_test_set(data=data)
+
+    mean_train = np.mean(train_data)
+    std_train = np.std(train_data)
+    train_data = (train_data - mean_train) / std_train
+    valid_data = (valid_data - mean_train) / std_train
+
+    test_data_normalized = (test_data - mean_train) / std_train
+
+    training_set_series = []
+    for flow_id in range(train_data.shape[1]):
+        flow_frame = pd.Series(train_data[:, flow_id])
+        training_set_series.append(flow_frame)
+
+    import os
+    if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
+        os.makedirs(Config.MODEL_SAVE + 'arima/')
+
+    for flow_id in range(test_data_normalized.shape[1]):
+        training_set_series[flow_id].dropna(inplace=True)
+        flow_train = training_set_series[flow_id].values
+
+        history = [x for x in flow_train.astype(float)]
+
+        # Fit all historical data to auto_arima
+        model = build_auto_arima(history)
+
+        saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'wb')
+        pickle.dump(model, saved_model, 2)
+
+
+def test_arima(data, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -70,16 +107,19 @@ def train_test_arima(args, data):
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
+    import os
+    if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
+        os.makedirs(Config.MODEL_SAVE + 'arima/')
     for running_time in range(Config.TESTING_TIME):
 
         ims_pred_tm = np.zeros(shape=(test_data_normalized.shape[0], Config.IMS_STEP, test_data_normalized.shape[1]))
 
         for flow_id in range(test_data_normalized.shape[1]):
-
             training_set_series[flow_id].dropna(inplace=True)
             flow_train = training_set_series[flow_id].values
 
             history = [x for x in flow_train.astype(float)]
+
             predictions = list()
 
             measured_flow = measured_matrix[:, flow_id]
@@ -89,7 +129,9 @@ def train_test_arima(args, data):
             flow_ims_pred = []
 
             # Fit all historical data to auto_arima
-            model = build_auto_arima(history)
+
+            saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'rb')
+            model = pickle.load(saved_model)
 
             for ts in range(test_data_normalized.shape[0]):
 

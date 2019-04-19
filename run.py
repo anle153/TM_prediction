@@ -69,5 +69,5 @@ def main(args):
 
 
 if __name__ == '__main__':
-    create_abilene_data_2d('/home/anle/AbileneTM-all/')
-    # main(sys.argv)
+    # create_abilene_data_2d('/home/anle/AbileneTM-all/')
+    main(sys.argv)

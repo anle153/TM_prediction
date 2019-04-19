@@ -2,9 +2,9 @@ import sys
 
 import numpy as np
 
-from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
-from algs.lstm_nn import train_lstm_nn
-from algs.arima import train_arima
+from algs.fwbw_conv_lstm import train_fwbw_conv_lstm, test_fwbw_conv_lstm
+from algs.lstm_nn import train_lstm_nn, test_lstm_nn
+from algs.arima import train_arima, test_arima
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
 
@@ -15,12 +15,6 @@ def train(args):
     alg_name = args.alg
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
-    # gpu = args.gpu
-    #
-    # if gpu is None:
-    #     gpu = 0
-    #
-    # with tf.device('/device:GPU:{}'.format(gpu)):
 
     if 'fwbw-conv-lstm' in alg_name:
         train_func = train_fwbw_conv_lstm
@@ -35,7 +29,21 @@ def train(args):
 
 
 def test(args):
-    pass
+    alg_name = args.alg
+
+    data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
+
+    if 'fwbw-conv-lstm' in alg_name:
+        test_func = test_fwbw_conv_lstm
+    elif 'lstm-nn' in alg_name:
+        test_func = test_lstm_nn
+    elif 'arima' in alg_name:
+        test_func = test_arima
+    else:
+        raise ValueError('Unkown alg!')
+
+    test_func(args=args, data=data)
+
 
 
 def parse_cmdline_kwargs(args):

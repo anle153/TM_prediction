@@ -91,9 +91,7 @@ def train_test_arima(args, data):
 
             for ts in range(test_data_normalized.shape[0]):
 
-                model_fit = model.fit(disp=0, trend='nc')
-
-                output = model_fit.forecast(steps=Config.IMS_STEP)
+                output = model.forecast(steps=Config.IMS_STEP)
 
                 flow_ims_pred.append(output[0])
 

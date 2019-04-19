@@ -72,7 +72,7 @@ def train_test_arima(args, data):
 
     for running_time in range(Config.TESTING_TIME):
 
-        ims_pred_tm = np.empty(shape=(test_data_normalized.shape[0], Config.IMS_STEP, 0))
+        ims_pred_tm = np.zeros(shape=(test_data_normalized.shape[0], Config.IMS_STEP, test_data_normalized.shape[1]))
 
         for flow_id in range(test_data_normalized.shape[1]):
 
@@ -108,11 +108,8 @@ def train_test_arima(args, data):
                     history.append(yhat)
                     predictions.append(yhat)
 
-            measured_matrix = np.concatenate([measured_matrix, measured_flow], axis=1)
-
             pred_tm[:, flow_id] = predictions
-            flow_ims_pred = np.expand_dims(flow_ims_pred, axis=2)
-            ims_pred_tm = np.concatenate([ims_pred_tm, flow_ims_pred], axis=2)
+            ims_pred_tm[:, :, flow_id] = flow_ims_pred
 
         pred_tm = pred_tm * std_train + mean_train
         ims_pred_tm = ims_pred_tm * std_train + mean_train

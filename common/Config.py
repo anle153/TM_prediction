@@ -37,5 +37,5 @@ IMS_STEP = 26
 HISTORY_LENGTH = 10
 
 # Problem hyperparams
-MON_RAIO = None
+MON_RAIO = 0.3
 HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]

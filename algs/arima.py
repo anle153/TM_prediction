@@ -25,6 +25,8 @@ def build_auto_arima(data):
                        suppress_warnings=True,
                        stepwise=True)
 
+    model.fit(data)
+
     return model
 
 
@@ -91,7 +93,7 @@ def train_test_arima(args, data):
 
             for ts in range(test_data_normalized.shape[0]):
 
-                output = model.forecast(steps=Config.IMS_STEP)
+                output = model.predict(n_periods=Config.IMS_STEP)
 
                 flow_ims_pred.append(output[0])
 

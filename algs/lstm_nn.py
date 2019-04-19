@@ -2,8 +2,9 @@ import pandas as pd
 import tensorflow as tf
 
 from Models.RNN_LSTM import lstm
-from common.DataHelper import *
+from common import Config
 from common.DataPreprocessing import *
+from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -124,65 +125,71 @@ def build_model(args, input_shape):
 
 
 def train_lstm_nn(data, args):
-    print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_test_set(data=data)
-    print('|--- Normalizing the train set.')
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    train_data = (train_data - mean_train) / std_train
-    valid_data = (valid_data - mean_train) / std_train
-    test_data = (test_data - mean_train) / std_train
+    gpu = args.gpu
 
-    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
+    if gpu is None:
+        gpu = 0
 
-    lstm_net = build_model(args, input_shape)
+    with tf.device('/device:GPU:{}'.format(gpu)):
 
+        print('|--- Splitting train-test set.')
+        train_data, valid_data, test_data = prepare_train_test_set(data=data)
+        print('|--- Normalizing the train set.')
+        mean_train = np.mean(train_data)
+        std_train = np.std(train_data)
+        train_data = (train_data - mean_train) / std_train
+        valid_data = (valid_data - mean_train) / std_train
+        test_data = (test_data - mean_train) / std_train
 
-    if os.path.isfile(path=lstm_net.saving_path + 'model.json'):
-        lstm_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')
+        input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
-    else:
-        print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
-        from_epoch = lstm_net.load_model_from_check_point(weights_file_type='hdf5')
+        lstm_net = build_model(args, input_shape)
 
-        if from_epoch > 0:
+        if os.path.isfile(path=lstm_net.saving_path + 'model.json'):
+            lstm_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')
 
-            training_history = lstm_net.model.fit_generator(
-                generator_lstm_nn_train_data(data=train_data,
-                                             input_shape=input_shape,
-                                             mon_ratio=Config.MON_RAIO,
-                                             eps=0.5,
-                                             batch_size=Config.BATCH_SIZE),
-                epochs=Config.N_EPOCH,
-                steps_per_epoch=Config.NUM_ITER,
-                initial_epoch=from_epoch,
-                validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
-                                                             Config.BATCH_SIZE),
-                validation_steps=int(Config.NUM_ITER * 0.2),
-                callbacks=lstm_net.callbacks_list,
-                use_multiprocessing=True, workers=2, max_queue_size=1024
-            )
         else:
+            print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
+            from_epoch = lstm_net.load_model_from_check_point(weights_file_type='hdf5')
 
-            training_history = lstm_net.model.fit_generator(
-                generator_lstm_nn_train_data(data=train_data,
-                                             input_shape=input_shape,
-                                             mon_ratio=Config.MON_RAIO,
-                                             eps=0.5,
-                                             batch_size=Config.BATCH_SIZE),
-                epochs=Config.N_EPOCH,
-                steps_per_epoch=Config.NUM_ITER,
-                validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
-                                                             Config.BATCH_SIZE),
-                validation_steps=int(Config.NUM_ITER * 0.2),
-                callbacks=lstm_net.callbacks_list,
-                use_multiprocessing=True, workers=2, max_queue_size=1024
-            )
+            if from_epoch > 0:
 
-        if training_history is not None:
-            lstm_net.plot_training_history(training_history)
-    print('---------------------------------LSTM_NET SUMMARY---------------------------------')
-    print(lstm_net.model.summary())
+                training_history = lstm_net.model.fit_generator(
+                    generator_lstm_nn_train_data(data=train_data,
+                                                 input_shape=input_shape,
+                                                 mon_ratio=Config.MON_RAIO,
+                                                 eps=0.5,
+                                                 batch_size=Config.BATCH_SIZE),
+                    epochs=Config.N_EPOCH,
+                    steps_per_epoch=Config.NUM_ITER,
+                    initial_epoch=from_epoch,
+                    validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
+                                                                 Config.BATCH_SIZE),
+                    validation_steps=int(Config.NUM_ITER * 0.2),
+                    callbacks=lstm_net.callbacks_list,
+                    use_multiprocessing=True, workers=2, max_queue_size=1024
+                )
+            else:
+
+                training_history = lstm_net.model.fit_generator(
+                    generator_lstm_nn_train_data(data=train_data,
+                                                 input_shape=input_shape,
+                                                 mon_ratio=Config.MON_RAIO,
+                                                 eps=0.5,
+                                                 batch_size=Config.BATCH_SIZE),
+                    epochs=Config.N_EPOCH,
+                    steps_per_epoch=Config.NUM_ITER,
+                    validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
+                                                                 Config.BATCH_SIZE),
+                    validation_steps=int(Config.NUM_ITER * 0.2),
+                    callbacks=lstm_net.callbacks_list,
+                    use_multiprocessing=True, workers=2, max_queue_size=1024
+                )
+
+            if training_history is not None:
+                lstm_net.plot_training_history(training_history)
+        print('---------------------------------LSTM_NET SUMMARY---------------------------------')
+        print(lstm_net.model.summary())
 
     return
 

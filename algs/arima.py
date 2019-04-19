@@ -1,15 +1,15 @@
+import pickle
+
 import matplotlib
 import numpy as np
 import pandas as pd
+from pmdarima.arima import auto_arima
+
+from common import Config
+from common.DataPreprocessing import prepare_train_test_set
+from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
 
 matplotlib.use('Agg')
-
-from common.DataHelper import error_ratio, calculate_r2_score, rmse_tm_prediction
-from common.DataPreprocessing import prepare_train_test_set
-
-from pmdarima.arima import auto_arima
-from common import Config
-import pickle
 
 
 def build_auto_arima(data):

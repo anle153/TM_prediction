@@ -1,7 +1,6 @@
 import sys
 
 import numpy as np
-import tensorflow as tf
 
 from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
 from algs.lstm_nn import train_lstm_nn
@@ -11,32 +10,28 @@ from common.cmd_utils import parse_unknown_args, common_arg_parser
 
 from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
-
 
 def train(args):
     alg_name = args.alg
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
-    gpu = args.gpu
+    # gpu = args.gpu
+    #
+    # if gpu is None:
+    #     gpu = 0
+    #
+    # with tf.device('/device:GPU:{}'.format(gpu)):
 
-    if gpu is None:
-        gpu = 0
+    if 'fwbw-conv-lstm' in alg_name:
+        train_func = train_fwbw_conv_lstm
+    elif 'lstm-nn' in alg_name:
+        train_func = train_lstm_nn
+    elif 'arima' in alg_name:
+        train_func = train_arima
+    else:
+        raise ValueError('Unkown alg!')
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
-
-        if 'fwbw-conv-lstm' in alg_name:
-            train_func = train_fwbw_conv_lstm
-        elif 'lstm-nn' in alg_name:
-            train_func = train_lstm_nn
-        elif 'arima' in alg_name:
-            train_func = train_arima
-        else:
-            raise ValueError('Unkown alg!')
-
-        train_func(args=args, data=data)
+    train_func(args=args, data=data)
 
 
 def test(args):

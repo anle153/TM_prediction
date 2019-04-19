@@ -8,6 +8,7 @@ from pmdarima.arima import auto_arima
 from common import Config
 from common.DataPreprocessing import prepare_train_test_set
 from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
+import tqdm
 
 matplotlib.use('Agg')
 
@@ -114,7 +115,7 @@ def test_arima(data, args):
 
         ims_pred_tm = np.zeros(shape=(test_data_normalized.shape[0], Config.IMS_STEP, test_data_normalized.shape[1]))
 
-        for flow_id in range(test_data_normalized.shape[1]):
+        for flow_id in tqdm(range(test_data_normalized.shape[1])):
             training_set_series[flow_id].dropna(inplace=True)
             flow_train = training_set_series[flow_id].values
 

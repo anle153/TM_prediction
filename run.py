@@ -45,7 +45,6 @@ def test(args):
     test_func(args=args, data=data)
 
 
-
 def parse_cmdline_kwargs(args):
     def parse(v):
 

@@ -8,7 +8,7 @@ from pmdarima.arima import auto_arima
 from common import Config
 from common.DataPreprocessing import prepare_train_test_set
 from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
-import tqdm
+from tqdm import tqdm
 
 matplotlib.use('Agg')
 

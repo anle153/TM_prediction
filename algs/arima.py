@@ -38,7 +38,7 @@ def calculate_ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def arima(args, data):
+def train_test_arima(args, data):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name

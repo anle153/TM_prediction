@@ -95,9 +95,9 @@ def train_test_arima(args, data):
 
                 output = model.predict(n_periods=Config.IMS_STEP)
 
-                flow_ims_pred.append(output[0])
+                flow_ims_pred.append(output)
 
-                yhat = output[0][0]
+                yhat = output[0]
                 obs = test_data_normalized[ts, flow_id]
 
                 # Semi-recursive predicting

@@ -113,7 +113,8 @@ def test_arima(data, args):
         os.makedirs(Config.MODEL_SAVE + 'arima/')
     for running_time in range(Config.TESTING_TIME):
 
-        ims_pred_tm = np.zeros(shape=(test_data_normalized.shape[0], Config.IMS_STEP, test_data_normalized.shape[1]))
+        ims_pred_tm = np.zeros(
+            shape=(test_data_normalized.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data_normalized.shape[1]))
 
         for flow_id in tqdm(range(test_data_normalized.shape[1])):
             training_set_series[flow_id].dropna(inplace=True)

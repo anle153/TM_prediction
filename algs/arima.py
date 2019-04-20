@@ -187,11 +187,17 @@ def test_arima(data, args):
 def main(args):
     from common import Config
     from common.cmd_utils import common_arg_parser
+    import os
 
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
 
-    data = np.load(Config.DATA_PATH + 'Abilene2d.npy')
+    datapath = '/home/anle/TM_prediction/Dataset/Abilene2d.npy'
+
+    if not os.path.isfile(datapath):
+        from common.DataHelper import create_abilene_data_2d
+        create_abilene_data_2d('/home/anle/AbileneTM-all/')
+    data = np.load(datapath)
 
     test_arima(data, args)
 

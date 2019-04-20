@@ -100,7 +100,6 @@ def test_arima(data, args):
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
     tf = np.array([True, False])
 
-
     results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
 
     err, r2_score, rmse = [], [], []
@@ -186,3 +185,23 @@ def test_arima(data, args):
 
     results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
                            index=False)
+
+
+def main(args):
+    from common import Config
+    from common.cmd_utils import common_arg_parser
+
+    arg_parser = common_arg_parser()
+    args, unknown_args = arg_parser.parse_known_args(args)
+
+    data = np.load(Config.DATA_PATH + 'Abilene2d.npy')
+
+    test_arima(data, args)
+
+    return
+
+
+if __name__ == '__main__':
+    import sys
+
+    main(sys.argv)

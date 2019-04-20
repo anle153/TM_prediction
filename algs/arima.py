@@ -126,12 +126,9 @@ def test_arima(data, args):
 
             measured_flow = measured_matrix[:, flow_id]
 
-            # history = history[-int(Config.HISTORY_LENGTH * Config.LSTM_STEP):]
-
             flow_ims_pred = []
 
-            # Fit all historical data to auto_arima
-
+            # Load trained arima model
             saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'rb')
             model = pickle.load(saved_model)
 

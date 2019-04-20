@@ -158,9 +158,9 @@ def test_arima(data, args):
 
         measured_matrix = measured_matrix.astype(bool)
 
-        err.append(error_ratio(y_true=test_data_normalized, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
-        rmse.append(rmse_tm_prediction(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
+        err.append(error_ratio(y_true=test_data, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=np.copy(pred_tm)))
+        rmse.append(rmse_tm_prediction(y_true=test_data, y_pred=np.copy(pred_tm)))
 
         ims_test_set = calculate_ims_tm_test_data(test_data=test_data)
 

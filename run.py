@@ -2,9 +2,6 @@ import sys
 
 import numpy as np
 
-from algs.fwbw_conv_lstm import train_fwbw_conv_lstm, test_fwbw_conv_lstm
-from algs.lstm_nn import train_lstm_nn, test_lstm_nn
-from algs.arima import train_arima, test_arima
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
 
@@ -17,15 +14,16 @@ def train(args):
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
     if 'fwbw-conv-lstm' in alg_name:
-        train_func = train_fwbw_conv_lstm
+        from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
+        train_fwbw_conv_lstm(args=args, data=data)
     elif 'lstm-nn' in alg_name:
-        train_func = train_lstm_nn
+        from algs.lstm_nn import train_lstm_nn
+        train_lstm_nn(args=args, data=data)
     elif 'arima' in alg_name:
-        train_func = train_arima
+        from algs.arima import train_arima
+        train_arima(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
-
-    train_func(args=args, data=data)
 
 
 def test(args):
@@ -34,15 +32,16 @@ def test(args):
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
     if 'fwbw-conv-lstm' in alg_name:
-        test_func = test_fwbw_conv_lstm
+        from algs.fwbw_conv_lstm import test_fwbw_conv_lstm
+        test_fwbw_conv_lstm(args=args, data=data)
     elif 'lstm-nn' in alg_name:
-        test_func = test_lstm_nn
+        from algs.lstm_nn import test_lstm_nn
+        test_lstm_nn(args=args, data=data)
     elif 'arima' in alg_name:
-        test_func = test_arima
+        from algs.arima import test_arima
+        test_arima(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
-
-    test_func(args=args, data=data)
 
 
 def parse_cmdline_kwargs(args):

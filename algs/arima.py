@@ -139,6 +139,9 @@ def test_arima(data, args):
 
             for ts in range(test_data_normalized.shape[0]):
 
+                if (ts + 1) % 288 == 0:
+                    model = build_auto_arima(history)
+
                 output = model.predict(n_periods=Config.IMS_STEP)
 
                 if ts < (test_data_normalized.shape[0] - Config.IMS_STEP):

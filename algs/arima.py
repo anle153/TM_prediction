@@ -32,7 +32,7 @@ def build_auto_arima(data):
     return model
 
 
-def calculate_ims_tm_test_data(test_data):
+def ims_tm_test_data(test_data):
     ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data.shape[1]))
 
     for i in range(test_data.shape[0] - Config.IMS_STEP):
@@ -97,7 +97,6 @@ def test_arima(data, args):
         flow_frame = pd.Series(train_data[:, flow_id])
         training_set_series.append(flow_frame)
 
-    pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
     tf = np.array([True, False])
 
     results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
@@ -108,10 +107,16 @@ def test_arima(data, args):
     import os
     if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
         os.makedirs(Config.MODEL_SAVE + 'arima/')
-    for running_time in range(Config.TESTING_TIME):
 
-        ims_pred_tm = np.zeros(
-            shape=(test_data_normalized.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data_normalized.shape[1]))
+    ims_test_set = ims_tm_test_data(test_data=test_data)
+    measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
+
+    pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
+    ims_pred_tm = np.zeros(
+        shape=(test_data_normalized.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data_normalized.shape[1]))
+
+    for running_time in range(Config.TESTING_TIME):
+        print('|--- Run time: {}'.format(running_time))
 
         measured_matrix = np.random.choice(tf, size=(test_data_normalized.shape[0], test_data_normalized.shape[1]),
                                            p=[Config.MON_RAIO, 1 - Config.MON_RAIO])
@@ -158,17 +163,17 @@ def test_arima(data, args):
 
         measured_matrix = measured_matrix.astype(bool)
 
-        err.append(error_ratio(y_true=test_data, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
+        # Calculate error
+        err.append(error_ratio(y_true=test_data,
+                               y_pred=np.copy(pred_tm),
+                               measured_matrix=measured_matrix))
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=np.copy(pred_tm)))
         rmse.append(rmse_tm_prediction(y_true=test_data, y_pred=np.copy(pred_tm)))
 
-        ims_test_set = calculate_ims_tm_test_data(test_data=test_data)
-
-        measured_matrix = np.zeros(shape=ims_test_set.shape)
+        # Calculate error of ims
         err_ims.append(error_ratio(y_pred=ims_pred_tm,
                                    y_true=ims_test_set,
-                                   measured_matrix=measured_matrix))
-
+                                   measured_matrix=measured_matrix_ims))
         r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_pred_tm))
         rmse_ims.append(rmse_tm_prediction(y_true=ims_test_set, y_pred=ims_pred_tm))
 

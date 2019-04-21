@@ -71,5 +71,5 @@ def main(args):
 
 if __name__ == '__main__':
     # create_abilene_data_2d('/home/anle/AbileneTM-all/')
-    create_Geant2d()
-    # main(sys.argv)
+    # create_Geant2d()
+    main(sys.argv)

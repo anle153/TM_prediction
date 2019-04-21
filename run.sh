@@ -1,3 +1,3 @@
 #/usr/bin/bash
 
-python run.py --run_mode=test --alg=arima --tag=mon_30_update_288 --data_name=Abilene2d
+python run.py --run_mode=train --alg=lstm-nn --tag=mon30_lstm26 --data_name=Abilene2d

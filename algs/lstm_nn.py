@@ -168,7 +168,7 @@ def train_lstm_nn(data, args):
                                                                  Config.BATCH_SIZE),
                     validation_steps=int(Config.NUM_ITER * 0.2),
                     callbacks=lstm_net.callbacks_list,
-                    use_multiprocessing=True, workers=2, max_queue_size=1024
+                    use_multiprocessing=True, workers=4, max_queue_size=1024
                 )
             else:
 
@@ -185,7 +185,7 @@ def train_lstm_nn(data, args):
                                                                  Config.BATCH_SIZE),
                     validation_steps=int(Config.NUM_ITER * 0.2),
                     callbacks=lstm_net.callbacks_list,
-                    use_multiprocessing=True, workers=2, max_queue_size=1024
+                    use_multiprocessing=True, workers=4, max_queue_size=1024
                 )
 
             if training_history is not None:

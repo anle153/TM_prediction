@@ -347,7 +347,7 @@ def train_fwbw_conv_lstm(data, args):
 
         if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.N_EPOCH)):
             print('|--- Forward model exist!')
-            fw_net.load_model_from_check_point(_from_epoch=Config.N_EPOCH, weights_file_type='hdf5')
+            fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT, weights_file_type='hdf5')
         else:
             print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
 
@@ -407,7 +407,7 @@ def train_fwbw_conv_lstm(data, args):
         # Training cnn_brnn backward model
         if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
             print('|--- Backward model exist!')
-            bw_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')
+            bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT, weights_file_type='hdf5')
         else:
             print('|---Compile model. Saving path: %s' % bw_net.saving_path)
             # Load model from check point

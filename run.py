@@ -61,7 +61,7 @@ def main(args):
     args, unknown_args = arg_parser.parse_known_args(args)
     extra_args = parse_cmdline_kwargs(unknown_args)
 
-    if args.run_mode == 'training':
+    if 'train' in args.run_mode or 'training' in args.run_mode:
         train(args)
     else:
         test(args)

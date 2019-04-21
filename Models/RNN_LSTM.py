@@ -29,12 +29,6 @@ class lstm(AbstractModel):
         self.model.add(Dense(1))
 
     def seq2seq_model_construction(self):
-        """
-
-        :param n_timesteps:
-        :param n_features:
-        :return:
-        """
         self.model = Sequential()
         self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
         self.model.add(Dropout(self.drop_out))

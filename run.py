@@ -31,7 +31,7 @@ def test(args):
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    if 'fwbw-conv-lstm' in alg_name:
+    if 'fwbw-conv-lstm' in alg_name or 'convlstm' in alg_name:
         from algs.fwbw_conv_lstm import test_fwbw_conv_lstm
         test_fwbw_conv_lstm(args=args, data=data)
     elif 'lstm-nn' in alg_name:

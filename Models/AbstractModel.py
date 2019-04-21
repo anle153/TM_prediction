@@ -25,12 +25,13 @@ class AbstractModel(object):
 
         self.callbacks_list = []
 
+        self.checkpoints_path = self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag)
+
         if check_point:
-            if not os.path.isdir(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag)):
-                os.makedirs(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag))
+            if not os.path.isdir(self.checkpoints_path):
+                os.makedirs(self.checkpoints_path)
             self.checkpoints = ModelCheckpoint(
-                self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name,
-                                                                self.tag) + "weights-{epoch:02d}-{val_acc:.2f}.hdf5",
+                self.checkpoints_path + "weights-{epoch:02d}-{val_acc:.2f}.hdf5",
                 monitor='val_loss', verbose=1,
                 save_best_only=False,
                 save_weights_only=True,

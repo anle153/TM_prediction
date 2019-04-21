@@ -12,6 +12,8 @@ NUM_ITER = 10000
 
 # Testing config
 BEST_CHECKPOINT = 100
+FW_BEST_CHECKPOINT = 98
+BW_BEST_CHECKPOINT = 77
 
 # Config conv_lstm
 CNN_LAYERS = 2

@@ -307,6 +307,14 @@ def build_model(args, input_shape):
     return fw_net, bw_net
 
 
+def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
+    fw_net, bw_net = build_model(args, input_shape)
+    fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}-0.00.hdf5".format(fw_ckp))
+    bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}-0.00.hdf5".format(bw_ckp))
+
+    return fw_net, bw_net
+
+
 def train_fwbw_conv_lstm(data, args):
     gpu = args.gpu
 
@@ -490,7 +498,7 @@ def test_fwbw_conv_lstm(data, args):
     input_shape = (Config.LSTM_STEP,
                    Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
 
-    fw_net, bw_net = build_model(args, input_shape)
+    fw_net, bw_net = load_trained_models(args, input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
 
     results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
 

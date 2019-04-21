@@ -111,7 +111,7 @@ def test_arima(data, args):
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
-    ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP, test_data_normalized.shape[1]))
+    ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP + 1, test_data_normalized.shape[1]))
 
     for running_time in range(Config.TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))

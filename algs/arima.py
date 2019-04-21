@@ -125,11 +125,11 @@ def test_arima(data, args):
 
             history = [x for x in flow_train.astype(float)]
 
-            predictions = list()
+            predictions = np.zeros(shape=(test_data_normalized.shape[0]))
 
             measured_flow = measured_matrix[:, flow_id]
 
-            flow_ims_pred = list()
+            flow_ims_pred = np.zeros(shape=(test_data_normalized.shape[0] - Config.IMS_STEP + 1))
 
             # Load trained arima model
             saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'rb')
@@ -144,7 +144,7 @@ def test_arima(data, args):
                 output = model.predict(n_periods=Config.IMS_STEP)
 
                 if ts <= (test_data_normalized.shape[0] - Config.IMS_STEP):
-                    flow_ims_pred.append(output[-1])
+                    flow_ims_pred[ts] = output[-1]
 
                 yhat = output[0]
                 obs = test_data_normalized[ts, flow_id]
@@ -152,13 +152,13 @@ def test_arima(data, args):
                 # Semi-recursive predicting
                 if measured_flow[ts]:
                     history.append(obs)
-                    predictions.append(obs)
+                    predictions[ts] = obs
                 else:
                     history.append(yhat)
-                    predictions.append(yhat)
+                    predictions[ts] = yhat
 
             pred_tm[:, flow_id] = predictions
-            ims_pred_tm[:, flow_id] = np.array(flow_ims_pred)
+            ims_pred_tm[:, flow_id] = flow_ims_pred
 
         pred_tm = pred_tm * std_train + mean_train
         ims_pred_tm = ims_pred_tm * std_train + mean_train

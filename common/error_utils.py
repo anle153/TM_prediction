@@ -191,10 +191,10 @@ def recovery_loss(rnn_input, rnn_updated, measured_matrix):
 
 
 def calculate_r2_score(y_true, y_pred):
-    y_true = y_true.flatten()
-    y_pred = y_pred.flatten()
+    y_true_flatten = y_true.flatten()
+    y_pred_flatten = y_pred.flatten()
 
-    r2 = r2_score(y_true=y_true, y_pred=y_pred)
+    r2 = r2_score(y_true=y_true_flatten, y_pred=y_pred_flatten)
     return r2
 
 
@@ -237,14 +237,14 @@ def root_means_squared_error_by_day(y_true, y_pred, sampling_itvl):
         upperbound = (day + 1) * day_size if (day + 1) * day_size < y_true.shape[0] else y_true.shape[0]
         ytrue_by_day = y_true[day * day_size:upperbound, :]
         y_pred_by_day = y_pred[day * day_size:upperbound, :]
-        rmse_by_day.append(rmse_tm_prediction(ytrue_by_day, y_pred_by_day))
+        rmse_by_day.append(calculate_rmse(ytrue_by_day, y_pred_by_day))
     return rmse_by_day
 
 
-def rmse_tm_prediction(y_true, y_pred):
-    ytrue = y_true.flatten()
-    ypred = y_pred.flatten()
-    err = sqrt(np.sum(np.square(ytrue - ypred)) / ytrue.size)
+def calculate_rmse(y_true, y_pred):
+    ytrue_flatten = y_true.flatten()
+    ypred_flatten = y_pred.flatten()
+    err = sqrt(np.sum(np.square(ytrue_flatten - ypred_flatten)) / ytrue_flatten.size)
     return err
 
 
@@ -272,13 +272,13 @@ def calculate_error_ratio_by_day(y_true, y_pred, sampling_itvl, measured_matrix)
 
 
 def error_ratio(y_true, y_pred, measured_matrix):
-    y_true = y_true.flatten()
-    y_pred = y_pred.flatten()
+    y_true_flatten = y_true.flatten()
+    y_pred_flatten = y_pred.flatten()
     measured_matrix = measured_matrix.flatten()
     observated_indice = np.where(measured_matrix == False)
 
-    e1 = sqrt(np.sum(np.square(y_true[observated_indice] - y_pred[observated_indice])))
-    e2 = sqrt(np.sum(np.square(y_true[observated_indice])))
+    e1 = sqrt(np.sum(np.square(y_true_flatten[observated_indice] - y_pred_flatten[observated_indice])))
+    e2 = sqrt(np.sum(np.square(y_true_flatten[observated_indice])))
     if e2 == 0:
         return 0
     else:

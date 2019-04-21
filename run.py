@@ -5,7 +5,7 @@ import numpy as np
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
 
-from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d
+from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d
 
 
 def train(args):
@@ -71,4 +71,5 @@ def main(args):
 
 if __name__ == '__main__':
     # create_abilene_data_2d('/home/anle/AbileneTM-all/')
-    main(sys.argv)
+    create_Geant2d()
+    # main(sys.argv)

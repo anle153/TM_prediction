@@ -33,7 +33,7 @@ def create_abilene_data_2d(path):
 #                             Loading GEANT Traffic trace into Traffic Matrix from XML files                           #
 
 MATRIX_DIM = 23
-GEANT_XML_PATH = './GeantDataset/traffic-matrices-anonymized-v2/traffic-matrices'
+GEANT_XML_PATH = '/home/anle/GEANT_data/traffic-matrices/'
 
 
 def get_row(xmlRow):
@@ -42,7 +42,7 @@ def get_row(xmlRow):
     :param xmlRow: XML element "src"
     :return: Traffic row corresponds to the measured traffic of a source node.
     """
-    TM_row = [0] * MATRIX_DIM
+    TM_row = np.zeros(shape=23)
     for dst in xmlRow.iter('dst'):
         dstId = int(dst.get('id'))
         TM_row[dstId - 1] = float(dst.text)
@@ -50,12 +50,14 @@ def get_row(xmlRow):
     return TM_row
 
 
-def load_Geant_from_xml(datapath=GEANT_XML_PATH):
+def create_Geant2d(datapath=GEANT_XML_PATH):
     TM = np.empty((0, MATRIX_DIM * MATRIX_DIM))
 
     if os.path.exists(datapath):
         list_files = os.listdir(datapath)
         list_files = sorted(list_files, key=lambda x: x[:-4])
+
+        TM_t = np.zeros(shape=(23, 23))
 
         for file in list_files:
             if file.endswith(".xml"):
@@ -63,29 +65,13 @@ def load_Geant_from_xml(datapath=GEANT_XML_PATH):
                 data = et.parse(datapath + '/' + file)
                 root = data.getroot()
 
-                TM_t = []
                 for src in root.iter('src'):
                     TM_row = get_row(xmlRow=src)
-                    TM_t.append(TM_row)
+                    TM_t[int(src.get('id')) - 1] = TM_row
 
-                aRow = np.asarray(TM_t).reshape(1, MATRIX_DIM * MATRIX_DIM)
-                TM = np.concatenate([TM, aRow]) if TM.size else aRow
+                aRow = TM_t.reshape(1, MATRIX_DIM * MATRIX_DIM)
+                TM = np.concatenate([TM, aRow], axis=0)
 
-    return TM
+    np.save(Config.DATA_PATH + 'Geant2d.npy', TM)
 
-
-def load_Geant_from_csv(csv_file_path='./Dataset/Geant_noise_removed.csv'):
-    """
-
-    :param csv_file_path:
-    :return:
-    """
-    if os.path.exists(csv_file_path):
-        return np.genfromtxt(csv_file_path, delimiter=',')
-    else:
-        print('--- Find not found. Create Dataset from XML file ---')
-        data = load_Geant_from_xml(datapath=GEANT_XML_PATH) / 1000
-        noise_removed(data=data, sampling_interval=15, threshold=30)
-        np.savetxt(csv_file_path, data, delimiter=",")
-        return data
-
+    return

@@ -7,7 +7,7 @@ from pmdarima.arima import auto_arima
 
 from common import Config
 from common.DataPreprocessing import prepare_train_test_set
-from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 from tqdm import tqdm
 
 matplotlib.use('Agg')
@@ -33,11 +33,10 @@ def build_auto_arima(data):
 
 
 def ims_tm_test_data(test_data):
-    ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data.shape[1]))
+    ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
-    for i in range(test_data.shape[0] - Config.IMS_STEP):
-        multi_step_test_set = test_data[(i + 1): (i + 1 + Config.IMS_STEP), :]
-        ims_test_set[i] = multi_step_test_set
+    for i in range(Config.IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i] = test_data[i]
 
     return ims_test_set
 
@@ -51,14 +50,14 @@ def train_arima(args, data):
 
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
-    train_data = (train_data - mean_train) / std_train
-    valid_data = (valid_data - mean_train) / std_train
+    train_data_normalized = (train_data - mean_train) / std_train
+    valid_data_normalized = (valid_data - mean_train) / std_train
 
     test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []
-    for flow_id in range(train_data.shape[1]):
-        flow_frame = pd.Series(train_data[:, flow_id])
+    for flow_id in range(train_data_normalized.shape[1]):
+        flow_frame = pd.Series(train_data_normalized[:, flow_id])
         training_set_series.append(flow_frame)
 
     import os
@@ -87,14 +86,14 @@ def test_arima(data, args):
 
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
-    train_data = (train_data - mean_train) / std_train
-    valid_data = (valid_data - mean_train) / std_train
+    train_data_normalized = (train_data - mean_train) / std_train
+    valid_data_normalized = (valid_data - mean_train) / std_train
 
     test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []
-    for flow_id in range(train_data.shape[1]):
-        flow_frame = pd.Series(train_data[:, flow_id])
+    for flow_id in range(train_data_normalized.shape[1]):
+        flow_frame = pd.Series(train_data_normalized[:, flow_id])
         training_set_series.append(flow_frame)
 
     tf = np.array([True, False])
@@ -112,8 +111,7 @@ def test_arima(data, args):
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
-    ims_pred_tm = np.zeros(
-        shape=(test_data_normalized.shape[0] - Config.IMS_STEP, Config.IMS_STEP, test_data_normalized.shape[1]))
+    ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP, test_data_normalized.shape[1]))
 
     for running_time in range(Config.TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
@@ -131,7 +129,7 @@ def test_arima(data, args):
 
             measured_flow = measured_matrix[:, flow_id]
 
-            flow_ims_pred = []
+            flow_ims_pred = list()
 
             # Load trained arima model
             saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'rb')
@@ -144,8 +142,8 @@ def test_arima(data, args):
 
                 output = model.predict(n_periods=Config.IMS_STEP)
 
-                if ts < (test_data_normalized.shape[0] - Config.IMS_STEP):
-                    flow_ims_pred.append(output)
+                if ts <= (test_data_normalized.shape[0] - Config.IMS_STEP):
+                    flow_ims_pred.append(output[-1])
 
                 yhat = output[0]
                 obs = test_data_normalized[ts, flow_id]
@@ -159,7 +157,7 @@ def test_arima(data, args):
                     predictions.append(yhat)
 
             pred_tm[:, flow_id] = predictions
-            ims_pred_tm[:, :, flow_id] = np.array(flow_ims_pred)
+            ims_pred_tm[:, flow_id] = np.array(flow_ims_pred)
 
         pred_tm = pred_tm * std_train + mean_train
         ims_pred_tm = ims_pred_tm * std_train + mean_train
@@ -168,17 +166,17 @@ def test_arima(data, args):
 
         # Calculate error
         err.append(error_ratio(y_true=test_data,
-                               y_pred=np.copy(pred_tm),
+                               y_pred=pred_tm,
                                measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=np.copy(pred_tm)))
-        rmse.append(rmse_tm_prediction(y_true=test_data, y_pred=np.copy(pred_tm)))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
 
         # Calculate error of ims
         err_ims.append(error_ratio(y_pred=ims_pred_tm,
                                    y_true=ims_test_set,
                                    measured_matrix=measured_matrix_ims))
         r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_pred_tm))
-        rmse_ims.append(rmse_tm_prediction(y_true=ims_test_set, y_pred=ims_pred_tm))
+        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_pred_tm))
 
     results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err
@@ -188,7 +186,10 @@ def test_arima(data, args):
     results_summary['r2_score_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-mon-{}.csv'.format(data_name,
+                                                                              alg_name,
+                                                                              tag,
+                                                                              Config.MON_RAIO),
                            index=False)
 
 

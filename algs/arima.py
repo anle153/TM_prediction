@@ -179,6 +179,11 @@ def test_arima(data, args):
         r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_pred_tm))
         rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_pred_tm))
 
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time], rmse[running_time], r2_score[running_time],
+                                                          err_ims[running_time], rmse_ims[running_time],
+                                                          r2_score_ims[running_time]))
+
     results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2_score'] = r2_score

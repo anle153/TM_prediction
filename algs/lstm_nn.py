@@ -27,17 +27,17 @@ def prepare_input_online_prediction(data, labels):
     return dataX
 
 
-def ims_tm_prediction(ret_tm, rnn_model,
-                      ims_tm,
-                      labels):
-    multi_steps_tm = np.copy(ret_tm[-Config.LSTM_STEP:, :])
+def ims_tm_prediction(init_data, model, init_labels):
+    multi_steps_tm = np.zeros(shape=(init_data.shape[0] + Config.IMS_STEP, init_data.shape[1]))
+    multi_steps_tm[0:Config.LSTM_STEP, :] = init_data
 
-    measured_matrix = np.copy(labels)
+    labels = np.zeros(shape=(init_labels.shape[0] + Config.IMS_STEP, init_labels.shape[1]))
+    labels[0:Config.LSTM_STEP, :] = init_labels
 
     for ts_ahead in range(Config.IMS_STEP):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm,
                                                     labels=measured_matrix)
-        predictX = rnn_model.predict(rnn_input)
+        predictX = model.predict(rnn_input)
         pred = np.expand_dims(predictX[:, -1, 0], axis=0)
 
         sampling = np.zeros(shape=(1, pred.shape[1]))
@@ -46,32 +46,27 @@ def ims_tm_prediction(ret_tm, rnn_model,
         multi_steps_tm = np.concatenate([multi_steps_tm, pred], axis=0)
 
     multi_steps_tm = multi_steps_tm[Config.LSTM_STEP:, :]
-    multi_steps_tm = np.expand_dims(multi_steps_tm, axis=0)
 
-    iterated_multi_steps_tm = np.concatenate([ims_tm, multi_steps_tm], axis=0)
-
-    return iterated_multi_steps_tm
+    return multi_steps_tm[-1, :]
 
 
-def predict_lstm_nn(test_data, model):
-    # Initialize the first input for RNN to predict the TM at time slot look_back
-    ret_tm = np.copy(test_data[0:Config.LSTM_STEP, :])
-    # Results TM
-    # The TF array for random choosing the measured flows
+def predict_lstm_nn(init_data, test_data, model):
+
     tf = np.array([True, False])
-    measured_matrix = np.ones(shape=(ret_tm.shape[0], ret_tm.shape[1]))
+    labels = np.ones(shape=init_data.shape)
 
-    ims_tm = np.empty(shape=(0, Config.IMS_STEP, ret_tm.shape[1]))
+    tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+
+    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
     # Predict the TM from time slot look_back
     for ts in range(0, test_data.shape[0] - Config.LSTM_STEP, 1):
         # This block is used for iterated multi-step traffic matrices prediction
 
-        if ts < test_data.shape[0] - Config.LSTM_STEP - Config.IMS_STEP:
-            ims_tm_prediction(ret_tm=ret_tm,
-                              rnn_model=model,
-                              ims_tm=ims_tm,
-                              labels=measured_matrix)
+        if ts <= test_data.shape[0] - Config.IMS_STEP:
+            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP:, :],
+                                           model=model,
+                                           init_labels=labels[ts:ts + Config.LSTM_STEP:, :])
 
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=ret_tm, labels=measured_matrix)
@@ -117,7 +112,7 @@ def build_model(args, input_shape):
                hidden=Config.LSTM_HIDDEN_UNIT,
                drop_out=Config.LSTM_DROPOUT,
                alg_name=alg_name, tag=tag, check_point=True,
-               saving_path=Config.MODEL_SAVE + '{}-{}-{}/fw/'.format(data_name, alg_name, tag))
+               saving_path=Config.MODEL_SAVE + '{}-{}-{}/'.format(data_name, alg_name, tag))
 
     if 'deep-lstm-nn' in alg_name:
         net.seq2seq_deep_model_construction(n_layers=3)
@@ -140,9 +135,9 @@ def train_lstm_nn(data, args):
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
-        train_data = (train_data - mean_train) / std_train
-        valid_data = (valid_data - mean_train) / std_train
-        test_data = (test_data - mean_train) / std_train
+        train_data_normalized = (train_data - mean_train) / std_train
+        valid_data_normalized = (valid_data - mean_train) / std_train
+        # test_data_normalized = (test_data - mean_train) / std_train
 
         input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
@@ -158,7 +153,7 @@ def train_lstm_nn(data, args):
             if from_epoch > 0:
 
                 training_history = lstm_net.model.fit_generator(
-                    generator_lstm_nn_train_data(data=train_data,
+                    generator_lstm_nn_train_data(data=train_data_normalized,
                                                  input_shape=input_shape,
                                                  mon_ratio=Config.MON_RAIO,
                                                  eps=0.5,
@@ -166,7 +161,8 @@ def train_lstm_nn(data, args):
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
                     initial_epoch=from_epoch,
-                    validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
+                    validation_data=generator_lstm_nn_train_data(valid_data_normalized,
+                                                                 input_shape, Config.MON_RAIO, 0.5,
                                                                  Config.BATCH_SIZE),
                     validation_steps=int(Config.NUM_ITER * 0.2),
                     callbacks=lstm_net.callbacks_list,
@@ -175,14 +171,15 @@ def train_lstm_nn(data, args):
             else:
 
                 training_history = lstm_net.model.fit_generator(
-                    generator_lstm_nn_train_data(data=train_data,
+                    generator_lstm_nn_train_data(data=train_data_normalized,
                                                  input_shape=input_shape,
                                                  mon_ratio=Config.MON_RAIO,
                                                  eps=0.5,
                                                  batch_size=Config.BATCH_SIZE),
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
-                    validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
+                    validation_data=generator_lstm_nn_train_data(valid_data_normalized,
+                                                                 input_shape, Config.MON_RAIO, 0.5,
                                                                  Config.BATCH_SIZE),
                     validation_steps=int(Config.NUM_ITER * 0.2),
                     callbacks=lstm_net.callbacks_list,
@@ -218,6 +215,8 @@ def test_lstm_nn(data, args):
     print('|--- Normalizing the train set.')
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
+    # train_data_normalized = (train_data - mean_train) / std_train
+    valid_data_normalized = (valid_data - mean_train) / std_train
     test_data_normalized = (test_data - mean_train) / std_train
 
     print("|--- Create FWBW_CONVLSTM model.")
@@ -231,7 +230,8 @@ def test_lstm_nn(data, args):
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
     for i in range(Config.TESTING_TIME):
-        pred_tm, measured_matrix, ims_tm = predict_lstm_nn(test_data=test_data_normalized,
+        pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
+                                                           test_data=test_data_normalized,
                                                            model=lstm_net.model)
 
         pred_tm = pred_tm * std_train + mean_train

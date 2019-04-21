@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
+from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
@@ -157,12 +158,14 @@ def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_inpu
     return tm_labels
 
 
-def ims_tm_prediction(tm_labels, forward_model, backward_model,
-                      iterated_multi_steps_tm):
-    multi_steps_tm = np.copy(tm_labels[-Config.LSTM_STEP:, :, :, :])
+def ims_tm_prediction(init_data_labels, forward_model, backward_model):
+    multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.IMS_STEP,
+                                     init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
+
+    multi_steps_tm[0:init_data_labels.shape[0], :, :, :] = init_data_labels
 
     for ts_ahead in range(Config.IMS_STEP):
-        rnn_input = np.copy(multi_steps_tm[-Config.LSTM_STEP:, :, :, :])  # shape(timesteps, od, od , 2)
+        rnn_input = multi_steps_tm[-Config.LSTM_STEP:, :, :, :]  # shape(timesteps, od, od , 2)
 
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
@@ -190,7 +193,7 @@ def ims_tm_prediction(tm_labels, forward_model, backward_model,
 
         predict_tm = predictX[-1, :, :]
 
-        sampling = np.zeros(shape=(12, 12, 1))
+        sampling = np.zeros(shape=(Config.CNN_WIDE, Config.CNN_HIGH, 1))
 
         # Calculating the true value for the TM
         new_input = predict_tm
@@ -198,43 +201,29 @@ def ims_tm_prediction(tm_labels, forward_model, backward_model,
         # Concaternating the new tm to the final results
         # Shape = (12, 12, 2)
         new_input = np.concatenate([np.expand_dims(new_input, axis=2), sampling], axis=2)
-        new_input = np.expand_dims(new_input, axis=0)  # Shape = (1, 12, 12, 2)
-        multi_steps_tm = np.concatenate([multi_steps_tm, new_input], axis=0)  # Shape = (timestep, 12, 12, 2)
+        multi_steps_tm[ts_ahead + Config.LSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
 
-    multi_steps_tm = multi_steps_tm[Config.LSTM_STEP:, :, :, 0]
-    multi_steps_tm = np.expand_dims(multi_steps_tm, axis=0)
-
-    iterated_multi_steps_tm = np.concatenate([iterated_multi_steps_tm, multi_steps_tm], axis=0)
-
-    return iterated_multi_steps_tm
+    return multi_steps_tm[-1, :, :, 0]
 
 
-def predict_fwbw_conv_lstm(test_data, forward_model, backward_model):
-    # Initialize the first input for RNN to predict the TM at time slot look_back
-    rnn_input = np.copy(test_data[0:Config.LSTM_STEP, :, :])  # rnn input shape = (timeslot, od, od)
-    # Results TM
-    # The TF array for random choosing the measured flows
-    labels = np.ones((rnn_input.shape[0], rnn_input.shape[1], rnn_input.shape[2]))
-    tf = 7.2
+def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_model):
+    init_labels = np.ones((initial_data.shape[0], initial_data.shape[1], initial_data.shape[2]))
 
-    tm_labels = np.concatenate([np.expand_dims(rnn_input, axis=3), np.expand_dims(labels, axis=3)], axis=3)
+    tm_labels = np.zeros(
+        shape=(initial_data.shape[0] + test_data.shape[0], initial_data.shape[1], initial_data.shape[2], 2))
+    tm_labels[0:initial_data.shape[0], :, :, 0] = initial_data
+    tm_labels[0:init_labels.shape[0], :, :, 1] = init_labels
 
-    day_size = 24 * (60 / 5)
-    iterated_multi_steps_tm = np.zeros(shape=(test_data - Config.LSTM_STEP - Config.IMS_STEP, 12, 12))
+    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
 
-    # Predict the TM from time slot look_back
-    for ts in range(0, test_data.shape[0] - Config.LSTM_STEP, 1):
-        date = int(ts / day_size)
-        # print ('--- Predict at timeslot %i ---' % tslot)
+    for ts in tqdm(range(test_data.shape[0])):
 
-        if ts < test_data.shape[0] - Config.LSTM_STEP - Config.IMS_STEP:
-            iterated_multi_steps_tm = ims_tm_prediction(
-                tm_labels=tm_labels,
-                forward_model=forward_model,
-                backward_model=backward_model,
-                iterated_multi_steps_tm=iterated_multi_steps_tm)
+        if ts <= test_data.shape[0] - Config.IMS_STEP:
+            ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.LSTM_STEP, :, :, :],
+                                           forward_model=forward_model,
+                                           backward_model=backward_model)
 
-        rnn_input = np.copy(tm_labels[ts:(ts + Config.LSTM_STEP), :, :, :])  # shape(timesteps, od, od , 2)
+        rnn_input = tm_labels[ts:(ts + Config.LSTM_STEP), :, :, :]  # shape(timesteps, od, od , 2)
 
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
@@ -271,19 +260,17 @@ def predict_fwbw_conv_lstm(test_data, forward_model, backward_model):
         inv_sampling = np.invert(sampling)
 
         pred_tm = predict_tm * inv_sampling
-        corrected_data = np.copy(test_data[ts + Config.LSTM_STEP, :, :])
+        corrected_data = np.copy(test_data[ts, :, :])
         ground_truth = corrected_data * sampling
 
         # Calculating the true value for the TM
-        new_input = pred_tm + ground_truth
+        new_tm = pred_tm + ground_truth
 
         # Concaternating the new tm to the final results
-        # Shape = (12, 12, 2)
-        new_input = np.concatenate([np.expand_dims(new_input, axis=2), np.expand_dims(sampling, axis=2)], axis=2)
-        new_input = np.expand_dims(new_input, axis=0)  # Shape = (1, 12, 12, 2)
-        tm_labels = np.concatenate([tm_labels, new_input], axis=0)  # Shape = (timestep, 12, 12, 2)
+        new_tm = np.concatenate([np.expand_dims(new_tm, axis=2), np.expand_dims(sampling, axis=2)], axis=2)
+        tm_labels[ts + Config.LSTM_STEP] = new_tm  # Shape = (timestep, 12, 12, 2)
 
-    return tm_labels, iterated_multi_steps_tm
+    return tm_labels[Config.LSTM_STEP:, :, :, :], ims_tm
 
 
 def build_model(args, input_shape):
@@ -333,9 +320,9 @@ def train_fwbw_conv_lstm(data, args):
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
-        train_data = (train_data - mean_train) / std_train
-        valid_data = (valid_data - mean_train) / std_train
-        test_data = (test_data - mean_train) / std_train
+        train_data_normalized = (train_data - mean_train) / std_train
+        valid_data_normalized = (valid_data - mean_train) / std_train
+        # test_data = (test_data - mean_train) / std_train
 
         print("|--- Create FWBW_CONVLSTM model.")
         input_shape = (Config.LSTM_STEP,
@@ -361,7 +348,7 @@ def train_fwbw_conv_lstm(data, args):
                                      metrics=['mse', 'mae', 'accuracy'])
                 print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
                 training_fw_history = fw_net.model.fit_generator(
-                    generator_train_data(train_data,
+                    generator_train_data(train_data_normalized,
                                          input_shape,
                                          Config.MON_RAIO,
                                          0.5,
@@ -369,7 +356,7 @@ def train_fwbw_conv_lstm(data, args):
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
                     initial_epoch=from_epoch,
-                    validation_data=generator_convlstm_train_data(valid_data, input_shape, Config.MON_RAIO,
+                    validation_data=generator_convlstm_train_data(valid_data_normalized, input_shape, Config.MON_RAIO,
                                                                   0.5,
                                                                   Config.BATCH_SIZE),
                     validation_steps=int(Config.NUM_ITER * 0.2),
@@ -384,14 +371,14 @@ def train_fwbw_conv_lstm(data, args):
                                      metrics=['mse', 'mae', 'accuracy'])
 
                 training_fw_history = fw_net.model.fit_generator(
-                    generator_train_data(train_data,
+                    generator_train_data(train_data_normalized,
                                          input_shape,
                                          None,
                                          0.5,
                                          Config.BATCH_SIZE),
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
-                    validation_data=generator_convlstm_train_data(valid_data, input_shape, Config.MON_RAIO,
+                    validation_data=generator_convlstm_train_data(valid_data_normalized, input_shape, Config.MON_RAIO,
                                                                   0.5,
                                                                   Config.BATCH_SIZE),
                     validation_steps=int(Config.NUM_ITER * 0.2),
@@ -404,8 +391,8 @@ def train_fwbw_conv_lstm(data, args):
             if training_fw_history is not None:
                 fw_net.plot_training_history(training_fw_history)
 
-        train_data_bw = np.flip(train_data, axis=0)
-        vallid_data_bw = np.flip(valid_data, axis=0)
+        train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
+        valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
 
         # Training cnn_brnn backward model
         if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
@@ -421,7 +408,7 @@ def train_fwbw_conv_lstm(data, args):
                                      metrics=['mse', 'mae', 'accuracy'])
 
                 training_bw_history = bw_net.model.fit_generator(
-                    generator_train_data(train_data_bw,
+                    generator_train_data(train_data_bw_normalized,
                                          input_shape,
                                          Config.MON_RAIO,
                                          0.5,
@@ -429,7 +416,7 @@ def train_fwbw_conv_lstm(data, args):
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
                     initial_epoch=from_epoch_backward,
-                    validation_data=generator_convlstm_train_data(vallid_data_bw,
+                    validation_data=generator_convlstm_train_data(valid_data_bw_normalized,
                                                                   input_shape,
                                                                   Config.MON_RAIO,
                                                                   0.5,
@@ -447,14 +434,14 @@ def train_fwbw_conv_lstm(data, args):
                                      metrics=['mse', 'mae', 'accuracy'])
 
                 training_bw_history = bw_net.model.fit_generator(
-                    generator_train_data(train_data_bw,
+                    generator_train_data(train_data_bw_normalized,
                                          input_shape,
                                          Config.MON_RAIO,
                                          0.5,
                                          Config.BATCH_SIZE),
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
-                    validation_data=generator_convlstm_train_data(vallid_data_bw,
+                    validation_data=generator_convlstm_train_data(valid_data_bw_normalized,
                                                                   input_shape,
                                                                   Config.MON_RAIO,
                                                                   0.5,
@@ -475,18 +462,14 @@ def train_fwbw_conv_lstm(data, args):
     return
 
 
-def calculate_lstm_iterated_multi_step_tm_prediction_errors(test_set):
-    iterated_multi_step_test_set = np.zeros(
-        shape=(test_set.shape[0] - Config.LSTM_STEP - Config.IMS_STEP,
-               Config.IMS_STEP, test_set.shape[1],
-               test_set.shape[2]))
+def ims_tm_ytrue(test_data):
+    ims_test_set = np.zeros(
+        shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
 
-    for ts in range(test_set.shape[0] - Config.LSTM_STEP - Config.IMS_STEP):
-        multi_step_test_set = np.copy(
-            test_set[(ts + Config.LSTM_STEP): (ts + Config.LSTM_STEP + Config.IMS_STEP), :, :])
-        iterated_multi_step_test_set[ts] = multi_step_test_set
+    for i in range(Config.IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.IMS_STEP + 1] = test_data[i]
 
-    return iterated_multi_step_test_set
+    return ims_test_set
 
 
 def test_fwbw_conv_lstm(data, args):
@@ -499,8 +482,8 @@ def test_fwbw_conv_lstm(data, args):
     print('|--- Normalizing the train set.')
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
-    train_data = (train_data - mean_train) / std_train
-    valid_data = (valid_data - mean_train) / std_train
+    # train_data_normalized = (train_data - mean_train) / std_train
+    valid_data_normalized = (valid_data - mean_train) / std_train
     test_data_normalized = (test_data - mean_train) / std_train
 
     print("|--- Create FWBW_CONVLSTM model.")
@@ -514,31 +497,35 @@ def test_fwbw_conv_lstm(data, args):
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
+    measured_matrix_ims = np.zeros((test_data.shape[0] - Config.IMS_STEP + 1, Config.CNN_WIDE, Config.CNN_HIGH))
+
     for i in range(Config.TESTING_TIME):
-        tm_labels, iterated_multi_steps_tm = predict_fwbw_conv_lstm(test_data=test_data_normalized,
-                                                                    forward_model=fw_net.model,
-                                                                    backward_model=bw_net.model)
+        print('|--- Run time {}'.format(i))
+
+        tm_labels, ims_tm = predict_fwbw_conv_lstm(
+            initial_data=valid_data_normalized[-Config.LSTM_STEP:, :, :],
+            test_data=test_data_normalized,
+            forward_model=fw_net.model,
+            backward_model=bw_net.model)
 
         pred_tm = tm_labels[:, :, :, 0]
         measured_matrix = tm_labels[:, :, :, 1]
 
         pred_tm = pred_tm * std_train + mean_train
 
-        err.append(error_ratio(y_true=test_data_normalized, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
-        rmse.append(calculate_rmse(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
 
-        iterated_multi_steps_tm = iterated_multi_steps_tm * std_train + mean_train
+        ims_tm = ims_tm * std_train + mean_train
+        ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
-        iterated_multi_step_test_set = calculate_lstm_iterated_multi_step_tm_prediction_errors(test_set=test_data)
+        err_ims.append(error_ratio(y_pred=ims_tm,
+                                   y_true=ims_ytrue,
+                                   measured_matrix=measured_matrix_ims))
 
-        measured_matrix = np.zeros(shape=iterated_multi_step_test_set.shape)
-        err_ims.append(error_ratio(y_pred=iterated_multi_steps_tm,
-                                   y_true=iterated_multi_step_test_set,
-                                   measured_matrix=measured_matrix))
-
-        r2_score_ims.append(calculate_r2_score(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
-        rmse_ims.append(calculate_rmse(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
+        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm))
+        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm))
 
     results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err

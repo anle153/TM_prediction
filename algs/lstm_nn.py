@@ -104,6 +104,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
 
 def build_model(args, input_shape):
+    print('|--- Build models.')
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -123,6 +124,7 @@ def build_model(args, input_shape):
 
 
 def train_lstm_nn(data, args):
+    print('|-- Run model training.')
     gpu = args.gpu
 
     if gpu is None:

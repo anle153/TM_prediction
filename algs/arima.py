@@ -134,7 +134,7 @@ def test_arima(data, args):
             for ts in range(test_data_normalized.shape[0]):
 
                 if 'update' in tag and ((ts + 1) % 288 == 0):
-                    print('|--- Update arima model')
+                    print('|--- Update arima model at ts: {}'.format(ts))
                     model = build_auto_arima(history)
 
                 output = model.predict(n_periods=Config.IMS_STEP)

@@ -1,10 +1,16 @@
+import os
+
+import numpy as np
 import pandas as pd
 import tensorflow as tf
-from Models.ConvLSTM_model import *
-from common.DataHelper import *
-from common.DataPreprocessing import *
+from sklearn.preprocessing import MinMaxScaler
+
+from Models.ConvLSTM_model import ConvLSTM
+from common import Config
+from common.DataPreprocessing import prepare_train_valid_test_3d, generator_convlstm_train_data, \
+    generator_convlstm_train_data_fix_ratio
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
-    rmse_tm_prediction
+    calculate_rmse
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -151,8 +157,8 @@ def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_inpu
     return tm_labels
 
 
-def cnn_brnn_iterated_multi_step_tm_prediction(tm_labels, forward_model, backward_model,
-                                               iterated_multi_steps_tm):
+def ims_tm_prediction(tm_labels, forward_model, backward_model,
+                      iterated_multi_steps_tm):
     multi_steps_tm = np.copy(tm_labels[-Config.LSTM_STEP:, :, :, :])
 
     for ts_ahead in range(Config.IMS_STEP):
@@ -214,7 +220,7 @@ def predict_fwbw_conv_lstm(test_data, forward_model, backward_model):
     tm_labels = np.concatenate([np.expand_dims(rnn_input, axis=3), np.expand_dims(labels, axis=3)], axis=3)
 
     day_size = 24 * (60 / 5)
-    iterated_multi_steps_tm = np.empty(shape=(0, Config.IMS_STEP, 12, 12))
+    iterated_multi_steps_tm = np.zeros(shape=(test_data - Config.LSTM_STEP - Config.IMS_STEP, 12, 12))
 
     # Predict the TM from time slot look_back
     for ts in range(0, test_data.shape[0] - Config.LSTM_STEP, 1):
@@ -222,7 +228,7 @@ def predict_fwbw_conv_lstm(test_data, forward_model, backward_model):
         # print ('--- Predict at timeslot %i ---' % tslot)
 
         if ts < test_data.shape[0] - Config.LSTM_STEP - Config.IMS_STEP:
-            iterated_multi_steps_tm = cnn_brnn_iterated_multi_step_tm_prediction(
+            iterated_multi_steps_tm = ims_tm_prediction(
                 tm_labels=tm_labels,
                 forward_model=forward_model,
                 backward_model=backward_model,
@@ -323,7 +329,7 @@ def train_fwbw_conv_lstm(data, args):
     with tf.device('/device:GPU:{}'.format(gpu)):
 
         print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_test_set_3d(data=data)
+        train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data)
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
@@ -489,7 +495,7 @@ def test_fwbw_conv_lstm(data, args):
     data_name = args.data_name
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_test_set_3d(data=data)
+    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data)
     print('|--- Normalizing the train set.')
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
@@ -520,7 +526,7 @@ def test_fwbw_conv_lstm(data, args):
 
         err.append(error_ratio(y_true=test_data_normalized, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
         r2_score.append(calculate_r2_score(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
-        rmse.append(rmse_tm_prediction(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
+        rmse.append(calculate_rmse(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
 
         iterated_multi_steps_tm = iterated_multi_steps_tm * std_train + mean_train
 
@@ -532,7 +538,7 @@ def test_fwbw_conv_lstm(data, args):
                                    measured_matrix=measured_matrix))
 
         r2_score_ims.append(calculate_r2_score(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
-        rmse_ims.append(rmse_tm_prediction(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
+        rmse_ims.append(calculate_rmse(y_true=iterated_multi_step_test_set, y_pred=iterated_multi_steps_tm))
 
     results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err

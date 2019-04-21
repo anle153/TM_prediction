@@ -6,7 +6,7 @@ import pandas as pd
 from pmdarima.arima import auto_arima
 
 from common import Config
-from common.DataPreprocessing import prepare_train_test_set
+from common.DataPreprocessing import prepare_train_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 from tqdm import tqdm
 
@@ -46,13 +46,11 @@ def train_arima(args, data):
     tag = args.tag
     data_name = args.data_name
 
-    train_data, valid_data, test_data = prepare_train_test_set(data=data)
+    train_data, test_data = prepare_train_test_2d(data=data)
 
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
     train_data_normalized = (train_data - mean_train) / std_train
-    valid_data_normalized = (valid_data - mean_train) / std_train
-
     test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []
@@ -64,7 +62,7 @@ def train_arima(args, data):
     if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
         os.makedirs(Config.MODEL_SAVE + 'arima/')
 
-    for flow_id in range(test_data_normalized.shape[1]):
+    for flow_id in tqdm(range(test_data_normalized.shape[1])):
         training_set_series[flow_id].dropna(inplace=True)
         flow_train = training_set_series[flow_id].values
 
@@ -82,13 +80,11 @@ def test_arima(data, args):
     tag = args.tag
     data_name = args.data_name
 
-    train_data, valid_data, test_data = prepare_train_test_set(data=data)
+    train_data, test_data = prepare_train_test_2d(data=data)
 
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
     train_data_normalized = (train_data - mean_train) / std_train
-    valid_data_normalized = (valid_data - mean_train) / std_train
-
     test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []

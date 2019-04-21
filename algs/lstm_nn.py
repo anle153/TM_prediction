@@ -1,10 +1,13 @@
+import os
+
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 from Models.RNN_LSTM import lstm
 from common import Config
-from common.DataPreprocessing import *
-from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
+from common.DataPreprocessing import prepare_train_valid_test_2d, generator_lstm_nn_train_data
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -133,7 +136,7 @@ def train_lstm_nn(data, args):
     with tf.device('/device:GPU:{}'.format(gpu)):
 
         print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_test_set(data=data)
+        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
@@ -211,15 +214,14 @@ def test_lstm_nn(data, args):
     data_name = args.data_name
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_test_set_3d(data=data)
+    train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
     print('|--- Normalizing the train set.')
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
     test_data_normalized = (test_data - mean_train) / std_train
 
     print("|--- Create FWBW_CONVLSTM model.")
-    input_shape = (Config.LSTM_STEP,
-                   Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
+    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
     lstm_net = build_model(args, input_shape)
 
@@ -236,7 +238,7 @@ def test_lstm_nn(data, args):
 
         err.append(error_ratio(y_true=test_data_normalized, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
         r2_score.append(calculate_r2_score(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
-        rmse.append(rmse_tm_prediction(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
+        rmse.append(calculate_rmse(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
 
         ims_tm = ims_tm * std_train + mean_train
 
@@ -248,7 +250,7 @@ def test_lstm_nn(data, args):
                                    measured_matrix=measured_matrix))
 
         r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
-        rmse_ims.append(rmse_tm_prediction(y_true=ims_test_set, y_pred=ims_tm))
+        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))
 
     results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err

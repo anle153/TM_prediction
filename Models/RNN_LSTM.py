@@ -29,9 +29,17 @@ class lstm(AbstractModel):
         self.model.add(Dense(1))
 
     def seq2seq_model_construction(self):
+        """
+
+        :param n_timesteps:
+        :param n_features:
+        :return:
+        """
         self.model = Sequential()
         self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
         self.model.add(Dropout(self.drop_out))
+        self.model.add(TimeDistributed(Dense(64)))
+        self.model.add(TimeDistributed(Dense(32)))
         self.model.add(TimeDistributed(Dense(1)))
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
@@ -44,6 +52,8 @@ class lstm(AbstractModel):
                 self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
             else:
                 self.model.add(LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True))
+                self.model.add(TimeDistributed(Dense(64)))
+                self.model.add(TimeDistributed(Dense(32)))
                 self.model.add(TimeDistributed(Dense(1)))
             if layer != 0:
                 self.model.add(Dropout(self.drop_out))

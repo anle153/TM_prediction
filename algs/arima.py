@@ -36,7 +36,7 @@ def ims_tm_test_data(test_data):
     ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
     for i in range(Config.IMS_STEP - 1, test_data.shape[0], 1):
-        ims_test_set[i] = test_data[i]
+        ims_test_set[i - Config.IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 

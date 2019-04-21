@@ -25,7 +25,7 @@ class AbstractModel(object):
 
         self.callbacks_list = []
 
-        self.checkpoints_path = self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag)
+        self.checkpoints_path = self.saving_path + 'checkpoints/{}-{}/'.format(self.alg_name, self.tag)
 
         if check_point:
             if not os.path.isdir(self.checkpoints_path):

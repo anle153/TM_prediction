@@ -190,7 +190,7 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
     _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
 
     while True:
-        flows = np.random.randint(0, _data.shape[0], size=batch_size)
+        flows = np.random.randint(0, _data.shape[1], size=batch_size)
         indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
 
         for i in range(batch_size):

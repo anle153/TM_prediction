@@ -343,7 +343,7 @@ def train_fwbw_conv_lstm(data, args):
         else:
             generator_train_data = generator_convlstm_train_data
 
-        if os.path.isfile(path=fw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
+        if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.N_EPOCH)):
             print('|--- Forward model exist!')
             fw_net.load_model_from_check_point(_from_epoch=Config.N_EPOCH, weights_file_type='hdf5')
         else:

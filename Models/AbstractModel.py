@@ -80,12 +80,12 @@ class AbstractModel(object):
     def load_model_from_check_point(self, _from_epoch=0, weights_file_type='h5'):
 
         if weights_file_type == 'h5':
-            if os.path.exists(self.saving_path + '/checkpoints/'):
+            if os.path.exists(self.checkpoints_path):
 
-                list_weights_files = fnmatch.filter(os.listdir(self.saving_path + '/checkpoints/'), '*.h5')
+                list_weights_files = fnmatch.filter(os.listdir(self.checkpoints_path), '*.h5')
 
                 if len(list_weights_files) == 0:
-                    print('|--- Found no weights file at %s---' % self.saving_path + '/checkpoints/')
+                    print('|--- Found no weights file at %s---' % self.checkpoints_path)
                     return -1
 
                 list_weights_files = sorted(list_weights_files, key=lambda x: int(x.split('-')[1]))
@@ -113,12 +113,12 @@ class AbstractModel(object):
                 print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
                 return -1
         else:
-            if os.path.exists(self.saving_path + '/checkpoints/'):
-                list_files = fnmatch.filter(os.listdir(self.saving_path + '/checkpoints/'), '*.hdf5')
+            if os.path.exists(self.checkpoints_path):
+                list_files = fnmatch.filter(os.listdir(self.checkpoints_path), '*.hdf5')
 
                 if len(list_files) == 0:
                     print(
-                        '|--- Found no weights file at %s---' % self.saving_path + '/checkpoints/')
+                        '|--- Found no weights file at %s---' % self.checkpoints_path)
                     return -1
 
                 list_files = sorted(list_files, key=lambda x: int(x.split('-')[1]))
@@ -136,7 +136,7 @@ class AbstractModel(object):
                     weights_file_name = list_files[-1]
                     epoch = int(weights_file_name.split('-')[1])
 
-                if self.load_trained_model(path=self.saving_path + '/checkpoints/', weight_file=weights_file_name):
+                if self.load_trained_model(path=self.checkpoints_path, weight_file=weights_file_name):
                     return epoch
                 else:
                     return -1

@@ -183,7 +183,7 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
                                        p=(mon_ratio, 1 - mon_ratio))
     _labels = measured_matrix.astype(int)
     dataX = np.zeros((batch_size, ntimesteps, features))
-    dataY = np.zeros((batch_size, ntimesteps))
+    dataY = np.zeros((batch_size, ntimesteps, 1))
 
     _data = np.copy(data)
 
@@ -205,6 +205,6 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
 
             _y = _data[(idx + 1):(idx + ntimesteps + 1), flow]
 
-            dataY[i] = _y
+            dataY[i] = np.array(_y).reshape((ntimesteps, 1))
 
         yield dataX, dataY

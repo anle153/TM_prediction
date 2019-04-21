@@ -274,6 +274,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
 
 def build_model(args, input_shape):
+    print('|--- Build models.')
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -308,6 +309,7 @@ def build_model(args, input_shape):
 
 
 def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
+    print('|--- Load trained model')
     fw_net, bw_net = build_model(args, input_shape)
     fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}-0.00.hdf5".format(fw_ckp))
     bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}-0.00.hdf5".format(bw_ckp))
@@ -316,6 +318,7 @@ def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
 
 
 def train_fwbw_conv_lstm(data, args):
+    print('|-- Run model training.')
     gpu = args.gpu
 
     if gpu is None:
@@ -332,7 +335,6 @@ def train_fwbw_conv_lstm(data, args):
         valid_data_normalized = (valid_data - mean_train) / std_train
         # test_data = (test_data - mean_train) / std_train
 
-        print("|--- Create FWBW_CONVLSTM model.")
         input_shape = (Config.LSTM_STEP,
                        Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
 
@@ -481,6 +483,7 @@ def ims_tm_ytrue(test_data):
 
 
 def test_fwbw_conv_lstm(data, args):
+    print('|-- Run model testing.')
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -494,7 +497,6 @@ def test_fwbw_conv_lstm(data, args):
     valid_data_normalized = (valid_data - mean_train) / std_train
     test_data_normalized = (test_data - mean_train) / std_train
 
-    print("|--- Create FWBW_CONVLSTM model.")
     input_shape = (Config.LSTM_STEP,
                    Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
 

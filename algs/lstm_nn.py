@@ -145,7 +145,7 @@ def train_lstm_nn(data, args):
 
         lstm_net = build_model(args, input_shape)
 
-        if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
+        if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.N_EPOCH)):
             lstm_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')
 
         else:

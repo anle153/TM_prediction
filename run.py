@@ -8,6 +8,10 @@ from common.cmd_utils import parse_unknown_args, common_arg_parser
 from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d
 
 
+def print_info(args):
+    alg_name = args.alg
+    data_name = args.data_name
+
 def train(args):
     alg_name = args.alg
 

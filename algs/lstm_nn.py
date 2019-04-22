@@ -8,6 +8,7 @@ from Models.RNN_LSTM import lstm
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, generator_lstm_nn_train_data
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
+from tqdm import tqdm
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -60,7 +61,7 @@ def predict_lstm_nn(init_data, test_data, model):
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
     # Predict the TM from time slot look_back
-    for ts in range(0, test_data.shape[0] - Config.LSTM_STEP, 1):
+    for ts in tqdm(range(0, test_data.shape[0] - Config.LSTM_STEP, 1)):
         # This block is used for iterated multi-step traffic matrices prediction
 
         if ts <= test_data.shape[0] - Config.IMS_STEP:
@@ -207,6 +208,13 @@ def calculate_iterated_multi_step_tm_prediction_errors(test_set):
     return ims_test_set
 
 
+def load_trained_model(args, input_shape, best_ckp):
+    print('|--- Load trained model')
+    lstm_net = build_model(args, input_shape)
+    lstm_net.model.load_weights(lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
+    return lstm_net
+
+
 def test_lstm_nn(data, args):
     alg_name = args.alg
     tag = args.tag
@@ -224,7 +232,7 @@ def test_lstm_nn(data, args):
     print("|--- Create FWBW_CONVLSTM model.")
     input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
-    lstm_net = build_model(args, input_shape)
+    lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
 
     results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
 
@@ -232,6 +240,7 @@ def test_lstm_nn(data, args):
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
     for i in range(Config.TESTING_TIME):
+        print('|--- Running time: {}'.format(i))
         pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
                                                            test_data=test_data_normalized,
                                                            model=lstm_net.model)

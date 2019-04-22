@@ -83,7 +83,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         pred_input = pred.T * inv_sampling
 
-        ground_true = np.copy(test_data[ts, :])
+        ground_true = test_data[ts, :]
 
         measured_input = np.expand_dims(ground_true, axis=0) * sampling
 

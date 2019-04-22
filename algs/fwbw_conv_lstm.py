@@ -260,7 +260,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         inv_sampling = np.invert(sampling)
 
         pred_tm = predict_tm * inv_sampling
-        corrected_data = np.copy(test_data[ts, :, :])
+        corrected_data = test_data[ts, :, :]
         ground_truth = corrected_data * sampling
 
         # Calculating the true value for the TM
@@ -311,8 +311,8 @@ def build_model(args, input_shape):
 def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
     print('|--- Load trained model')
     fw_net, bw_net = build_model(args, input_shape)
-    fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}-0.00.hdf5".format(fw_ckp))
-    bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}-0.00.hdf5".format(bw_ckp))
+    fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}.hdf5".format(fw_ckp))
+    bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}.hdf5".format(bw_ckp))
 
     return fw_net, bw_net
 

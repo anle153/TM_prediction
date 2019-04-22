@@ -212,6 +212,13 @@ def test_lstm_nn(data, args):
     tag = args.tag
     data_name = args.data_name
 
+    print('|-- Run model training.')
+    gpu = args.gpu
+
+    if gpu is None:
+        gpu = 0
+
+
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
     print('|--- Normalizing the train set.')
@@ -233,26 +240,28 @@ def test_lstm_nn(data, args):
 
     ims_test_set = ims_tm_test_data(test_data=test_data)
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
-    for i in range(Config.TESTING_TIME):
-        print('|--- Running time: {}'.format(i))
-        pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
-                                                           test_data=test_data_normalized,
-                                                           model=lstm_net.model)
+    with tf.device('/device:GPU:{}'.format(gpu)):
 
-        pred_tm = pred_tm * std_train + mean_train
+        for i in range(Config.TESTING_TIME):
+            print('|--- Running time: {}'.format(i))
+            pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
+                                                               test_data=test_data_normalized,
+                                                               model=lstm_net.model)
 
-        err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+            pred_tm = pred_tm * std_train + mean_train
 
-        ims_tm = ims_tm * std_train + mean_train
+            err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
+            r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
+            rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
 
-        err_ims.append(error_ratio(y_pred=ims_tm,
-                                   y_true=ims_test_set,
-                                   measured_matrix=measured_matrix_ims))
+            ims_tm = ims_tm * std_train + mean_train
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
-        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))
+            err_ims.append(error_ratio(y_pred=ims_tm,
+                                       y_true=ims_test_set,
+                                       measured_matrix=measured_matrix_ims))
+
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))
 
     results_summary['running_time'] = range(Config.TESTING_TIME)
     results_summary['err'] = err

@@ -11,6 +11,15 @@ from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, cr
 def print_info(args):
     alg_name = args.alg
     data_name = args.data_name
+    tag = args.tag
+
+    print('----------------------- INFO -----------------------')
+    print('|--- Mode:\t{}'.format(args.run_mode))
+    print('|--- Alg:\t{}'.format(alg_name))
+    print('|--- Tag:\t{}'.format(tag))
+    print('|--- Data:\t{}'.format(data_name))
+    print('----------------------- ---- -----------------------')
+
 
 def train(args):
     alg_name = args.alg
@@ -64,6 +73,8 @@ def main(args):
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
     extra_args = parse_cmdline_kwargs(unknown_args)
+
+    print_info(args)
 
     if 'train' in args.run_mode or 'training' in args.run_mode:
         train(args)

@@ -321,9 +321,6 @@ def train_fwbw_conv_lstm(data, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
-    if gpu is None:
-        gpu = 0
-
     with tf.device('/device:GPU:{}'.format(gpu)):
 
         print('|--- Splitting train-test set.')

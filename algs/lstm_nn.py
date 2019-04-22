@@ -121,9 +121,6 @@ def train_lstm_nn(data, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
-    if gpu is None:
-        gpu = 0
-
     with tf.device('/device:GPU:{}'.format(gpu)):
 
         print('|--- Splitting train-test set.')
@@ -213,11 +210,7 @@ def test_lstm_nn(data, args):
     data_name = args.data_name
 
     print('|-- Run model training.')
-    gpu = args.gpu
-
-    if gpu is None:
-        gpu = 0
-
+    gpu = int(args.gpu)
 
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)

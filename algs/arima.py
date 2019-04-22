@@ -135,7 +135,10 @@ def test_arima(data, args):
 
                 if (ts % 288 == 0) and ts != 0:
                     print('|--- Update arima model at ts: {}'.format(ts))
-                    model = build_auto_arima(history)
+                    try:
+                        model = build_auto_arima(history)
+                    except:
+                        pass
 
                 output = model.predict(n_periods=Config.IMS_STEP)
 

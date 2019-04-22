@@ -83,7 +83,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         pred_input = pred.T * inv_sampling
 
-        ground_true = np.copy(test_data[ts + Config.LSTM_STEP, :])
+        ground_true = np.copy(test_data[ts, :])
 
         measured_input = np.expand_dims(ground_true, axis=0) * sampling
 
@@ -94,7 +94,7 @@ def predict_lstm_nn(init_data, test_data, model):
         # Concatenating new_input into current rnn_input
         tm_pred[ts + Config.LSTM_STEP] = new_input
 
-    return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP, :], ims_tm
+    return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP:, :], ims_tm
 
 
 def build_model(args, input_shape):

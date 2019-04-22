@@ -71,7 +71,7 @@ def train_arima(args, data):
         # Fit all historical data to auto_arima
         model = build_auto_arima(history)
 
-        saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'wb')
+        saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(flow_id, data_name, alg_name), 'wb')
         pickle.dump(model, saved_model, 2)
 
 
@@ -109,7 +109,7 @@ def test_arima(data, args):
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
     ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP + 1, test_data_normalized.shape[1]))
 
-    if not os.path.isfile(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(0, data_name, alg_name, tag)):
+    if not os.path.isfile(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(0, data_name, alg_name)):
         train_arima(args, data)
 
     for running_time in range(Config.TESTING_TIME):
@@ -131,7 +131,7 @@ def test_arima(data, args):
             flow_ims_pred = np.zeros(shape=(test_data_normalized.shape[0] - Config.IMS_STEP + 1))
 
             # Load trained arima model
-            saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(flow_id, data_name, alg_name, tag), 'rb')
+            saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(flow_id, data_name, alg_name), 'rb')
             model = pickle.load(saved_model)
 
             for ts in range(test_data_normalized.shape[0]):
@@ -194,10 +194,9 @@ def test_arima(data, args):
     results_summary['r2_score_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-mon-{}.csv'.format(data_name,
-                                                                              alg_name,
-                                                                              tag,
-                                                                              Config.MON_RAIO),
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name,
+                                                                       alg_name,
+                                                                       tag),
                            index=False)
 
 

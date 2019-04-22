@@ -39,10 +39,7 @@ def ims_tm_prediction(init_data, model, init_labels):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm,
                                                     labels=labels)
         predictX = model.predict(rnn_input)
-        print('|-- shape {}'.format(predictX.shape))
-        multi_steps_tm[ts_ahead] = predictX[:, -1, 0]
-
-    multi_steps_tm = multi_steps_tm[Config.LSTM_STEP:, :]
+        multi_steps_tm[ts_ahead] = predictX[:, -1, 0].T
 
     return multi_steps_tm[-1, :]
 
@@ -57,7 +54,7 @@ def predict_lstm_nn(init_data, test_data, model):
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
     # Predict the TM from time slot look_back
-    for ts in tqdm(range(0, test_data.shape[0] - Config.LSTM_STEP, 1)):
+    for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
 
         if ts <= test_data.shape[0] - Config.IMS_STEP:
@@ -66,7 +63,7 @@ def predict_lstm_nn(init_data, test_data, model):
                                            init_labels=labels[ts:ts + Config.LSTM_STEP:, :])
 
         # Create 3D input for rnn
-        rnn_input = prepare_input_online_prediction(data=ret_tm, labels=measured_matrix)
+        rnn_input = prepare_input_online_prediction(data=tm_pred, labels=labels)
 
         # Get the TM prediction of next time slot
         predictX = model.predict(rnn_input)
@@ -80,7 +77,7 @@ def predict_lstm_nn(init_data, test_data, model):
         sampling = np.expand_dims(np.random.choice(tf,
                                                    size=(test_data.shape[1]),
                                                    p=[Config.MON_RAIO, 1 - Config.MON_RAIO]), axis=0)
-        measured_matrix = np.concatenate([measured_matrix, sampling], axis=0)
+        labels = np.concatenate([labels, sampling], axis=0)
         # invert of sampling: for choosing value from the original data
         inv_sampling = np.invert(sampling)
 
@@ -95,9 +92,9 @@ def predict_lstm_nn(init_data, test_data, model):
         # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
 
         # Concatenating new_input into current rnn_input
-        ret_tm = np.concatenate([ret_tm, new_input], axis=0)
+        tm_pred[ts + Config.LSTM_STEP] = new_input
 
-    return ret_tm, measured_matrix, ims_tm
+    return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP, :], ims_tm
 
 
 def build_model(args, input_shape):

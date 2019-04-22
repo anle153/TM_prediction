@@ -12,12 +12,14 @@ def print_info(args):
     alg_name = args.alg
     data_name = args.data_name
     tag = args.tag
+    gpu = args.gpu
 
     print('----------------------- INFO -----------------------')
     print('|--- Mode:\t{}'.format(args.run_mode))
     print('|--- Alg:\t{}'.format(alg_name))
     print('|--- Tag:\t{}'.format(tag))
     print('|--- Data:\t{}'.format(data_name))
+    print('|--- GPU:\t{}'.format(gpu))
     print('----------------------- ---- -----------------------')
 
 

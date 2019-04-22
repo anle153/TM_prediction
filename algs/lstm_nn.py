@@ -37,7 +37,7 @@ def ims_tm_prediction(init_data, model, init_labels):
 
     for ts_ahead in range(Config.IMS_STEP):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm,
-                                                    labels=measured_matrix)
+                                                    labels=labels)
         predictX = model.predict(rnn_input)
         pred = np.expand_dims(predictX[:, -1, 0], axis=0)
 

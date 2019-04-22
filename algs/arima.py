@@ -109,6 +109,9 @@ def test_arima(data, args):
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
     ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP + 1, test_data_normalized.shape[1]))
 
+    if not os.path.isfile(Config.MODEL_SAVE + 'arima/{}-{}-{}-{}'.format(0, data_name, alg_name, tag)):
+        train_arima(args, data)
+
     for running_time in range(Config.TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
 

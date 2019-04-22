@@ -133,7 +133,7 @@ def test_arima(data, args):
 
             for ts in range(test_data_normalized.shape[0]):
 
-                if 'update' in tag and (ts % 288 == 0) and ts != 0:
+                if (ts % 288 == 0) and ts != 0:
                     print('|--- Update arima model at ts: {}'.format(ts))
                     model = build_auto_arima(history)
 

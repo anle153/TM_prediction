@@ -89,7 +89,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         # Merge value from pred_input and measured_input
         new_input = pred_input + measured_input
-        # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
+        # new_input = np.reshape(new_input, (new_input.shap e[0], new_input.shape[1], 1))
 
         # Concatenating new_input into current rnn_input
         tm_pred[ts + Config.LSTM_STEP] = new_input

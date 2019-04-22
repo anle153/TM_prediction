@@ -39,12 +39,8 @@ def ims_tm_prediction(init_data, model, init_labels):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm,
                                                     labels=labels)
         predictX = model.predict(rnn_input)
-        pred = np.expand_dims(predictX[:, -1, 0], axis=0)
-
-        sampling = np.zeros(shape=(1, pred.shape[1]))
-        measured_matrix = np.concatenate([measured_matrix, sampling], axis=0)
-
-        multi_steps_tm = np.concatenate([multi_steps_tm, pred], axis=0)
+        print('|-- shape {}'.format(predictX.shape))
+        multi_steps_tm[ts_ahead] = predictX[:, -1, 0]
 
     multi_steps_tm = multi_steps_tm[Config.LSTM_STEP:, :]
 

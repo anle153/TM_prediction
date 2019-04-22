@@ -211,29 +211,28 @@ def test_lstm_nn(data, args):
 
     print('|-- Run model training.')
     gpu = int(args.gpu)
-
-    print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
-    print('|--- Normalizing the train set.')
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    # train_data_normalized = (train_data - mean_train) / std_train
-    valid_data_normalized = (valid_data - mean_train) / std_train
-    test_data_normalized = (test_data - mean_train) / std_train
-
-    print("|--- Create FWBW_CONVLSTM model.")
-    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
-
-    lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
-
-    results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
-
-    err, r2_score, rmse = [], [], []
-    err_ims, r2_score_ims, rmse_ims = [], [], []
-
-    ims_test_set = ims_tm_test_data(test_data=test_data)
-    measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
     with tf.device('/device:GPU:{}'.format(gpu)):
+        print('|--- Splitting train-test set.')
+        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
+        print('|--- Normalizing the train set.')
+        mean_train = np.mean(train_data)
+        std_train = np.std(train_data)
+        # train_data_normalized = (train_data - mean_train) / std_train
+        valid_data_normalized = (valid_data - mean_train) / std_train
+        test_data_normalized = (test_data - mean_train) / std_train
+
+        print("|--- Create FWBW_CONVLSTM model.")
+        input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
+
+        lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
+
+        results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
+
+        err, r2_score, rmse = [], [], []
+        err_ims, r2_score_ims, rmse_ims = [], [], []
+
+        ims_test_set = ims_tm_test_data(test_data=test_data)
+        measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
         for i in range(Config.TESTING_TIME):
             print('|--- Running time: {}'.format(i))
@@ -256,15 +255,15 @@ def test_lstm_nn(data, args):
             r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
             rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))
 
-    results_summary['running_time'] = range(Config.TESTING_TIME)
-    results_summary['err'] = err
-    results_summary['r2_score'] = r2_score
-    results_summary['rmse'] = rmse
-    results_summary['err_ims'] = err_ims
-    results_summary['r2_score_ims'] = r2_score_ims
-    results_summary['rmse_ims'] = rmse_ims
+        results_summary['running_time'] = range(Config.TESTING_TIME)
+        results_summary['err'] = err
+        results_summary['r2_score'] = r2_score
+        results_summary['rmse'] = rmse
+        results_summary['err_ims'] = err_ims
+        results_summary['r2_score_ims'] = r2_score_ims
+        results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
-                           index=False)
+        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
+                               index=False)
 
     return

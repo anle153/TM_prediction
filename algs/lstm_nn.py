@@ -190,13 +190,12 @@ def train_lstm_nn(data, args):
     return
 
 
-def calculate_iterated_multi_step_tm_prediction_errors(test_set):
-    ims_test_set = np.empty(shape=(0, Config.IMS_STEP, test_set.shape[1]))
+def ims_tm_test_data(test_data):
+    ims_test_set = np.zeros(
+        shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
-    for ts in range(test_set.shape[0] - Config.LSTM_STEP - Config.IMS_STEP):
-        multi_step_test_set = np.copy(test_set[(ts + Config.LSTM_STEP): (ts + Config.LSTM_STEP + Config.IMS_STEP), :])
-        multi_step_test_set = np.expand_dims(multi_step_test_set, axis=0)
-        ims_test_set = np.concatenate([ims_test_set, multi_step_test_set], axis=0)
+    for i in range(Config.IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
@@ -232,6 +231,8 @@ def test_lstm_nn(data, args):
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
+    ims_test_set = ims_tm_test_data(test_data=test_data)
+    measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
     for i in range(Config.TESTING_TIME):
         print('|--- Running time: {}'.format(i))
         pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
@@ -240,18 +241,15 @@ def test_lstm_nn(data, args):
 
         pred_tm = pred_tm * std_train + mean_train
 
-        err.append(error_ratio(y_true=test_data_normalized, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
-        rmse.append(calculate_rmse(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
 
         ims_tm = ims_tm * std_train + mean_train
 
-        ims_test_set = calculate_iterated_multi_step_tm_prediction_errors(test_set=test_data)
-
-        measured_matrix = np.zeros(shape=ims_test_set.shape)
         err_ims.append(error_ratio(y_pred=ims_tm,
                                    y_true=ims_test_set,
-                                   measured_matrix=measured_matrix))
+                                   measured_matrix=measured_matrix_ims))
 
         r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
         rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))

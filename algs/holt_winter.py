@@ -62,6 +62,8 @@ def train_holt_winter(args, data):
         flow_train = training_set_series[flow_id].values
 
         history = [x for x in flow_train.astype(float)]
+        history = np.array(history)
+        history[history == 0] = 0.0000001
 
         # Fit all historical data to holt_winter
         model = build_holt_winter(history)
@@ -123,6 +125,8 @@ def test_holt_winter(data, args):
             flow_train = training_set_series[flow_id].values
 
             history = [x for x in flow_train.astype(float)]
+            history = np.array(history)
+            history[history == 0] = 0.0000001
 
             predictions = np.zeros(shape=(test_data.shape[0]))
 

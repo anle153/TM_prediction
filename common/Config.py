@@ -36,8 +36,8 @@ LSTM_DROPOUT = 0.5
 IMS_STEP = 12
 
 # Arima Config
-HISTORY_LENGTH = 10
+ARIMA_UPDATE = 7
 
 # Problem hyperparams
-MON_RAIO = 0.3
+MON_RAIO = 0.4
 HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]

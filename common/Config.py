@@ -38,6 +38,11 @@ IMS_STEP = 12
 # Arima Config
 ARIMA_UPDATE = 7
 
+# Holt-Winter Config
+HOLT_WINTER_TREND = 'add'
+HOLT_WINTER_SEASONAL = 'add'
+HOLT_WINTER_UPDATE = 7
+
 # Problem hyperparams
 MON_RAIO = 0.3
 HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]

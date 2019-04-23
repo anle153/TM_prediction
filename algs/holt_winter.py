@@ -3,31 +3,22 @@ import pickle
 import matplotlib
 import numpy as np
 import pandas as pd
-from pmdarima.arima import auto_arima
 
 from common import Config
 from common.DataPreprocessing import prepare_train_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 from tqdm import tqdm
 
+from statsmodels.tsa.api import ExponentialSmoothing
+
 matplotlib.use('Agg')
 
 
-def build_auto_arima(data):
-    model = auto_arima(data, start_p=1, start_q=1,
-                       test='adf',  # use adftest to find optimal 'd'
-                       max_p=3, max_q=3,  # maximum p and q
-                       m=1,  # frequency of series
-                       d=None,  # let model determine 'd'
-                       seasonal=False,  # No Seasonality
-                       start_P=0,
-                       D=0,
-                       trace=True,
-                       error_action='ignore',
-                       suppress_warnings=True,
-                       stepwise=True)
-
-    model.fit(data)
+def build_holt_winter(data):
+    model = ExponentialSmoothing(data,
+                                 seasonal_periods=4,
+                                 trend=Config.HOLT_WINTER_TREND,
+                                 seasonal=Config.HOLT_WINTER_SEASONAL).fit(use_boxcox=True)
 
     return model
 
@@ -41,7 +32,7 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def train_arima(args, data):
+def train_holt_winter(args, data):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -59,8 +50,8 @@ def train_arima(args, data):
         training_set_series.append(flow_frame)
 
     import os
-    if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
-        os.makedirs(Config.MODEL_SAVE + 'arima/')
+    if not os.path.exists(Config.MODEL_SAVE + 'holt_winter/'):
+        os.makedirs(Config.MODEL_SAVE + 'holt_winter/')
 
     for flow_id in tqdm(range(test_data_normalized.shape[1])):
         training_set_series[flow_id].dropna(inplace=True)
@@ -68,14 +59,14 @@ def train_arima(args, data):
 
         history = [x for x in flow_train.astype(float)]
 
-        # Fit all historical data to auto_arima
-        model = build_auto_arima(history)
+        # Fit all historical data to holt_winter
+        model = build_holt_winter(history, Config)
 
-        saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(flow_id, data_name, alg_name), 'wb')
+        saved_model = open(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(flow_id, data_name, alg_name), 'wb')
         pickle.dump(model, saved_model, 2)
 
 
-def test_arima(data, args):
+def test_holt_winter(data, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -100,8 +91,8 @@ def test_arima(data, args):
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
     import os
-    if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
-        os.makedirs(Config.MODEL_SAVE + 'arima/')
+    if not os.path.exists(Config.MODEL_SAVE + 'holt_winter/'):
+        os.makedirs(Config.MODEL_SAVE + 'holt_winter/')
 
     ims_test_set = ims_tm_test_data(test_data=test_data)
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
@@ -109,8 +100,8 @@ def test_arima(data, args):
     pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
     ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP + 1, test_data_normalized.shape[1]))
 
-    if not os.path.isfile(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(0, data_name, alg_name)):
-        train_arima(args, data)
+    if not os.path.isfile(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(0, data_name, alg_name)):
+        train_holt_winter(args, data)
 
     for running_time in range(Config.TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
@@ -130,16 +121,16 @@ def test_arima(data, args):
 
             flow_ims_pred = np.zeros(shape=(test_data_normalized.shape[0] - Config.IMS_STEP + 1))
 
-            # Load trained arima model
-            saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(flow_id, data_name, alg_name), 'rb')
+            # Load trained holt_winter model
+            saved_model = open(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(flow_id, data_name, alg_name), 'rb')
             model = pickle.load(saved_model)
 
             for ts in range(test_data_normalized.shape[0]):
 
-                if (ts % (288 * Config.ARIMA_UPDATE) == 0) and ts != 0:
-                    print('|--- Update arima model at ts: {}'.format(ts))
+                if (ts % (288 * Config.HOLT_WINTER_UPDATE) == 0) and ts != 0:
+                    print('|--- Update holt_winter model at ts: {}'.format(ts))
                     try:
-                        model = build_auto_arima(history)
+                        model = build_holt_winter(history)
                     except:
                         pass
 

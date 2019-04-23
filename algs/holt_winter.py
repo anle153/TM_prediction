@@ -43,21 +43,21 @@ def train_holt_winter(args, data):
 
     train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
 
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    train_data_normalized = (train_data - mean_train) / std_train
-    test_data_normalized = (test_data - mean_train) / std_train
+    # mean_train = np.mean(train_data)
+    # std_train = np.std(train_data)
+    # train_data_normalized = (train_data - mean_train) / std_train
+    # test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []
-    for flow_id in range(train_data_normalized.shape[1]):
-        flow_frame = pd.Series(train_data_normalized[:, flow_id])
+    for flow_id in range(train_data.shape[1]):
+        flow_frame = pd.Series(train_data[:, flow_id])
         training_set_series.append(flow_frame)
 
     import os
     if not os.path.exists(Config.MODEL_SAVE + 'holt_winter/'):
         os.makedirs(Config.MODEL_SAVE + 'holt_winter/')
 
-    for flow_id in tqdm(range(test_data_normalized.shape[1])):
+    for flow_id in tqdm(range(test_data.shape[1])):
         training_set_series[flow_id].dropna(inplace=True)
         flow_train = training_set_series[flow_id].values
 
@@ -82,14 +82,14 @@ def test_holt_winter(data, args):
 
     train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
 
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    train_data_normalized = (train_data - mean_train) / std_train
-    test_data_normalized = (test_data - mean_train) / std_train
+    # mean_train = np.mean(train_data)
+    # std_train = np.std(train_data)
+    # train_data_normalized = (train_data - mean_train) / std_train
+    # test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []
-    for flow_id in range(train_data_normalized.shape[1]):
-        flow_frame = pd.Series(train_data_normalized[:, flow_id])
+    for flow_id in range(train_data.shape[1]):
+        flow_frame = pd.Series(train_data[:, flow_id])
         training_set_series.append(flow_frame)
 
     tf = np.array([True, False])
@@ -106,8 +106,8 @@ def test_holt_winter(data, args):
     ims_test_set = ims_tm_test_data(test_data=test_data)
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
-    pred_tm = np.zeros((test_data_normalized.shape[0], test_data_normalized.shape[1]))
-    ims_pred_tm = np.zeros((test_data_normalized.shape[0] - Config.IMS_STEP + 1, test_data_normalized.shape[1]))
+    pred_tm = np.zeros((test_data.shape[0], test_data.shape[1]))
+    ims_pred_tm = np.zeros((test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
 
     if not os.path.isfile(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(0, data_name, alg_name)):
         train_holt_winter(args, data)
@@ -115,26 +115,26 @@ def test_holt_winter(data, args):
     for running_time in range(Config.TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
 
-        measured_matrix = np.random.choice(tf, size=(test_data_normalized.shape[0], test_data_normalized.shape[1]),
+        measured_matrix = np.random.choice(tf, size=(test_data.shape[0], test_data.shape[1]),
                                            p=[Config.MON_RAIO, 1 - Config.MON_RAIO])
 
-        for flow_id in tqdm(range(test_data_normalized.shape[1])):
+        for flow_id in tqdm(range(test_data.shape[1])):
             training_set_series[flow_id].dropna(inplace=True)
             flow_train = training_set_series[flow_id].values
 
             history = [x for x in flow_train.astype(float)]
 
-            predictions = np.zeros(shape=(test_data_normalized.shape[0]))
+            predictions = np.zeros(shape=(test_data.shape[0]))
 
             measured_flow = measured_matrix[:, flow_id]
 
-            flow_ims_pred = np.zeros(shape=(test_data_normalized.shape[0] - Config.IMS_STEP + 1))
+            flow_ims_pred = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1))
 
             # Load trained holt_winter model
             saved_model = open(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(flow_id, data_name, alg_name), 'rb')
             model = pickle.load(saved_model)
 
-            for ts in range(test_data_normalized.shape[0]):
+            for ts in range(test_data.shape[0]):
 
                 if (ts % (day_size * Config.HOLT_WINTER_UPDATE) == 0) and ts != 0:
                     print('|--- Update holt_winter model at ts: {}'.format(ts))
@@ -145,11 +145,11 @@ def test_holt_winter(data, args):
 
                 output = model.predict(n_periods=Config.IMS_STEP)
 
-                if ts <= (test_data_normalized.shape[0] - Config.IMS_STEP):
+                if ts <= (test_data.shape[0] - Config.IMS_STEP):
                     flow_ims_pred[ts] = output[-1]
 
                 yhat = output[0]
-                obs = test_data_normalized[ts, flow_id]
+                obs = test_data[ts, flow_id]
 
                 # Semi-recursive predicting
                 if measured_flow[ts]:
@@ -162,8 +162,8 @@ def test_holt_winter(data, args):
             pred_tm[:, flow_id] = predictions
             ims_pred_tm[:, flow_id] = flow_ims_pred
 
-        pred_tm = pred_tm * std_train + mean_train
-        ims_pred_tm = ims_pred_tm * std_train + mean_train
+        # pred_tm = pred_tm * std_train + mean_train
+        # ims_pred_tm = ims_pred_tm * std_train + mean_train
 
         measured_matrix = measured_matrix.astype(bool)
 

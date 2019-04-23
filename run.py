@@ -38,6 +38,10 @@ def print_info(args):
                 print('|--- LSTM_BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
     elif 'arima' in alg_name:
         print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
+    elif 'holt-winter' in alg_name:
+        print('|--- HOLT_WINTER_UPDATE:\t{}-days'.format(Config.HOLT_WINTER_UPDATE))
+        print('|--- HOLT_WINTER_TREND:\t{}-days'.format(Config.HOLT_WINTER_TREND))
+        print('|--- HOLT_WINTER_SEASONAL:\t{}-days'.format(Config.HOLT_WINTER_SEASONAL))
     else:
         raise ValueError('Unkown alg!')
 

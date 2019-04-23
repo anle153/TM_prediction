@@ -46,7 +46,12 @@ def train_arima(args, data):
     tag = args.tag
     data_name = args.data_name
 
-    train_data, test_data = prepare_train_test_2d(data=data)
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
 
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
@@ -79,8 +84,12 @@ def test_arima(data, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
 
-    train_data, test_data = prepare_train_test_2d(data=data)
+    train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
 
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)
@@ -136,7 +145,7 @@ def test_arima(data, args):
 
             for ts in range(test_data_normalized.shape[0]):
 
-                if (ts % (288 * Config.ARIMA_UPDATE) == 0) and ts != 0:
+                if (ts % (day_size * Config.ARIMA_UPDATE) == 0) and ts != 0:
                     print('|--- Update arima model at ts: {}'.format(ts))
                     try:
                         model = build_auto_arima(history)

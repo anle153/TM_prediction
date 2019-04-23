@@ -5,6 +5,9 @@ RESULTS_PATH = './results/'
 
 TESTING_TIME = 10
 
+ABILENE_DAY_SIZE = 288
+GEANT_DAY_SIZE = 96
+
 # Training config
 N_EPOCH = 100
 BATCH_SIZE = 64

@@ -121,10 +121,16 @@ def train_lstm_nn(data, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
+    data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
     with tf.device('/device:GPU:{}'.format(gpu)):
 
         print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
+        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data, day_size=day_size)
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
@@ -137,7 +143,7 @@ def train_lstm_nn(data, args):
         lstm_net = build_model(args, input_shape)
 
         if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.N_EPOCH)):
-            lstm_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')
+            lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT, weights_file_type='hdf5')
 
         else:
             print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
@@ -208,12 +214,16 @@ def test_lstm_nn(data, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
 
     print('|-- Run model training.')
     gpu = int(args.gpu)
     with tf.device('/device:GPU:{}'.format(gpu)):
         print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data)
+        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data, day_size=day_size)
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)

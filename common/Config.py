@@ -39,5 +39,5 @@ IMS_STEP = 12
 ARIMA_UPDATE = 7
 
 # Problem hyperparams
-MON_RAIO = 0.4
+MON_RAIO = 0.3
 HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]

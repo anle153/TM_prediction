@@ -321,10 +321,16 @@ def train_fwbw_conv_lstm(data, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
+    data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
     with tf.device('/device:GPU:{}'.format(gpu)):
 
         print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data)
+        train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
         print('|--- Normalizing the train set.')
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
@@ -484,9 +490,13 @@ def test_fwbw_conv_lstm(data, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data)
+    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)

@@ -5,16 +5,8 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from FlowClassification.SpatialClustering import *
 
 
-def prepare_train_test_3d(data):
-    """
-    Divide raw dataset into train, test and valid set based on the splitting_ratio
-    :param data: (numpy.ndarray) the raw data (the m x n Traffic Matrix)
-    :param sampling_itvl: (int) the interval between each sample
-    :param splitting_ratio: (array) splitting ratio. Default: train 50%, test 25%,valid 25%
-    :return: (numpy.ndarray) the train set, test set and valid set
-    """
+def prepare_train_test_3d(data, day_size):
     n_timeslots = data.shape[0]
-    day_size = 24 * (60 / 5)
     n_days = n_timeslots / day_size
 
     train_size = int(n_days * 0.8 * day_size)
@@ -25,16 +17,8 @@ def prepare_train_test_3d(data):
     return train_set, test_set
 
 
-def prepare_train_valid_test_3d(data):
-    """
-    Divide raw dataset into train, test and valid set based on the splitting_ratio
-    :param data: (numpy.ndarray) the raw data (the m x n Traffic Matrix)
-    :param sampling_itvl: (int) the interval between each sample
-    :param splitting_ratio: (array) splitting ratio. Default: train 50%, test 25%,valid 25%
-    :return: (numpy.ndarray) the train set, test set and valid set
-    """
+def prepare_train_valid_test_3d(data, day_size):
     n_timeslots = data.shape[0]
-    day_size = 24 * (60 / 5)
     n_days = n_timeslots / day_size
 
     train_size = int(n_days * 0.6 * day_size)
@@ -48,9 +32,8 @@ def prepare_train_valid_test_3d(data):
     return train_set, valid_set, test_set
 
 
-def prepare_train_test_2d(data):
+def prepare_train_test_2d(data, day_size):
     n_timeslots = data.shape[0]
-    day_size = 24 * (60 / 5)
     n_days = n_timeslots / day_size
 
     train_size = int(n_days * 0.8 * day_size)
@@ -61,9 +44,8 @@ def prepare_train_test_2d(data):
     return train_set, test_set
 
 
-def prepare_train_valid_test_2d(data):
+def prepare_train_valid_test_2d(data, day_size):
     n_timeslots = data.shape[0]
-    day_size = 24 * (60 / 5)
     n_days = n_timeslots / day_size
 
     train_size = int(n_days * 0.6 * day_size)

@@ -5,6 +5,9 @@ RESULTS_PATH = './results/'
 
 TESTING_TIME = 10
 
+ABILENE_DAY_SIZE = 288
+GEANT_DAY_SIZE = 96
+
 # Training config
 N_EPOCH = 100
 BATCH_SIZE = 64
@@ -36,7 +39,12 @@ LSTM_DROPOUT = 0.5
 IMS_STEP = 12
 
 # Arima Config
-HISTORY_LENGTH = 10
+ARIMA_UPDATE = 7
+
+# Holt-Winter Config
+HOLT_WINTER_TREND = 'add'
+HOLT_WINTER_SEASONAL = 'add'
+HOLT_WINTER_UPDATE = 7
 
 # Problem hyperparams
 MON_RAIO = 0.3

@@ -6,7 +6,7 @@ from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser
 
 from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d
-
+from common import Config
 
 def print_info(args):
     alg_name = args.alg
@@ -20,7 +20,34 @@ def print_info(args):
     print('|--- Tag:\t{}'.format(tag))
     print('|--- Data:\t{}'.format(data_name))
     print('|--- GPU:\t{}'.format(gpu))
-    print('----------------------- ---- -----------------------')
+    print('|--- MON_RATIO:\t{}'.format(Config.MON_RAIO))
+    print('            -----------            ')
+    if 'lstm' in alg_name:
+        if 'train' in args.run_mode or 'training' in args.run_mode:
+            print('|--- N_EPOCH:\t{}'.format(Config.N_EPOCH))
+            print('|--- BATCH_SIZE:\t{}'.format(Config.BATCH_SIZE))
+            print('|--- NUM_ITER:\t{}'.format(Config.NUM_ITER))
+            print('|--- LSTM_STEP:\t{}'.format(Config.LSTM_STEP))
+            print('|--- IMS_STEP:\t{}'.format(Config.IMS_STEP))
+        else:
+            print('|--- TESTING_TIME:\t{}'.format(Config.TESTING_TIME))
+            if 'conv' in alg_name:
+                print('|--- FW_BEST_CHECKPOINT:\t{}'.format(Config.FW_BEST_CHECKPOINT))
+                print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
+            else:
+                print('|--- LSTM_BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
+    elif 'arima' in alg_name:
+        print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
+    elif 'holt-winter' in alg_name:
+        print('|--- HOLT_WINTER_UPDATE:\t{}-days'.format(Config.HOLT_WINTER_UPDATE))
+        print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
+        print('|--- HOLT_WINTER_SEASONAL:\t{}'.format(Config.HOLT_WINTER_SEASONAL))
+    else:
+        raise ValueError('Unkown alg!')
+
+    infor_correct = input('Is the information correct? y(Yes)/n(No):')
+    if infor_correct != 'y' and infor_correct != 'yes':
+        raise RuntimeError('Information is not correct!')
 
 
 def train(args):
@@ -37,6 +64,9 @@ def train(args):
     elif 'arima' in alg_name:
         from algs.arima import train_arima
         train_arima(args=args, data=data)
+    elif 'holt-winter' in alg_name:
+        from algs.holt_winter import train_holt_winter
+        train_holt_winter(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
 
@@ -55,6 +85,9 @@ def test(args):
     elif 'arima' in alg_name:
         from algs.arima import test_arima
         test_arima(args=args, data=data)
+    elif 'holt-winter' in alg_name:
+        from algs.holt_winter import test_holt_winter
+        test_holt_winter(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
 

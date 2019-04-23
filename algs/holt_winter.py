@@ -60,7 +60,7 @@ def train_holt_winter(args, data):
         history = [x for x in flow_train.astype(float)]
 
         # Fit all historical data to holt_winter
-        model = build_holt_winter(history, Config)
+        model = build_holt_winter(history)
 
         saved_model = open(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(flow_id, data_name, alg_name), 'wb')
         pickle.dump(model, saved_model, 2)

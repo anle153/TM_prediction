@@ -41,7 +41,9 @@ def print_info(args):
     else:
         raise ValueError('Unkown alg!')
 
-    print('----------------------- ---- -----------------------')
+    infor_correct = input('Is the information correct? y(Yes)/n(No):')
+    if infor_correct != 'y' and infor_correct != 'yes':
+        raise RuntimeError('Information is not correct!')
 
 
 def train(args):

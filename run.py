@@ -60,6 +60,9 @@ def train(args):
     elif 'arima' in alg_name:
         from algs.arima import train_arima
         train_arima(args=args, data=data)
+    elif 'holt-winter' in alg_name:
+        from algs.holt_winter import train_holt_winter
+        train_holt_winter(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
 
@@ -78,6 +81,9 @@ def test(args):
     elif 'arima' in alg_name:
         from algs.arima import test_arima
         test_arima(args=args, data=data)
+    elif 'holt-winter' in alg_name:
+        from algs.holt_winter import test_holt_winter
+        test_holt_winter(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
 

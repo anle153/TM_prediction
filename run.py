@@ -40,8 +40,8 @@ def print_info(args):
         print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
     elif 'holt-winter' in alg_name:
         print('|--- HOLT_WINTER_UPDATE:\t{}-days'.format(Config.HOLT_WINTER_UPDATE))
-        print('|--- HOLT_WINTER_TREND:\t{}-days'.format(Config.HOLT_WINTER_TREND))
-        print('|--- HOLT_WINTER_SEASONAL:\t{}-days'.format(Config.HOLT_WINTER_SEASONAL))
+        print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
+        print('|--- HOLT_WINTER_SEASONAL:\t{}'.format(Config.HOLT_WINTER_SEASONAL))
     else:
         raise ValueError('Unkown alg!')
 

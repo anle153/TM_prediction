@@ -1,3 +1,3 @@
 #/usr/bin/bash
 
-python run.py --run_mode=train --alg=fwbw-conv-lstm --tag=mon_30_lstm_26 --data_name=Abilene --gpu=0
+python run.py --run_mode=test --alg=arima --tag=mon_30_update_7d_test_30d --data_name=Geant2d --gpu=0

@@ -71,15 +71,15 @@ def generator_convlstm_train_data(data, input_shape, mon_ratio, eps, batch_size)
     high = input_shape[2]
     channel = input_shape[3]
 
-    measured_matrix = np.empty(shape=(0, data.shape[1], data.shape[2]))
+    measured_matrix = np.zeros(shape=data.shape)
 
-    sampling_ratio_range = np.random.uniform(0.1, 0.4, data.shape[0])
-    for sampling_ratio in sampling_ratio_range:
+    sampling_ratioes = np.random.uniform(0.1, 0.4, size=data.shape[0])
+    for i in range(data.shape[0]):
         measured_row = np.random.choice(_tf,
-                                        size=(1, data.shape[1], data.shape[2]),
-                                        p=(sampling_ratio, 1 - sampling_ratio))
+                                        size=(data.shape[1], data.shape[2]),
+                                        p=(sampling_ratioes[i], 1 - sampling_ratioes[i]))
 
-        measured_matrix = np.concatenate([measured_matrix, measured_row], axis=0)
+        measured_matrix[i, :, :] = measured_row
 
     _labels = measured_matrix.astype(int)
     _data = np.copy(data)
@@ -96,18 +96,18 @@ def generator_convlstm_train_data(data, input_shape, mon_ratio, eps, batch_size)
 
     while True:
 
-        indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
+        indices = np.random.randint(0, _data.shape[0] - ntimesteps - 1, size=batch_size)
         for i in range(batch_size):
             idx = indices[i]
 
             _x = _data[idx: (idx + ntimesteps), :, :, :]
 
-            dataX[i] = _x
+            dataX[i, :, :, :, :] = _x
 
             _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
             _y = np.expand_dims(_y, axis=3)
 
-            dataY[i] = _y
+            dataY[i, :, :, :, :] = _y
 
         yield dataX, dataY
 
@@ -121,12 +121,11 @@ def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, b
     channel = input_shape[3]
 
     measured_matrix = np.random.choice(_tf,
-                                       size=(data.shape[0], data.shape[1], data.shape[2]),
+                                       size=data.shape,
                                        p=(mon_ratio, 1 - mon_ratio))
     _labels = measured_matrix.astype(int)
     _data = np.copy(data)
 
-    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
     _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
 
     _data = np.expand_dims(_data, axis=3)
@@ -139,18 +138,18 @@ def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, b
 
     while True:
 
-        indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
+        indices = np.random.randint(0, _data.shape[0] - ntimesteps - 1, size=batch_size)
         for i in range(batch_size):
             idx = indices[i]
 
             _x = _data[idx: (idx + ntimesteps), :, :, :]
 
-            dataX[i] = _x
+            dataX[i, :, :, :, :] = _x
 
             _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
             _y = np.expand_dims(_y, axis=3)
 
-            dataY[i] = _y
+            dataY[i, :, :, :, :] = _y
 
         yield dataX, dataY
 

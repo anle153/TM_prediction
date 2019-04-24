@@ -82,7 +82,8 @@ def test_holt_winter(data, args):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    print('|---> Testing with first ALL of dataset')
+    if not Config.ALL_DATA:
+        data = data[0:day_size * Config.NUM_DAYS, :]
 
     train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
 

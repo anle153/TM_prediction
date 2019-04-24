@@ -8,6 +8,9 @@ TESTING_TIME = 10
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
 
+ALL_DATA = True
+NUM_DAYS = 30
+
 # Training lstm-based model config
 N_EPOCH = 100
 BATCH_SIZE = 64

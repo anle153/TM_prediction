@@ -89,8 +89,8 @@ def test_arima(data, args):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    data = data[0:day_size * 60, :]
-    print('|---> Testing with first 60d of dataset')
+    if not Config.ALL_DATA:
+        data = data[0:day_size * Config.NUM_DAYS, :]
 
     train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
 

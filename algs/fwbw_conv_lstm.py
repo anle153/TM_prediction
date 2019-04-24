@@ -357,8 +357,6 @@ def train_fwbw_conv_lstm(data, args):
             # Load model check point
             from_epoch = fw_net.load_model_from_check_point()
             if from_epoch > 0:
-                fw_net.model.compile(loss='mean_squared_error', optimizer='adam',
-                                     metrics=['mse', 'mae', 'accuracy'])
                 print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
                 training_fw_history = fw_net.model.fit_generator(
                     generator_train_data(train_data_normalized,
@@ -379,9 +377,6 @@ def train_fwbw_conv_lstm(data, args):
                     max_queue_size=1024)
             else:
                 print('|--- Training new forward model.')
-
-                fw_net.model.compile(loss='mean_squared_error', optimizer='adam',
-                                     metrics=['mse', 'mae', 'accuracy'])
 
                 training_fw_history = fw_net.model.fit_generator(
                     generator_train_data(train_data_normalized,
@@ -417,9 +412,6 @@ def train_fwbw_conv_lstm(data, args):
             from_epoch_backward = bw_net.load_model_from_check_point()
             if from_epoch_backward > 0:
 
-                bw_net.model.compile(loss='mean_squared_error', optimizer='adam',
-                                     metrics=['mse', 'mae', 'accuracy'])
-
                 training_bw_history = bw_net.model.fit_generator(
                     generator_train_data(train_data_bw_normalized,
                                          input_shape,
@@ -442,9 +434,6 @@ def train_fwbw_conv_lstm(data, args):
 
             else:
                 print('|--- Training new backward model.')
-
-                bw_net.model.compile(loss='mean_squared_error', optimizer='adam',
-                                     metrics=['mse', 'mae', 'accuracy'])
 
                 training_bw_history = bw_net.model.fit_generator(
                     generator_train_data(train_data_bw_normalized,

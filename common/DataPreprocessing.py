@@ -189,3 +189,38 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
             dataY[i, :, :] = np.array(_y).reshape((ntimesteps, 1))
 
         yield dataX, dataY
+
+
+def create_offline_valid_set_lstm_nn(data, input_shape, mon_ratio, eps):
+    print('|--- Create offline valid set for lstm-nn!')
+    ntimesteps = input_shape[0]
+    features = input_shape[1]
+
+    _tf = np.array([True, False])
+    measured_matrix = np.random.choice(_tf,
+                                       size=data.shape,
+                                       p=(mon_ratio, 1 - mon_ratio))
+    _labels = measured_matrix.astype(int)
+    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, 1))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(_data.shape[0] - ntimesteps):
+            _x = _data[idx: (idx + ntimesteps), flow]
+            _label = _labels[idx: (idx + ntimesteps), flow]
+
+            dataX[i, :, 0] = _x
+            dataX[i, :, 1] = _label
+
+            _y = _data[(idx + 1):(idx + ntimesteps + 1), flow]
+
+            dataY[i, :, :] = np.array(_y).reshape((ntimesteps, 1))
+
+            i += 1
+
+    return dataX, dataY

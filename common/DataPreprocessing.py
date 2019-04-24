@@ -53,8 +53,8 @@ def prepare_train_valid_test_2d(data, day_size):
     valid_size = int(n_days * 0.2 * day_size)
 
     train_set = data[0:train_size, :]
-    valid_set = data[train_size:train_size + valid_size, :]
-    test_set = data[train_size + valid_size:, :]
+    valid_set = data[train_size:(train_size + valid_size), :]
+    test_set = data[(train_size + valid_size):, :]
 
     return train_set, valid_set, test_set
 
@@ -161,7 +161,7 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
 
     _tf = np.array([True, False])
     measured_matrix = np.random.choice(_tf,
-                                       size=(data.shape[0], data.shape[1]),
+                                       size=data.shape,
                                        p=(mon_ratio, 1 - mon_ratio))
     _labels = measured_matrix.astype(int)
     dataX = np.zeros((batch_size, ntimesteps, features))
@@ -173,20 +173,20 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
 
     while True:
         flows = np.random.randint(0, _data.shape[1], size=batch_size)
-        indices = np.random.randint(ntimesteps - 1, _data.shape[0] - ntimesteps - 1, size=batch_size)
+        indices = np.random.randint(0, _data.shape[0] - ntimesteps - 1, size=batch_size)
 
         for i in range(batch_size):
             flow = flows[i]
             idx = indices[i]
 
-            _x = data[idx: (idx + ntimesteps), flow]
+            _x = _data[idx: (idx + ntimesteps), flow]
             _label = _labels[idx: (idx + ntimesteps), flow]
 
-            _sample = np.array([_x, _label]).T
-            dataX[i] = _sample
+            dataX[i, :, 0] = _x
+            dataX[i, :, 1] = _label
 
             _y = _data[(idx + 1):(idx + ntimesteps + 1), flow]
 
-            dataY[i] = np.array(_y).reshape((ntimesteps, 1))
+            dataY[i, :, :] = np.array(_y).reshape((ntimesteps, 1))
 
         yield dataX, dataY

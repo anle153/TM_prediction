@@ -231,7 +231,7 @@ def test_lstm_nn(data, args):
         valid_data_normalized = (valid_data - mean_train) / std_train
         test_data_normalized = (test_data - mean_train) / std_train
 
-        print("|--- Create FWBW_CONVLSTM model.")
+        print("|--- Create LSTM model.")
         input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
         lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)

@@ -381,7 +381,7 @@ def train_fwbw_conv_lstm(data, args):
                 training_fw_history = fw_net.model.fit_generator(
                     generator_train_data(train_data_normalized,
                                          input_shape,
-                                         None,
+                                         Config.MON_RAIO,
                                          0.5,
                                          Config.BATCH_SIZE),
                     epochs=Config.N_EPOCH,

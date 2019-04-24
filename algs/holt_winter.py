@@ -150,7 +150,7 @@ def test_holt_winter(data, args):
                     except:
                         pass
 
-                output = model.predict(n_periods=Config.IMS_STEP)
+                output = model.forecast(Config.IMS_STEP)
 
                 if ts <= (test_data.shape[0] - Config.IMS_STEP):
                     flow_ims_pred[ts] = output[-1]
@@ -160,10 +160,10 @@ def test_holt_winter(data, args):
 
                 # Semi-recursive predicting
                 if measured_flow[ts]:
-                    history.append(obs)
+                    np.append(history, obs)
                     predictions[ts] = obs
                 else:
-                    history.append(yhat)
+                    np.append(history, yhat)
                     predictions[ts] = yhat
 
             pred_tm[:, flow_id] = predictions

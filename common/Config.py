@@ -11,7 +11,7 @@ GEANT_DAY_SIZE = 96
 # Training config
 N_EPOCH = 100
 BATCH_SIZE = 64
-NUM_ITER = 10000
+NUM_ITER = 20000
 
 # Testing config
 LSTM_BEST_CHECKPOINT = 64

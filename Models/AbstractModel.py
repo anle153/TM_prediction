@@ -13,6 +13,12 @@ def plot_training_history(alg_name, tag, saving_path, model_history):
     plt.savefig(saving_path + '[MAE]{}-{}.png'.format(alg_name, tag))
     plt.close()
 
+    plt.plot(model_history.history['mean_squared_error'], label='mse')
+    plt.plot(model_history.history['val_mean_squared_error'], label='val_mse')
+    plt.savefig(saving_path + '[MSE]{}-{}.png'.format(alg_name, tag))
+    plt.legend()
+    plt.close()
+
 
 class AbstractModel(object):
 

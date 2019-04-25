@@ -9,7 +9,7 @@ from tqdm import tqdm
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_3d, generator_convlstm_train_data, \
-    generator_convlstm_train_data_fix_ratio, create_offline_convlstm_valid_set_fix_ratio
+    generator_convlstm_train_data_fix_ratio, create_offline_convlstm_data_fix_ratio
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -343,14 +343,25 @@ def train_fwbw_conv_lstm(data, args):
 
         fw_net, bw_net = build_model(args, input_shape)
 
-        if not os.path.isfile(fw_net.saving_path + 'validX_fw.npy'):
-            validX_fw, validY_fw = create_offline_convlstm_valid_set_fix_ratio(valid_data_normalized,
+        # -------------------------------- Create offline training and validating dataset ------------------------------
+        if not os.path.isfile(fw_net.saving_path + 'trainX_fw.npy'):
+            trainX_fw, trainY_fw = create_offline_convlstm_data_fix_ratio(train_data_normalized,
                                                                                input_shape, Config.MON_RAIO, 0.5)
+            np.save(fw_net.saving_path + 'trainX_fw.npy', trainX_fw)
+            np.save(fw_net.saving_path + 'trainY_fw.npy', trainY_fw)
+        else:
+            trainX_fw = np.load(fw_net.saving_path + 'trainX_fw.npy')
+            trainY_fw = np.load(fw_net.saving_path + 'trainY_fw.npy')
+
+        if not os.path.isfile(fw_net.saving_path + 'validX_fw.npy'):
+            validX_fw, validY_fw = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
+                                                                          input_shape, Config.MON_RAIO, 0.5)
             np.save(fw_net.saving_path + 'validX_fw.npy', validX_fw)
             np.save(fw_net.saving_path + 'validY_fw.npy', validY_fw)
         else:
             validX_fw = np.load(fw_net.saving_path + 'validX_fw.npy')
             validY_fw = np.load(fw_net.saving_path + 'validY_fw.npy')
+        # --------------------------------------------------------------------------------------------------------------
 
         if Config.MON_RAIO is not None:
             generator_train_data = generator_convlstm_train_data_fix_ratio
@@ -367,94 +378,80 @@ def train_fwbw_conv_lstm(data, args):
             from_epoch = fw_net.load_model_from_check_point()
             if from_epoch > 0:
                 print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-                training_fw_history = fw_net.model.fit_generator(
-                    generator_train_data(train_data_normalized,
-                                         input_shape,
-                                         Config.MON_RAIO,
-                                         0.5,
-                                         Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    initial_epoch=from_epoch,
-                    validation_data=(validX_fw, validY_fw),
-                    callbacks=fw_net.callbacks_list,
-                    use_multiprocessing=True,
-                    workers=2,
-                    max_queue_size=1024)
+                training_fw_history = fw_net.model.fit(x=trainX_fw,
+                                                       y=trainY_fw,
+                                                       batch_size=Config.BATCH_SIZE,
+                                                       epochs=Config.N_EPOCH,
+                                                       callbacks=fw_net.callbacks_list,
+                                                       validation_data=(validX_fw, validY_fw),
+                                                       shuffle=True,
+                                                       initial_epoch=from_epoch)
             else:
                 print('|--- Training new forward model.')
 
-                training_fw_history = fw_net.model.fit_generator(
-                    generator_train_data(train_data_normalized,
-                                         input_shape,
-                                         Config.MON_RAIO,
-                                         0.5,
-                                         Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    validation_data=(validX_fw, validY_fw),
-                    callbacks=fw_net.callbacks_list,
-                    use_multiprocessing=True,
-                    workers=2,
-                    max_queue_size=1028)
+                training_fw_history = fw_net.model.fit(x=trainX_fw,
+                                                       y=trainY_fw,
+                                                       batch_size=Config.BATCH_SIZE,
+                                                       epochs=Config.N_EPOCH,
+                                                       callbacks=fw_net.callbacks_list,
+                                                       validation_data=(validX_fw, validY_fw),
+                                                       shuffle=True)
 
             # Plot the training history
             if training_fw_history is not None:
                 fw_net.plot_training_history(training_fw_history)
 
-        # --------------------------------------------Training bw model-------------------------------------------------
+        # -------------------------------- Create offline training and validating dataset ------------------------------
 
         train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
         valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
 
+        if not os.path.isfile(bw_net.saving_path + 'trainX_bw.npy'):
+            trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
+                                                                          input_shape, Config.MON_RAIO, 0.5)
+            np.save(bw_net.saving_path + 'trainX_bw.npy', trainX_bw)
+            np.save(bw_net.saving_path + 'trainY_bw.npy', trainY_bw)
+        else:
+            trainX_bw = np.load(bw_net.saving_path + 'trainX_bw.npy')
+            trainY_bw = np.load(bw_net.saving_path + 'trainY_bw.npy')
+
         if not os.path.isfile(bw_net.saving_path + 'validX_bw.npy'):
-            validX_bw, validY_bw = create_offline_convlstm_valid_set_fix_ratio(valid_data_bw_normalized,
-                                                                               input_shape, Config.MON_RAIO, 0.5)
+            validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
+                                                                          input_shape, Config.MON_RAIO, 0.5)
             np.save(bw_net.saving_path + 'validX_bw.npy', validX_bw)
             np.save(bw_net.saving_path + 'validY_bw.npy', validY_bw)
         else:
             validX_bw = np.load(bw_net.saving_path + 'validX_bw.npy')
             validY_bw = np.load(bw_net.saving_path + 'validY_bw.npy')
 
+        # --------------------------------------------Training bw model-------------------------------------------------
         if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
             print('|--- Backward model exist!')
             bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
         else:
             print('|---Compile model. Saving path: %s' % bw_net.saving_path)
-            from_epoch_backward = bw_net.load_model_from_check_point()
-            if from_epoch_backward > 0:
+            from_epoch_bw = bw_net.load_model_from_check_point()
+            if from_epoch_bw > 0:
 
-                training_bw_history = bw_net.model.fit_generator(
-                    generator_train_data(train_data_bw_normalized,
-                                         input_shape,
-                                         Config.MON_RAIO,
-                                         0.5,
-                                         Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    initial_epoch=from_epoch_backward,
-                    validation_data=(validX_bw, validY_bw),
-                    callbacks=bw_net.callbacks_list,
-                    use_multiprocessing=True,
-                    workers=2,
-                    max_queue_size=1028)
+                training_bw_history = bw_net.model.fit(x=trainX_bw,
+                                                       y=trainY_bw,
+                                                       batch_size=Config.BATCH_SIZE,
+                                                       epochs=Config.N_EPOCH,
+                                                       callbacks=bw_net.callbacks_list,
+                                                       validation_data=(validX_bw, validY_bw),
+                                                       shuffle=True,
+                                                       initial_epoch=from_epoch_bw)
 
             else:
                 print('|--- Training new backward model.')
 
-                training_bw_history = bw_net.model.fit_generator(
-                    generator_train_data(train_data_bw_normalized,
-                                         input_shape,
-                                         Config.MON_RAIO,
-                                         0.5,
-                                         Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    validation_data=(validX_bw, validY_bw),
-                    callbacks=bw_net.callbacks_list,
-                    use_multiprocessing=True,
-                    workers=2,
-                    max_queue_size=1028)
+                training_bw_history = bw_net.model.fit(x=trainX_bw,
+                                                       y=trainY_bw,
+                                                       batch_size=Config.BATCH_SIZE,
+                                                       epochs=Config.N_EPOCH,
+                                                       callbacks=bw_net.callbacks_list,
+                                                       validation_data=(validX_bw, validY_bw),
+                                                       shuffle=True)
             if training_bw_history is not None:
                 bw_net.plot_training_history(training_bw_history)
 

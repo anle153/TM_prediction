@@ -154,7 +154,7 @@ def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, b
         yield dataX, dataY
 
 
-def create_offline_convlstm_valid_set_fix_ratio(data, input_shape, mon_ratio, eps):
+def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
     _tf = np.array([True, False])
 
     ntimesteps = input_shape[0]

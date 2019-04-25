@@ -175,18 +175,42 @@ def test_holt_winter(data, args):
         measured_matrix = measured_matrix.astype(bool)
 
         # Calculate error
-        err.append(error_ratio(y_true=test_data,
-                               y_pred=pred_tm,
-                               measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+        try:
+            err.append(error_ratio(y_true=test_data,
+                                   y_pred=pred_tm,
+                                   measured_matrix=measured_matrix))
+        except ValueError as VE:
+            print(VE)
+            err.append(100)
+        try:
+            r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
+        except ValueError as VE:
+            print(VE)
+            r2_score.append(-100)
+        try:
+            rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+        except ValueError as VE:
+            print(VE)
+            rmse.append(100)
 
-        # Calculate error of ims
-        err_ims.append(error_ratio(y_pred=ims_pred_tm,
-                                   y_true=ims_test_set,
-                                   measured_matrix=measured_matrix_ims))
-        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_pred_tm))
-        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_pred_tm))
+            # Calculate error of ims
+        try:
+            err_ims.append(error_ratio(y_pred=ims_pred_tm,
+                                       y_true=ims_test_set,
+                                       measured_matrix=measured_matrix_ims))
+        except ValueError as VE:
+            print(VE)
+            err_ims.append(100)
+        try:
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_pred_tm))
+        except ValueError as VE:
+            print(VE)
+            r2_score_ims.append(-100)
+        try:
+            rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_pred_tm))
+        except ValueError as VE:
+            print(VE)
+            rmse_ims.append(100)
 
         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time], rmse[running_time], r2_score[running_time],

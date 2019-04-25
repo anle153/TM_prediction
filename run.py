@@ -42,6 +42,13 @@ def print_info(args):
                 print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
             else:
                 print('|--- LSTM_BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
+
+        if 'lstm-nn' in alg_name:
+            print('|--- LSTM_DEEP:\t{}'.format(Config.LSTM_DEEP))
+            print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.LSTM_DEEP_NLAYERS))
+        elif 'conv-lstm' in alg_name:
+            print('|--- CONV_LAYERS:\t{}'.format(Config.CNN_LAYERS))
+
     elif 'arima' in alg_name:
         print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
 

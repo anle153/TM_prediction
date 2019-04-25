@@ -110,8 +110,8 @@ def build_model(args, input_shape):
                alg_name=alg_name, tag=tag, check_point=True,
                saving_path=Config.MODEL_SAVE + '{}-{}-{}/'.format(data_name, alg_name, tag))
 
-    if 'deep' in alg_name:
-        net.seq2seq_deep_model_construction(n_layers=3)
+    if Config.LSTM_DEEP:
+        net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
     else:
         net.seq2seq_model_construction()
 

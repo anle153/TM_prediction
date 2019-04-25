@@ -143,6 +143,7 @@ def train_lstm_nn(data, args):
 
         lstm_net = build_model(args, input_shape)
 
+        # -------------------------------- Create offline training and validating dataset ------------------------------
         if not os.path.isfile(lstm_net.saving_path + 'trainX.npy'):
             trainX, trainY = create_offline_lstm_nn_data(train_data_normalized, input_shape, Config.MON_RAIO, 0.5)
             np.save(lstm_net.saving_path + 'trainX.npy', trainX)
@@ -158,6 +159,7 @@ def train_lstm_nn(data, args):
         else:
             validX = np.load(lstm_net.saving_path + 'validX.npy')
             validY = np.load(lstm_net.saving_path + 'validY.npy')
+        # --------------------------------------------------------------------------------------------------------------
 
         if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.N_EPOCH)):
             lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)

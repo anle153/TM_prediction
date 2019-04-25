@@ -9,7 +9,7 @@ from tqdm import tqdm
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_3d, generator_convlstm_train_data, \
-    generator_convlstm_train_data_fix_ratio, create_offline_convlstm_valid_set_fix_ratio
+    generator_convlstm_train_data_fix_ratio, create_offline_lstm_nn_data
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -149,9 +149,18 @@ def train_conv_lstm(data, args):
 
         conv_lstm_net = build_model(args, input_shape)
 
+        if not os.path.isfile(conv_lstm_net.saving_path + 'trainX.npy'):
+            trainX, trainY = create_offline_lstm_nn_data(valid_data_normalized,
+                                                         input_shape, Config.MON_RAIO, 0.5)
+            np.save(conv_lstm_net.saving_path + 'trainX.npy', trainX)
+            np.save(conv_lstm_net.saving_path + 'trainY.npy', trainY)
+        else:
+            trainX = np.load(conv_lstm_net.saving_path + 'trainX.npy')
+            trainY = np.load(conv_lstm_net.saving_path + 'trainY.npy')
+
         if not os.path.isfile(conv_lstm_net.saving_path + 'validX.npy'):
-            validX, validY = create_offline_convlstm_valid_set_fix_ratio(valid_data_normalized,
-                                                                         input_shape, Config.MON_RAIO, 0.5)
+            validX, validY = create_offline_lstm_nn_data(valid_data_normalized,
+                                                         input_shape, Config.MON_RAIO, 0.5)
             np.save(conv_lstm_net.saving_path + 'validX.npy', validX)
             np.save(conv_lstm_net.saving_path + 'validY.npy', validY)
         else:
@@ -173,20 +182,14 @@ def train_conv_lstm(data, args):
             from_epoch = conv_lstm_net.load_model_from_check_point()
             if from_epoch > 0:
                 print('|--- Continue training model from epoch %i --- ' % from_epoch)
-                training_history = conv_lstm_net.model.fit_generator(
-                    generator_train_data(train_data_normalized,
-                                         input_shape,
-                                         Config.MON_RAIO,
-                                         0.5,
-                                         Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    initial_epoch=from_epoch,
-                    validation_data=(validX, validY),
-                    callbacks=conv_lstm_net.callbacks_list,
-                    use_multiprocessing=True,
-                    workers=2,
-                    max_queue_size=1024)
+                training_history = conv_lstm_net.model.fit(x=trainX,
+                                                           y=trainY,
+                                                           batch_size=Config.BATCH_SIZE,
+                                                           epochs=Config.N_EPOCH,
+                                                           callbacks=conv_lstm_net.callbacks_list,
+                                                           validation_data=(validX_fw, validY_fw),
+                                                           shuffle=True,
+                                                           initial_epoch=from_epoch)
             else:
                 print('|--- Training new model.')
 

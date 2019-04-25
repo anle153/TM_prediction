@@ -7,7 +7,7 @@ import tensorflow as tf
 from Models.RNN_LSTM import lstm
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, generator_lstm_nn_train_data, \
-    create_offline_valid_set_lstm_nn
+    create_offline_lstm_nn_data
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 from tqdm import tqdm
 
@@ -143,50 +143,47 @@ def train_lstm_nn(data, args):
 
         lstm_net = build_model(args, input_shape)
 
-        if not os.path.isfile(lstm_net.saving_path + 'valid_X.npy'):
-            validX, validY = create_offline_valid_set_lstm_nn(valid_data_normalized, input_shape, Config.MON_RAIO, 0.5)
-            np.save(lstm_net.saving_path + 'valid_X.npy', validX)
-            np.save(lstm_net.saving_path + 'valid_Y.npy', validY)
+        if not os.path.isfile(lstm_net.saving_path + 'trainX.npy'):
+            trainX, trainY = create_offline_lstm_nn_data(train_data_normalized, input_shape, Config.MON_RAIO, 0.5)
+            np.save(lstm_net.saving_path + 'trainX.npy', trainX)
+            np.save(lstm_net.saving_path + 'trainY.npy', trainY)
         else:
-            validX = np.load(lstm_net.saving_path + 'valid_X.npy')
-            validY = np.load(lstm_net.saving_path + 'valid_Y.npy')
+            trainX = np.load(lstm_net.saving_path + 'trainX.npy')
+            trainY = np.load(lstm_net.saving_path + 'trainY.npy')
+
+        if not os.path.isfile(lstm_net.saving_path + 'validX.npy'):
+            validX, validY = create_offline_lstm_nn_data(valid_data_normalized, input_shape, Config.MON_RAIO, 0.5)
+            np.save(lstm_net.saving_path + 'validX.npy', validX)
+            np.save(lstm_net.saving_path + 'validY.npy', validY)
+        else:
+            validX = np.load(lstm_net.saving_path + 'validX.npy')
+            validY = np.load(lstm_net.saving_path + 'validY.npy')
 
         if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.N_EPOCH)):
-            lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT, weights_file_type='hdf5')
+            lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
 
         else:
             print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
-            from_epoch = lstm_net.load_model_from_check_point(weights_file_type='hdf5')
+            from_epoch = lstm_net.load_model_from_check_point()
 
             if from_epoch > 0:
-
-                training_history = lstm_net.model.fit_generator(
-                    generator_lstm_nn_train_data(data=train_data_normalized,
-                                                 input_shape=input_shape,
-                                                 mon_ratio=Config.MON_RAIO,
-                                                 eps=0.5,
-                                                 batch_size=Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    initial_epoch=from_epoch,
-                    validation_data=(validX, validY),
-                    callbacks=lstm_net.callbacks_list,
-                    use_multiprocessing=True, workers=4, max_queue_size=1024
-                )
+                training_history = lstm_net.model.fit(x=trainX,
+                                                      y=trainY,
+                                                      batch_size=Config.BATCH_SIZE,
+                                                      epochs=Config.N_EPOCH,
+                                                      callbacks=lstm_net.callbacks_list,
+                                                      validation_data=(validX, validY),
+                                                      shuffle=True,
+                                                      initial_epoch=from_epoch)
             else:
 
-                training_history = lstm_net.model.fit_generator(
-                    generator_lstm_nn_train_data(data=train_data_normalized,
-                                                 input_shape=input_shape,
-                                                 mon_ratio=Config.MON_RAIO,
-                                                 eps=0.5,
-                                                 batch_size=Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    validation_data=(validX, validY),
-                    callbacks=lstm_net.callbacks_list,
-                    use_multiprocessing=True, workers=4, max_queue_size=1024
-                )
+                training_history = lstm_net.model.fit(x=trainX,
+                                                      y=trainY,
+                                                      batch_size=Config.BATCH_SIZE,
+                                                      epochs=Config.N_EPOCH,
+                                                      callbacks=lstm_net.callbacks_list,
+                                                      validation_data=(validX, validY),
+                                                      shuffle=True)
 
             if training_history is not None:
                 lstm_net.plot_training_history(training_history)

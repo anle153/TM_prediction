@@ -16,6 +16,11 @@ def print_info(args):
     gpu = args.gpu
 
     print('----------------------- INFO -----------------------')
+    if not Config.ALL_DATA:
+        print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
+    else:
+        print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
+
     print('|--- Mode:\t{}'.format(args.run_mode))
     print('|--- Alg:\t{}'.format(alg_name))
     print('|--- Tag:\t{}'.format(tag))
@@ -23,10 +28,6 @@ def print_info(args):
     print('|--- GPU:\t{}'.format(gpu))
     print('|--- MON_RATIO:\t{}'.format(Config.MON_RAIO))
     print('            -----------            ')
-    if not Config.ALL_DATA:
-        print('Train/Test with {}d of data'.format(Config.NUM_DAYS))
-    else:
-        print('Train/Test with ALL of data'.format(Config.NUM_DAYS))
 
     if 'lstm' in alg_name:
         if 'train' in args.run_mode or 'training' in args.run_mode:

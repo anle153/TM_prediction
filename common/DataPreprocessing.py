@@ -229,7 +229,6 @@ def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):
 
 
 def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
-    print('|--- Create offline valid set for lstm-nn!')
     ntimesteps = input_shape[0]
     features = input_shape[1]
 

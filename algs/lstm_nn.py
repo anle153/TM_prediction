@@ -145,6 +145,7 @@ def train_lstm_nn(data, args):
 
         # -------------------------------- Create offline training and validating dataset ------------------------------
         if not os.path.isfile(lstm_net.saving_path + 'trainX.npy'):
+            print('|--- Create offline train set for lstm-nn!')
             trainX, trainY = create_offline_lstm_nn_data(train_data_normalized, input_shape, Config.MON_RAIO, 0.5)
             np.save(lstm_net.saving_path + 'trainX.npy', trainX)
             np.save(lstm_net.saving_path + 'trainY.npy', trainY)
@@ -153,6 +154,7 @@ def train_lstm_nn(data, args):
             trainY = np.load(lstm_net.saving_path + 'trainY.npy')
 
         if not os.path.isfile(lstm_net.saving_path + 'validX.npy'):
+            print('|--- Create offline valid set for lstm-nn!')
             validX, validY = create_offline_lstm_nn_data(valid_data_normalized, input_shape, Config.MON_RAIO, 0.5)
             np.save(lstm_net.saving_path + 'validX.npy', validX)
             np.save(lstm_net.saving_path + 'validY.npy', validY)

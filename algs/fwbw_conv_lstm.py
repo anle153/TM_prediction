@@ -402,6 +402,8 @@ def train_fwbw_conv_lstm(data, args):
             if training_fw_history is not None:
                 fw_net.plot_training_history(training_fw_history)
 
+        # --------------------------------------------Training bw model-------------------------------------------------
+
         train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
         valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
 
@@ -414,13 +416,11 @@ def train_fwbw_conv_lstm(data, args):
             validX_bw = np.load(bw_net.saving_path + 'validX_bw.npy')
             validY_bw = np.load(bw_net.saving_path + 'validY_bw.npy')
 
-        # Training cnn_brnn backward model
         if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
             print('|--- Backward model exist!')
             bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT, weights_file_type='hdf5')
         else:
             print('|---Compile model. Saving path: %s' % bw_net.saving_path)
-            # Load model from check point
             from_epoch_backward = bw_net.load_model_from_check_point()
             if from_epoch_backward > 0:
 

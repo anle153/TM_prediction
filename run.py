@@ -23,6 +23,11 @@ def print_info(args):
     print('|--- GPU:\t{}'.format(gpu))
     print('|--- MON_RATIO:\t{}'.format(Config.MON_RAIO))
     print('            -----------            ')
+    if not Config.ALL_DATA:
+        print('Train/Test with {}d of data'.format(Config.NUM_DAYS))
+    else:
+        print('Train/Test with ALL of data'.format(Config.NUM_DAYS))
+
     if 'lstm' in alg_name:
         if 'train' in args.run_mode or 'training' in args.run_mode:
             print('|--- N_EPOCH:\t{}'.format(Config.N_EPOCH))
@@ -37,21 +42,13 @@ def print_info(args):
                 print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
             else:
                 print('|--- LSTM_BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
+    elif 'arima' in alg_name:
+        print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
 
-    elif 'arima' in alg_name or 'holt-winter' in alg_name:
-
-        if not Config.ALL_DATA:
-            print('Train/Test with {}d of data'.format(Config.NUM_DAYS))
-        else:
-            print('Train/Test with ALL of data'.format(Config.NUM_DAYS))
-
-        if 'arima' in alg_name:
-            print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
-
-        elif 'holt-winter' in alg_name:
-            print('|--- HOLT_WINTER_UPDATE:\t{}-days'.format(Config.HOLT_WINTER_UPDATE))
-            print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
-            print('|--- HOLT_WINTER_SEASONAL:\t{}'.format(Config.HOLT_WINTER_SEASONAL))
+    elif 'holt-winter' in alg_name:
+        print('|--- HOLT_WINTER_UPDATE:\t{}-days'.format(Config.HOLT_WINTER_UPDATE))
+        print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
+        print('|--- HOLT_WINTER_SEASONAL:\t{}'.format(Config.HOLT_WINTER_SEASONAL))
     else:
         raise ValueError('Unkown alg!')
 

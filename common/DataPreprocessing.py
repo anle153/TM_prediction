@@ -154,7 +154,7 @@ def generator_convlstm_train_data_fix_ratio(data, input_shape, mon_ratio, eps, b
         yield dataX, dataY
 
 
-def create_offline_convlstm_valid_set_fix_ratio(data, input_shape, mon_ratio, eps, batch_size):
+def create_offline_convlstm_valid_set_fix_ratio(data, input_shape, mon_ratio, eps):
     _tf = np.array([True, False])
 
     ntimesteps = input_shape[0]
@@ -175,25 +175,20 @@ def create_offline_convlstm_valid_set_fix_ratio(data, input_shape, mon_ratio, ep
 
     _data = np.concatenate([_data, _labels], axis=3)
 
-    dataX = np.zeros((batch_size, ntimesteps, wide, high, channel))
-    dataY = np.zeros((batch_size, ntimesteps, wide, high, 1))
+    dataX = np.zeros((_data.shape[0] - ntimesteps, ntimesteps, wide, high, channel))
+    dataY = np.zeros((_data.shape[0] - ntimesteps, ntimesteps, wide, high, 1))
 
-    while True:
+    for idx in range(_data.shape[0] - ntimesteps):
+        _x = _data[idx: (idx + ntimesteps), :, :, :]
 
-        indices = np.random.randint(0, _data.shape[0] - ntimesteps - 1, size=batch_size)
-        for i in range(batch_size):
-            idx = indices[i]
+        dataX[idx] = _x
 
-            _x = _data[idx: (idx + ntimesteps), :, :, :]
+        _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
+        _y = np.expand_dims(_y, axis=3)
 
-            dataX[i] = _x
+        dataY[idx] = _y
 
-            _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
-            _y = np.expand_dims(_y, axis=3)
-
-            dataY[i] = _y
-
-        yield dataX, dataY
+    return dataX, dataY
 
 
 def generator_lstm_nn_train_data(data, input_shape, mon_ratio, eps, batch_size):

@@ -9,7 +9,7 @@ from tqdm import tqdm
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_3d, generator_convlstm_train_data, \
-    generator_convlstm_train_data_fix_ratio
+    generator_convlstm_train_data_fix_ratio, create_offline_convlstm_valid_set_fix_ratio
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -343,6 +343,15 @@ def train_fwbw_conv_lstm(data, args):
 
         fw_net, bw_net = build_model(args, input_shape)
 
+        if not os.path.isfile(fw_net.saving_path + 'validX_fw.npy'):
+            validX_fw, validY_fw = create_offline_convlstm_valid_set_fix_ratio(valid_data_normalized,
+                                                                               input_shape, Config.MON_RAIO, 0.5)
+            np.save(fw_net.saving_path + 'validX_fw.npy', validX_fw)
+            np.save(fw_net.saving_path + 'validY_fw.npy', validY_fw)
+        else:
+            validX_fw = np.load(fw_net.saving_path + 'validX_fw.npy')
+            validY_fw = np.load(fw_net.saving_path + 'validY_fw.npy')
+
         if Config.MON_RAIO is not None:
             generator_train_data = generator_convlstm_train_data_fix_ratio
         else:
@@ -367,10 +376,7 @@ def train_fwbw_conv_lstm(data, args):
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
                     initial_epoch=from_epoch,
-                    validation_data=generator_train_data(valid_data_normalized, input_shape, Config.MON_RAIO,
-                                                         0.5,
-                                                         Config.BATCH_SIZE),
-                    validation_steps=int(Config.NUM_ITER * 0.2),
+                    validation_data=(validX_fw, validY_fw),
                     callbacks=fw_net.callbacks_list,
                     use_multiprocessing=True,
                     workers=2,
@@ -386,10 +392,7 @@ def train_fwbw_conv_lstm(data, args):
                                          Config.BATCH_SIZE),
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
-                    validation_data=generator_train_data(valid_data_normalized, input_shape, Config.MON_RAIO,
-                                                         0.5,
-                                                         Config.BATCH_SIZE),
-                    validation_steps=int(Config.NUM_ITER * 0.2),
+                    validation_data=(validX_fw, validY_fw),
                     callbacks=fw_net.callbacks_list,
                     use_multiprocessing=True,
                     workers=2,
@@ -401,6 +404,15 @@ def train_fwbw_conv_lstm(data, args):
 
         train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
         valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
+
+        if not os.path.isfile(bw_net.saving_path + 'validX_bw.npy'):
+            validX_bw, validY_bw = create_offline_convlstm_valid_set_fix_ratio(valid_data_bw_normalized,
+                                                                               input_shape, Config.MON_RAIO, 0.5)
+            np.save(bw_net.saving_path + 'validX_bw.npy', validX_bw)
+            np.save(bw_net.saving_path + 'validY_bw.npy', validY_bw)
+        else:
+            validX_bw = np.load(bw_net.saving_path + 'validX_bw.npy')
+            validY_bw = np.load(bw_net.saving_path + 'validY_bw.npy')
 
         # Training cnn_brnn backward model
         if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.N_EPOCH):
@@ -421,12 +433,7 @@ def train_fwbw_conv_lstm(data, args):
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
                     initial_epoch=from_epoch_backward,
-                    validation_data=generator_train_data(valid_data_bw_normalized,
-                                                         input_shape,
-                                                         Config.MON_RAIO,
-                                                         0.5,
-                                                         Config.BATCH_SIZE),
-                    validation_steps=int(Config.NUM_ITER * 0.2),
+                    validation_data=(validX_bw, validY_bw),
                     callbacks=bw_net.callbacks_list,
                     use_multiprocessing=True,
                     workers=2,
@@ -443,12 +450,7 @@ def train_fwbw_conv_lstm(data, args):
                                          Config.BATCH_SIZE),
                     epochs=Config.N_EPOCH,
                     steps_per_epoch=Config.NUM_ITER,
-                    validation_data=generator_train_data(valid_data_bw_normalized,
-                                                         input_shape,
-                                                         Config.MON_RAIO,
-                                                         0.5,
-                                                         Config.BATCH_SIZE),
-                    validation_steps=int(Config.NUM_ITER * 0.2),
+                    validation_data=(validX_bw, validY_bw),
                     callbacks=bw_net.callbacks_list,
                     use_multiprocessing=True,
                     workers=2,

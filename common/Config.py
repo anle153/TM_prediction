@@ -3,7 +3,7 @@ DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
 
-TESTING_TIME = 10
+TESTING_TIME = 1
 
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96

@@ -8,6 +8,7 @@ from common.cmd_utils import parse_unknown_args, common_arg_parser
 from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d
 from common import Config
 
+
 def print_info(args):
     alg_name = args.alg
     data_name = args.data_name
@@ -31,7 +32,7 @@ def print_info(args):
             print('|--- IMS_STEP:\t{}'.format(Config.IMS_STEP))
         else:
             print('|--- TESTING_TIME:\t{}'.format(Config.TESTING_TIME))
-            if 'conv' in alg_name:
+            if 'conv-lstm' in alg_name:
                 print('|--- FW_BEST_CHECKPOINT:\t{}'.format(Config.FW_BEST_CHECKPOINT))
                 print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
             else:

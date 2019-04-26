@@ -2,7 +2,7 @@
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'test_100d'
+ADDED_RESULT_NAME = 'test_150d'
 
 TESTING_TIME = 1
 

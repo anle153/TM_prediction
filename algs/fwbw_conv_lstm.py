@@ -546,7 +546,8 @@ def test_fwbw_conv_lstm(data, args):
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
+                                                                          alg_name, tag, Config.ADDED_RESULT_NAME),
                            index=False)
 
     return

@@ -18,9 +18,6 @@ def common_arg_parser():
     parser.add_argument('--tag', help='Algorithm_tag. Default: None', type=str, default=None)
     parser.add_argument('--gpu', help='Specify GPU card. Default: None', type=int, default=0)
     parser.add_argument('--visualize', help='Visualize results. Default: False', default=False)
-    parser.add_argument('--save_path', help='Path to save trained model to',
-                        default='/home/anle/kaggle/earthquake_prediction/models_save/',
-                        type=str)
     return parser
 
 

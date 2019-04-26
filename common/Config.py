@@ -2,6 +2,7 @@
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
+ADDED_RESULT_NAME = 'random_action'
 
 TESTING_TIME = 1
 

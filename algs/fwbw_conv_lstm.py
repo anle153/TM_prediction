@@ -250,13 +250,15 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
                                     rnn_input_labels=rnn_input)
 
         predict_tm = predictX[-1, :, :]
-
-        sampling = set_measured_flow_3d(rnn_input_labels=rnn_input,
-                                        forward_pred=predictX,
-                                        backward_pred=predictX_backward)
+        if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
+            sampling = np.random.choice(tf, size=(test_data.shape[1], test_data.shape[2]),
+                                        p=(Config.MON_RAIO, 1 - Config.MON_RAIO))
+        else:
+            sampling = set_measured_flow_3d(rnn_input_labels=rnn_input,
+                                            forward_pred=predictX,
+                                            backward_pred=predictX_backward)
 
         # Selecting next monitored flows randomly
-        # sampling = np.random.choice(tf, size=(12, 12), p=(sampling_ratio, 1 - sampling_ratio))
         inv_sampling = np.invert(sampling)
 
         pred_tm = predict_tm * inv_sampling

@@ -56,6 +56,8 @@ def print_info(args):
             print('|--- STRIDES:\t{}'.format(Config.STRIDES))
             print('|--- DROPOUTS:\t{}'.format(Config.DROPOUTS))
             print('|--- RNN_DROPOUTS:\t{}'.format(Config.RNN_DROPOUTS))
+            if 'fwbw' in alg_name:
+                print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONV_LSTM_RANDOM_ACTION))
 
     elif 'arima' in alg_name:
         print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))

@@ -10,7 +10,7 @@ ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
 
 ALL_DATA = False
-NUM_DAYS = 100
+NUM_DAYS = 150
 
 # Training lstm-based model config
 N_EPOCH = 100

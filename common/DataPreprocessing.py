@@ -25,9 +25,9 @@ def prepare_train_valid_test_3d(data, day_size):
 
     valid_size = int(n_days * 0.2 * day_size)
 
-    train_set = data[0:train_size, :, :]
-    valid_set = data[train_size:train_size + valid_size, :, :]
-    test_set = data[train_size + valid_size:, :, :]
+    train_set = data[0:train_size]
+    valid_set = data[train_size:(train_size + valid_size)]
+    test_set = data[(train_size + valid_size):]
 
     return train_set, valid_set, test_set
 

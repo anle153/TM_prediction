@@ -242,7 +242,8 @@ def test_lstm_nn(data, args):
 
         lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
 
-        results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
+        results_summary = pd.DataFrame(index=range(Config.TESTING_TIME),
+                                       columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
         err, r2_score, rmse = [], [], []
         err_ims, r2_score_ims, rmse_ims = [], [], []
@@ -271,15 +272,16 @@ def test_lstm_nn(data, args):
             r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
             rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))
 
-        results_summary['running_time'] = range(Config.TESTING_TIME)
+        results_summary['No.'] = range(Config.TESTING_TIME)
         results_summary['err'] = err
-        results_summary['r2_score'] = r2_score
+        results_summary['r2'] = r2_score
         results_summary['rmse'] = rmse
         results_summary['err_ims'] = err_ims
-        results_summary['r2_score_ims'] = r2_score_ims
+        results_summary['r2_ims'] = r2_score_ims
         results_summary['rmse_ims'] = rmse_ims
 
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
+        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
+                                                                              alg_name, tag, Config.ADDED_RESULT_NAME),
                                index=False)
 
     return

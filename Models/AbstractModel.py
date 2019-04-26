@@ -99,14 +99,14 @@ class AbstractModel(object):
             epoch = -1
             if _from_epoch:
                 for _weights_file_name in list_files:
-                    epoch = int(_weights_file_name.split('-')[1])
+                    epoch = int(_weights_file_name.split('.')[0].split('-')[1])
                     if _from_epoch == epoch:
                         weights_file_name = _weights_file_name
                         break
             else:
                 # Get the last check point
                 weights_file_name = list_files[-1]
-                epoch = int(weights_file_name.split('-')[1])
+                epoch = int(weights_file_name.split('.')[0].split('-')[1])
 
             if self.load_trained_model(path=self.checkpoints_path, weight_file=weights_file_name):
                 return epoch

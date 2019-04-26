@@ -483,6 +483,9 @@ def test_fwbw_conv_lstm(data, args):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
+    if not Config.ALL_DATA:
+        data = data[0:Config.NUM_DAYS * day_size]
+
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')

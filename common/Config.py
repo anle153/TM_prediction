@@ -2,7 +2,7 @@
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'random_action'
+ADDED_RESULT_NAME = 'test_100d'
 
 TESTING_TIME = 1
 
@@ -55,6 +55,6 @@ HOLT_WINTER_SEASONAL = 'add'
 HOLT_WINTER_UPDATE = 7
 
 # Problem hyperparams
-FWBW_CONV_LSTM_RANDOM_ACTION = True
+FWBW_CONV_LSTM_RANDOM_ACTION = False
 MON_RAIO = 0.3
 HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]

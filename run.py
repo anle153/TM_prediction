@@ -47,8 +47,15 @@ def print_info(args):
         if 'lstm-nn' in alg_name:
             print('|--- LSTM_DEEP:\t{}'.format(Config.LSTM_DEEP))
             print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.LSTM_DEEP_NLAYERS))
+            print('|--- LSTM_DROPOUT:\t{}'.format(Config.LSTM_DROPOUT))
+            print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.LSTM_HIDDEN_UNIT))
         elif 'conv-lstm' in alg_name:
             print('|--- CONV_LAYERS:\t{}'.format(Config.CNN_LAYERS))
+            print('|--- FILTERS:\t{}'.format(Config.FILTERS))
+            print('|--- KERNEL_SIZE:\t{}'.format(Config.KERNEL_SIZE))
+            print('|--- STRIDES:\t{}'.format(Config.STRIDES))
+            print('|--- DROPOUTS:\t{}'.format(Config.DROPOUTS))
+            print('|--- RNN_DROPOUTS:\t{}'.format(Config.RNN_DROPOUTS))
 
     elif 'arima' in alg_name:
         print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))

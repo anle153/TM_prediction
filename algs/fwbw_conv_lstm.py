@@ -516,7 +516,7 @@ def test_fwbw_conv_lstm(data, args):
         print('|--- Run time {}'.format(i))
 
         tm_labels, ims_tm = predict_fwbw_conv_lstm(
-            initial_data=valid_data_normalized[-Config.LSTM_STEP:, :, :],
+            initial_data=valid_data_normalized[-Config.LSTM_STEP:],
             test_data=test_data_normalized,
             forward_model=fw_net.model,
             backward_model=bw_net.model)
@@ -524,21 +524,21 @@ def test_fwbw_conv_lstm(data, args):
         pred_tm = tm_labels[:, :, :, 0]
         measured_matrix = tm_labels[:, :, :, 1]
 
-        pred_tm = pred_tm * std_train + mean_train
+        pred_tm_invert = pred_tm * std_train + mean_train
 
-        err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-        ims_tm = ims_tm * std_train + mean_train
+        ims_tm_invert = ims_tm * std_train + mean_train
         ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
-        err_ims.append(error_ratio(y_pred=ims_tm,
+        err_ims.append(error_ratio(y_pred=ims_tm_invert,
                                    y_true=ims_ytrue,
                                    measured_matrix=measured_matrix_ims))
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm))
-        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm))
+        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
+        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
 
     results_summary['No.'] = range(Config.TESTING_TIME)
     results_summary['err'] = err

@@ -223,6 +223,9 @@ def test_lstm_nn(data, args):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
+    if not Config.ALL_DATA:
+        data = data[0:Config.NUM_DAYS * day_size]
+
     print('|-- Run model training.')
     gpu = int(args.gpu)
     with tf.device('/device:GPU:{}'.format(gpu)):

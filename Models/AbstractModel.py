@@ -83,7 +83,7 @@ class AbstractModel(object):
             self.model.load_weights(path + weight_file)
             return True
 
-    def load_model_from_check_point(self, _from_epoch=0):
+    def load_model_from_check_point(self, _from_epoch=None):
 
         if os.path.exists(self.checkpoints_path):
             list_files = fnmatch.filter(os.listdir(self.checkpoints_path), '*.hdf5')
@@ -93,7 +93,7 @@ class AbstractModel(object):
                     '|--- Found no weights file at %s---' % self.checkpoints_path)
                 return -1
 
-            list_files = sorted(list_files, key=lambda x: int(x.split('-')[1]))
+            list_files = sorted(list_files, key=lambda x: int(x.split('.')[0].split('-')[1]))
 
             weights_file_name = ''
             epoch = -1

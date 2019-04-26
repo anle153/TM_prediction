@@ -69,6 +69,8 @@ def print_info(args):
     else:
         raise ValueError('Unkown alg!')
 
+    print('|--- ADDED_RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))
+
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
     if infor_correct != 'y' and infor_correct != 'yes':
         raise RuntimeError('Information is not correct!')

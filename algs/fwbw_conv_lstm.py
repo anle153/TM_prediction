@@ -207,6 +207,8 @@ def ims_tm_prediction(init_data_labels, forward_model, backward_model):
 
 
 def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_model):
+    tf_a = np.array([True, False])
+
     init_labels = np.ones((initial_data.shape[0], initial_data.shape[1], initial_data.shape[2]))
 
     tm_labels = np.zeros(
@@ -251,7 +253,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
         predict_tm = predictX[-1, :, :]
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
-            sampling = np.random.choice(tf, size=(test_data.shape[1], test_data.shape[2]),
+            sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                         p=(Config.MON_RAIO, 1 - Config.MON_RAIO))
         else:
             sampling = set_measured_flow_3d(rnn_input_labels=rnn_input,

@@ -46,8 +46,7 @@ def ims_tm_prediction(init_data, model, init_labels):
 
 
 def predict_lstm_nn(init_data, test_data, model):
-
-    tf = np.array([True, False])
+    tf_a = np.array([True, False])
     labels = np.ones(shape=init_data.shape)
 
     tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -75,7 +74,7 @@ def predict_lstm_nn(init_data, test_data, model):
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
         # boolean array(1 x n_flows):for choosing value from predicted data
-        sampling = np.expand_dims(np.random.choice(tf,
+        sampling = np.expand_dims(np.random.choice(tf_a,
                                                    size=(test_data.shape[1]),
                                                    p=[Config.MON_RAIO, 1 - Config.MON_RAIO]), axis=0)
         labels = np.concatenate([labels, sampling], axis=0)

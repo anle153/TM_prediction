@@ -2,14 +2,14 @@
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'test_160d'
+ADDED_RESULT_NAME = ''
 
 TESTING_TIME = 1
 
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
 
-ALL_DATA = False
+ALL_DATA = True
 NUM_DAYS = 160
 
 # Training lstm-based model config

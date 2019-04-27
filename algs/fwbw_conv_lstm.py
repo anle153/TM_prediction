@@ -539,6 +539,10 @@ def test_fwbw_conv_lstm(data, args):
 
         r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
         rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
+                                                          r2_score_ims[i]))
 
     results_summary['No.'] = range(Config.TESTING_TIME)
     results_summary['err'] = err

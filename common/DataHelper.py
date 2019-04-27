@@ -29,6 +29,21 @@ def create_abilene_data_2d(path):
     np.save(Config.DATA_PATH + 'Abilene2d.npy', tm_2d)
 
 
+def create_abilene_by_day(path):
+    abilene_weekday = np.zeros(shape=(24 * 5 * 288, 144))
+    abilene_weekend = np.zeros(shape=(24 * 2 * 288, 144))
+
+    for i in range(24):
+        print('Read file X{:02d}'.format(i + 1))
+        raw_data = np.genfromtxt(path + 'X{:02d}'.format(i + 1), delimiter=' ')
+        tm = raw_data[:, range(0, 720, 5)]
+        abilene_weekday[(i * 5 * 288): ((i + 1) * 5 * 288)] = tm[0:(5 * 288)]
+        abilene_weekend[(i * 2 * 288): ((i + 1) * 2 * 288)] = tm[(5 * 288):]
+
+    np.save(Config.DATA_PATH + 'Abilene_weekday.npy', abilene_weekday)
+    np.save(Config.DATA_PATH + 'Abilene_weekend.npy', abilene_weekend)
+
+
 ########################################################################################################################
 #                             Loading GEANT Traffic trace into Traffic Matrix from XML files                           #
 

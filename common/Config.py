@@ -2,14 +2,14 @@
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'test_165'
+ADDED_RESULT_NAME = ''
 
 TESTING_TIME = 1
 
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
 
-ALL_DATA = False
+ALL_DATA = True
 NUM_DAYS = 167
 
 # Training lstm-based model config
@@ -43,7 +43,7 @@ LSTM_HIDDEN_UNIT = 64
 LSTM_DROPOUT = 0.5
 IMS_STEP = 12
 
-LSTM_DEEP = False
+LSTM_DEEP = True
 LSTM_DEEP_NLAYERS = 3
 
 # Arima Config

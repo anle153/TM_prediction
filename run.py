@@ -72,7 +72,7 @@ def parse_cmdline_kwargs(args):
 def main(args):
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
-    # extra_args = parse_cmdline_kwargs(unknown_args)
+    extra_args = parse_cmdline_kwargs(unknown_args)
 
     print_info(args)
 

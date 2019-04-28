@@ -34,7 +34,7 @@ LSTM_TESTING_TIME = 1
 # ----------------------------------------------
 
 # ------------- FWBW_CONV_LSTM Config ----------
-FWBW_CONV_LSTM_N_EPOCH = 100
+FWBW_CONV_LSTM_N_EPOCH = 200
 FWBW_CONV_LSTM_BATCH_SIZE = 64
 
 FWBW_CONV_LSTM_LAYERS = 2

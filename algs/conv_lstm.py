@@ -3,14 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_3d, generator_convlstm_train_data, \
-    generator_convlstm_train_data_fix_ratio, create_offline_convlstm_data_fix_ratio
-from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
+from common.DataPreprocessing import prepare_train_valid_test_3d, create_offline_convlstm_data_fix_ratio
+from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
 config = tf.ConfigProto()
@@ -19,13 +17,13 @@ session = tf.Session(config=config)
 
 
 def ims_tm_prediction(init_data_labels, conv_lstm_model):
-    multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.IMS_STEP,
+    multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.CONV_LSTM_IMS_STEP,
                                      init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
 
     multi_steps_tm[0:init_data_labels.shape[0], :, :, :] = init_data_labels
 
-    for ts_ahead in range(Config.IMS_STEP):
-        rnn_input = multi_steps_tm[-Config.LSTM_STEP:, :, :, :]  # shape(timesteps, od, od , 2)
+    for ts_ahead in range(Config.CONV_LSTM_IMS_STEP):
+        rnn_input = multi_steps_tm[-Config.CONV_LSTM_STEP:, :, :, :]  # shape(timesteps, od, od , 2)
 
         rnn_input = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
@@ -36,7 +34,7 @@ def ims_tm_prediction(init_data_labels, conv_lstm_model):
 
         predict_tm = predictX[-1, :, :]
 
-        sampling = np.zeros(shape=(Config.CNN_WIDE, Config.CNN_HIGH, 1))
+        sampling = np.zeros(shape=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, 1))
 
         # Calculating the true value for the TM
         new_input = predict_tm
@@ -44,7 +42,7 @@ def ims_tm_prediction(init_data_labels, conv_lstm_model):
         # Concaternating the new tm to the final results
         # Shape = (12, 12, 2)
         new_input = np.concatenate([np.expand_dims(new_input, axis=2), sampling], axis=2)
-        multi_steps_tm[ts_ahead + Config.LSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
+        multi_steps_tm[ts_ahead + Config.CONV_LSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
 
     return multi_steps_tm[-1, :, :, 0]
 
@@ -57,15 +55,16 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
     tm_labels[0:initial_data.shape[0], :, :, 0] = initial_data
     tm_labels[0:init_labels.shape[0], :, :, 1] = init_labels
 
-    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
+    ims_tm = np.zeros(
+        shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
 
     for ts in tqdm(range(test_data.shape[0])):
 
-        if ts <= test_data.shape[0] - Config.IMS_STEP:
-            ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.LSTM_STEP, :, :, :],
+        if ts <= test_data.shape[0] - Config.CONV_LSTM_IMS_STEP:
+            ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.CONV_LSTM_STEP, :, :, :],
                                            conv_lstm_model=conv_lstm_model)
 
-        rnn_input = tm_labels[ts:(ts + Config.LSTM_STEP), :, :, :]  # shape(timesteps, od, od , 2)
+        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP), :, :, :]  # shape(timesteps, od, od , 2)
 
         rnn_input = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
@@ -77,7 +76,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         predict_tm = predictX[-1, :, :]
 
         # Selecting next monitored flows randomly
-        sampling = np.random.choice(tf, size=(12, 12), p=(Config.MON_RAIO, 1 - Config.MON_RAIO))
+        sampling = np.random.choice(tf, size=(12, 12), p=(Config.CONV_LSTM_MON_RAIO, 1 - Config.CONV_LSTM_MON_RAIO))
         inv_sampling = np.invert(sampling)
 
         pred_tm = predict_tm * inv_sampling
@@ -89,9 +88,9 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         # Concaternating the new tm to the final results
         new_tm = np.concatenate([np.expand_dims(new_tm, axis=2), np.expand_dims(sampling, axis=2)], axis=2)
-        tm_labels[ts + Config.LSTM_STEP] = new_tm  # Shape = (timestep, 12, 12, 2)
+        tm_labels[ts + Config.CONV_LSTM_STEP] = new_tm  # Shape = (timestep, 12, 12, 2)
 
-    return tm_labels[Config.LSTM_STEP:, :, :, :], ims_tm
+    return tm_labels[Config.CONV_LSTM_STEP:, :, :, :], ims_tm
 
 
 def build_model(args, input_shape):
@@ -101,12 +100,12 @@ def build_model(args, input_shape):
     data_name = args.data_name
 
     conv_lstm_net = ConvLSTM(input_shape=input_shape,
-                             cnn_layers=Config.CNN_LAYERS,
-                             a_filters=Config.FILTERS,
-                             a_strides=Config.STRIDES,
-                             dropouts=Config.DROPOUTS,
-                             kernel_sizes=Config.KERNEL_SIZE,
-                             rnn_dropouts=Config.RNN_DROPOUTS,
+                             cnn_layers=Config.CONV_LSTM_LAYERS,
+                             a_filters=Config.CONV_LSTM_FILTERS,
+                             a_strides=Config.CONV_LSTM_STRIDES,
+                             dropouts=Config.CONV_LSTM_DROPOUTS,
+                             kernel_sizes=Config.CONV_LSTM_KERNEL_SIZE,
+                             rnn_dropouts=Config.CONV_LSTM_RNN_DROPOUTS,
                              alg_name=alg_name,
                              tag=tag,
                              check_point=True,
@@ -144,15 +143,15 @@ def train_conv_lstm(data, args):
         valid_data_normalized = (valid_data - mean_train) / std_train
         # test_data = (test_data - mean_train) / std_train
 
-        input_shape = (Config.LSTM_STEP,
-                       Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
+        input_shape = (Config.CONV_LSTM_STEP,
+                       Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
         conv_lstm_net = build_model(args, input_shape)
 
         # -------------------------------- Create offline training and validating dataset ------------------------------
         if not os.path.isfile(conv_lstm_net.saving_path + 'trainX.npy'):
             trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                    input_shape, Config.MON_RAIO, 0.5)
+                                                                    input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
             np.save(conv_lstm_net.saving_path + 'trainX.npy', trainX)
             np.save(conv_lstm_net.saving_path + 'trainY.npy', trainY)
         else:
@@ -161,7 +160,7 @@ def train_conv_lstm(data, args):
 
         if not os.path.isfile(conv_lstm_net.saving_path + 'validX.npy'):
             validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                    input_shape, Config.MON_RAIO, 0.5)
+                                                                    input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
             np.save(conv_lstm_net.saving_path + 'validX.npy', validX)
             np.save(conv_lstm_net.saving_path + 'validY.npy', validY)
         else:
@@ -169,12 +168,8 @@ def train_conv_lstm(data, args):
             validY = np.load(conv_lstm_net.saving_path + 'validY.npy')
         # --------------------------------------------------------------------------------------------------------------
 
-        if Config.MON_RAIO is not None:
-            generator_train_data = generator_convlstm_train_data_fix_ratio
-        else:
-            generator_train_data = generator_convlstm_train_data
-
-        if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.N_EPOCH)):
+        if os.path.isfile(
+                path=conv_lstm_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
             print('|--- Model exist!')
             conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
         else:
@@ -186,8 +181,8 @@ def train_conv_lstm(data, args):
                 print('|--- Continue training model from epoch %i --- ' % from_epoch)
                 training_history = conv_lstm_net.model.fit(x=trainX,
                                                            y=trainY,
-                                                           batch_size=Config.BATCH_SIZE,
-                                                           epochs=Config.N_EPOCH,
+                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.CONV_LSTM_N_EPOCH,
                                                            callbacks=conv_lstm_net.callbacks_list,
                                                            validation_data=(validX, validY),
                                                            shuffle=True,
@@ -197,8 +192,8 @@ def train_conv_lstm(data, args):
 
                 training_history = conv_lstm_net.model.fit(x=trainX,
                                                            y=trainY,
-                                                           batch_size=Config.BATCH_SIZE,
-                                                           epochs=Config.N_EPOCH,
+                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.CONV_LSTM_N_EPOCH,
                                                            callbacks=conv_lstm_net.callbacks_list,
                                                            validation_data=(validX, validY),
                                                            shuffle=True,
@@ -216,10 +211,10 @@ def train_conv_lstm(data, args):
 
 def ims_tm_ytrue(test_data):
     ims_test_set = np.zeros(
-        shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
+        shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
 
-    for i in range(Config.IMS_STEP - 1, test_data.shape[0], 1):
-        ims_test_set[i - Config.IMS_STEP + 1] = test_data[i]
+    for i in range(Config.CONV_LSTM_IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.CONV_LSTM_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
@@ -246,24 +241,25 @@ def test_conv_lstm(data, args):
     valid_data_normalized = (valid_data - mean_train) / std_train
     test_data_normalized = (test_data - mean_train) / std_train
 
-    input_shape = (Config.LSTM_STEP,
-                   Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
+    input_shape = (Config.CONV_LSTM_STEP,
+                   Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
     conv_lstm_net = load_trained_models(args, input_shape, Config.CONV_LSTM_BEST_CHECKPOINT)
 
-    results_summary = pd.DataFrame(index=range(Config.TESTING_TIME),
+    results_summary = pd.DataFrame(index=range(Config.CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
-    measured_matrix_ims = np.zeros((test_data.shape[0] - Config.IMS_STEP + 1, Config.CNN_WIDE, Config.CNN_HIGH))
+    measured_matrix_ims = np.zeros(
+        (test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
-    for i in range(Config.TESTING_TIME):
+    for i in range(Config.CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
 
         tm_labels, ims_tm = predict_conv_lstm(
-            initial_data=valid_data_normalized[-Config.LSTM_STEP:, :, :],
+            initial_data=valid_data_normalized[-Config.CONV_LSTM_STEP:, :, :],
             test_data=test_data_normalized,
             conv_lstm_model=conv_lstm_net.model)
 
@@ -286,7 +282,7 @@ def test_conv_lstm(data, args):
         r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm))
         rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm))
 
-    results_summary['No.'] = range(Config.TESTING_TIME)
+    results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse

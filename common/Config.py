@@ -1,10 +1,8 @@
-# Data Config
+# --------------- Data Config -----------------
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
 ADDED_RESULT_NAME = ''
-
-TESTING_TIME = 1
 
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
@@ -12,49 +10,95 @@ GEANT_DAY_SIZE = 96
 ALL_DATA = True
 NUM_DAYS = 167
 
-# Training lstm-based model config
-N_EPOCH = 100
-BATCH_SIZE = 64
-NUM_ITER = 20000
+# ----------------------------------------------
 
-# Testing config
-LSTM_BEST_CHECKPOINT = 64
-CONV_LSTM_BEST_CHECKPOINT = 64
-FW_BEST_CHECKPOINT = 100
-BW_BEST_CHECKPOINT = 99
-
-# Config conv_lstm
-CNN_LAYERS = 2
-FILTERS = [8, 8]
-KERNEL_SIZE = [[3, 3], [3, 3]]
-STRIDES = [[1, 1], [1, 1]]
-DROPOUTS = [0.0, 0.0]
-RNN_DROPOUTS = [0.2, 0.2]
-
-# Input Config
-CNN_WIDE = 12
-CNN_HIGH = 12
-CNN_CHANNEL = 2
-
-# LSTM Config
-LSTM_STEP = 26
-LSTM_FEATURES = 2
+# ----------------- LSTM Config ---------------
+LSTM_N_EPOCH = 100
+LSTM_BATCH_SIZE = 64
+LSTM_NUM_ITER = 20000
 LSTM_HIDDEN_UNIT = 64
 LSTM_DROPOUT = 0.5
-IMS_STEP = 12
 
 LSTM_DEEP = True
 LSTM_DEEP_NLAYERS = 3
 
-# Arima Config
-ARIMA_UPDATE = 7
+LSTM_STEP = 26
+LSTM_FEATURES = 2
+LSTM_IMS_STEP = 12
 
-# Holt-Winter Config
+LSTM_MON_RAIO = 0.3
+
+LSTM_BEST_CHECKPOINT = 64
+LSTM_TESTING_TIME = 1
+
+# ----------------------------------------------
+
+# ------------- FWBW_CONV_LSTM Config ----------
+FWBW_CONV_LSTM_N_EPOCH = 100
+FWBW_CONV_LSTM_BATCH_SIZE = 64
+
+FWBW_CONV_LSTM_LAYERS = 2
+FWBW_CONV_LSTM_FILTERS = [8, 8]
+FWBW_CONV_LSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
+FWBW_CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
+FWBW_CONV_LSTM_DROPOUTS = [0.0, 0.0]
+FWBW_CONV_LSTM_RNN_DROPOUTS = [0.2, 0.2]
+
+FWBW_CONV_LSTM_WIDE = 12
+FWBW_CONV_LSTM_HIGH = 12
+FWBW_CONV_LSTM_CHANNEL = 2
+
+FWBW_CONV_LSTM_MON_RAIO = 0.3
+
+FWBW_CONV_LSTM_IMS_STEP = 12
+FWBW_CONV_LSTM_STEP = 26
+
+FW_BW_CONV_LSTM_TESTING_TIME = 1
+FW_BEST_CHECKPOINT = 100
+BW_BEST_CHECKPOINT = 99
+FWBW_CONV_LSTM_RANDOM_ACTION = False
+FWBW_CONV_LSTM_HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]
+
+# ----------------------------------------------
+
+# ----------- ARIMA Config ----------------------
+ARIMA_UPDATE = 7
+ARIMA_TESTING_TIME = 1
+ARIMA_MON_RATIO = 0.3
+
+ARIMA_IMS_STEP = 12
+# ----------------------------------------------
+
+# -------- HOLT_WINTERS Config -----------------
 HOLT_WINTER_TREND = 'add'
 HOLT_WINTER_SEASONAL = 'add'
 HOLT_WINTER_UPDATE = 7
 
-# Problem hyperparams
-FWBW_CONV_LSTM_RANDOM_ACTION = False
-MON_RAIO = 0.3
-HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]
+HOLT_WINTER_TESTING_TIME = 1
+HOLT_WINTER_MON_RATIO = 0.3
+
+HOLT_WINTER_IMS_STEP = 12
+
+# ----------- CONV_LSTM Config ----------------------
+
+CONV_LSTM_N_EPOCH = 100
+CONV_LSTM_BATCH_SIZE = 64
+
+CONV_LSTM_IMS_STEP = 12
+CONV_LSTM_STEP = 26
+
+CONV_LSTM_BEST_CHECKPOINT = 64
+CONV_LSTM_TESTING_TIME = 1
+
+CONV_LSTM_LAYERS = 2
+CONV_LSTM_FILTERS = [8, 8]
+CONV_LSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
+CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
+CONV_LSTM_DROPOUTS = [0.0, 0.0]
+CONV_LSTM_RNN_DROPOUTS = [0.2, 0.2]
+
+CONV_LSTM_WIDE = 12
+CONV_LSTM_HIGH = 12
+CONV_LSTM_CHANNEL = 2
+
+CONV_LSTM_MON_RAIO = 0.3

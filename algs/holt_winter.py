@@ -24,10 +24,10 @@ def build_holt_winter(data):
 
 
 def ims_tm_test_data(test_data):
-    ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
+    ims_test_set = np.zeros(shape=(test_data.shape[0] - Config.HOLT_WINTER_IMS_STEP + 1, test_data.shape[1]))
 
-    for i in range(Config.IMS_STEP - 1, test_data.shape[0], 1):
-        ims_test_set[i - Config.IMS_STEP + 1] = test_data[i]
+    for i in range(Config.HOLT_WINTER_IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.HOLT_WINTER_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
@@ -99,7 +99,7 @@ def test_holt_winter(data, args):
 
     tf = np.array([True, False])
 
-    results_summary = pd.DataFrame(index=range(Config.TESTING_TIME),
+    results_summary = pd.DataFrame(index=range(Config.HOLT_WINTER_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
     err, r2_score, rmse = [], [], []
@@ -113,16 +113,16 @@ def test_holt_winter(data, args):
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
     pred_tm = np.zeros((test_data.shape[0], test_data.shape[1]))
-    ims_pred_tm = np.zeros((test_data.shape[0] - Config.IMS_STEP + 1, test_data.shape[1]))
+    ims_pred_tm = np.zeros((test_data.shape[0] - Config.HOLT_WINTER_IMS_STEP + 1, test_data.shape[1]))
 
     if not os.path.isfile(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(0, data_name, alg_name)):
         train_holt_winter(args, data)
 
-    for running_time in range(Config.TESTING_TIME):
+    for running_time in range(Config.HOLT_WINTER_TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
 
         measured_matrix = np.random.choice(tf, size=(test_data.shape[0], test_data.shape[1]),
-                                           p=[Config.MON_RAIO, 1 - Config.MON_RAIO])
+                                           p=[Config.HOLT_WINTER_MON_RATIO, 1 - Config.HOLT_WINTER_MON_RATIO])
 
         for flow_id in tqdm(range(test_data.shape[1])):
             training_set_series[flow_id].dropna(inplace=True)
@@ -136,7 +136,7 @@ def test_holt_winter(data, args):
 
             measured_flow = measured_matrix[:, flow_id]
 
-            flow_ims_pred = np.zeros(shape=(test_data.shape[0] - Config.IMS_STEP + 1))
+            flow_ims_pred = np.zeros(shape=(test_data.shape[0] - Config.HOLT_WINTER_IMS_STEP + 1))
 
             # Load trained holt_winter model
             saved_model = open(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(flow_id, data_name, alg_name), 'rb')
@@ -151,9 +151,9 @@ def test_holt_winter(data, args):
                     except:
                         pass
 
-                output = model.forecast(Config.IMS_STEP)
+                output = model.forecast(Config.HOLT_WINTER_IMS_STEP)
 
-                if ts <= (test_data.shape[0] - Config.IMS_STEP):
+                if ts <= (test_data.shape[0] - Config.HOLT_WINTER_IMS_STEP):
                     flow_ims_pred[ts] = output[-1]
 
                 yhat = output[0]
@@ -218,7 +218,7 @@ def test_holt_winter(data, args):
                                                           err_ims[running_time], rmse_ims[running_time],
                                                           r2_score_ims[running_time]))
 
-    results_summary['No.'] = range(Config.TESTING_TIME)
+    results_summary['No.'] = range(Config.HOLT_WINTER_TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse

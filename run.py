@@ -3,77 +3,10 @@ import sys
 import numpy as np
 
 from common.Config import DATA_PATH
-from common.cmd_utils import parse_unknown_args, common_arg_parser
+from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
 
 from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d
 from common import Config
-
-
-def print_info(args):
-    alg_name = args.alg
-    data_name = args.data_name
-    tag = args.tag
-    gpu = args.gpu
-
-    print('----------------------- INFO -----------------------')
-    if not Config.ALL_DATA:
-        print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
-    else:
-        print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
-
-    print('|--- Mode:\t{}'.format(args.run_mode))
-    print('|--- Alg:\t{}'.format(alg_name))
-    print('|--- Tag:\t{}'.format(tag))
-    print('|--- Data:\t{}'.format(data_name))
-    print('|--- GPU:\t{}'.format(gpu))
-    print('|--- MON_RATIO:\t{}'.format(Config.MON_RAIO))
-    print('            -----------            ')
-
-    if 'lstm' in alg_name:
-        if 'train' in args.run_mode or 'training' in args.run_mode:
-            print('|--- N_EPOCH:\t{}'.format(Config.N_EPOCH))
-            print('|--- BATCH_SIZE:\t{}'.format(Config.BATCH_SIZE))
-            print('|--- NUM_ITER:\t{}'.format(Config.NUM_ITER))
-            print('|--- LSTM_STEP:\t{}'.format(Config.LSTM_STEP))
-            print('|--- IMS_STEP:\t{}'.format(Config.IMS_STEP))
-        else:
-            print('|--- TESTING_TIME:\t{}'.format(Config.TESTING_TIME))
-            if 'conv-lstm' in alg_name:
-                print('|--- FW_BEST_CHECKPOINT:\t{}'.format(Config.FW_BEST_CHECKPOINT))
-                print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
-            else:
-                print('|--- LSTM_BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
-
-        if 'lstm-nn' in alg_name:
-            print('|--- LSTM_DEEP:\t{}'.format(Config.LSTM_DEEP))
-            print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.LSTM_DEEP_NLAYERS))
-            print('|--- LSTM_DROPOUT:\t{}'.format(Config.LSTM_DROPOUT))
-            print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.LSTM_HIDDEN_UNIT))
-        elif 'conv-lstm' in alg_name:
-            print('|--- CONV_LAYERS:\t{}'.format(Config.CNN_LAYERS))
-            print('|--- FILTERS:\t{}'.format(Config.FILTERS))
-            print('|--- KERNEL_SIZE:\t{}'.format(Config.KERNEL_SIZE))
-            print('|--- STRIDES:\t{}'.format(Config.STRIDES))
-            print('|--- DROPOUTS:\t{}'.format(Config.DROPOUTS))
-            print('|--- RNN_DROPOUTS:\t{}'.format(Config.RNN_DROPOUTS))
-            if 'fwbw' in alg_name:
-                print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONV_LSTM_RANDOM_ACTION))
-
-    elif 'arima' in alg_name:
-        print('|--- ARIMA_UPDATE:\t{}-days'.format(Config.ARIMA_UPDATE))
-
-    elif 'holt-winter' in alg_name:
-        print('|--- HOLT_WINTER_UPDATE:\t{}-days'.format(Config.HOLT_WINTER_UPDATE))
-        print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
-        print('|--- HOLT_WINTER_SEASONAL:\t{}'.format(Config.HOLT_WINTER_SEASONAL))
-    else:
-        raise ValueError('Unkown alg!')
-
-    print('|--- ADDED_RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))
-
-    infor_correct = input('Is the information correct? y(Yes)/n(No):')
-    if infor_correct != 'y' and infor_correct != 'yes':
-        raise RuntimeError('Information is not correct!')
 
 
 def train(args):
@@ -81,9 +14,12 @@ def train(args):
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    if 'fwbw-conv-lstm' in alg_name or 'convlstm' in alg_name:
+    if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
         train_fwbw_conv_lstm(args=args, data=data)
+    elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
+        from algs.conv_lstm import train_conv_lstm
+        train_conv_lstm(args=args, data=data)
     elif 'lstm-nn' in alg_name:
         from algs.lstm_nn import train_lstm_nn
         train_lstm_nn(args=args, data=data)
@@ -102,9 +38,12 @@ def test(args):
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    if 'fwbw-conv-lstm' in alg_name or 'convlstm' in alg_name:
+    if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         from algs.fwbw_conv_lstm import test_fwbw_conv_lstm
         test_fwbw_conv_lstm(args=args, data=data)
+    elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
+        from algs.conv_lstm import test_conv_lstm
+        test_conv_lstm(args=args, data=data)
     elif 'lstm-nn' in alg_name:
         from algs.lstm_nn import test_lstm_nn
         test_lstm_nn(args=args, data=data)
@@ -133,7 +72,7 @@ def parse_cmdline_kwargs(args):
 def main(args):
     arg_parser = common_arg_parser()
     args, unknown_args = arg_parser.parse_known_args(args)
-    extra_args = parse_cmdline_kwargs(unknown_args)
+    # extra_args = parse_cmdline_kwargs(unknown_args)
 
     print_info(args)
 

@@ -522,7 +522,7 @@ def test_fwbw_conv_lstm(data, args):
 
     fw_net, bw_net = load_trained_models(args, input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
 
-    results_summary = pd.DataFrame(index=range(Config.FW_BW_CONV_LSTM_TESTING_TIME),
+    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
     err, r2_score, rmse = [], [], []
@@ -531,7 +531,7 @@ def test_fwbw_conv_lstm(data, args):
     measured_matrix_ims = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, Config.FWBW_CONV_LSTM_WIDE,
                                     Config.FWBW_CONV_LSTM_HIGH))
 
-    for i in range(Config.FW_BW_CONV_LSTM_TESTING_TIME):
+    for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
 
         tm_labels, ims_tm = predict_fwbw_conv_lstm(
@@ -563,7 +563,7 @@ def test_fwbw_conv_lstm(data, args):
                                                           err_ims[i], rmse_ims[i],
                                                           r2_score_ims[i]))
 
-    results_summary['No.'] = range(Config.FW_BW_CONV_LSTM_TESTING_TIME)
+    results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse

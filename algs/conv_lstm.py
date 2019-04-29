@@ -255,6 +255,10 @@ def test_conv_lstm(data, args):
     measured_matrix_ims = np.zeros(
         (test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
+    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                test_data)
+
     for i in range(Config.CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
 
@@ -266,21 +270,26 @@ def test_conv_lstm(data, args):
         pred_tm = tm_labels[:, :, :, 0]
         measured_matrix = tm_labels[:, :, :, 1]
 
-        pred_tm = pred_tm * std_train + mean_train
+        pred_tm_invert = pred_tm * std_train + mean_train
 
-        err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-        ims_tm = ims_tm * std_train + mean_train
+        ims_tm_invert = ims_tm * std_train + mean_train
         ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
-        err_ims.append(error_ratio(y_pred=ims_tm,
+        err_ims.append(error_ratio(y_pred=ims_tm_invert,
                                    y_true=ims_ytrue,
                                    measured_matrix=measured_matrix_ims))
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm))
-        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm))
+        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
+        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+
+        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                        Config.ADDED_RESULT_NAME),
+                pred_tm_invert)
+
 
     results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)
     results_summary['err'] = err

@@ -227,61 +227,70 @@ def test_lstm_nn(data, args):
 
     print('|-- Run model training.')
     gpu = int(args.gpu)
-    with tf.device('/device:GPU:{}'.format(gpu)):
-        print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data, day_size=day_size)
-        print('|--- Normalizing the train set.')
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        # train_data_normalized = (train_data - mean_train) / std_train
-        valid_data_normalized = (valid_data - mean_train) / std_train
-        test_data_normalized = (test_data - mean_train) / std_train
+    print('|--- Splitting train-test set.')
+    train_data, valid_data, test_data = prepare_train_valid_test_2d(data=data, day_size=day_size)
+    print('|--- Normalizing the train set.')
+    mean_train = np.mean(train_data)
+    std_train = np.std(train_data)
+    # train_data_normalized = (train_data - mean_train) / std_train
+    valid_data_normalized = (valid_data - mean_train) / std_train
+    test_data_normalized = (test_data - mean_train) / std_train
 
-        print("|--- Create LSTM model.")
-        input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
+    print("|--- Create LSTM model.")
+    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
+
+    with tf.device('/device:GPU:{}'.format(gpu)):
 
         lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
 
-        results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
-                                       columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
+    results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
+                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
-        err, r2_score, rmse = [], [], []
-        err_ims, r2_score_ims, rmse_ims = [], [], []
+    err, r2_score, rmse = [], [], []
+    err_ims, r2_score_ims, rmse_ims = [], [], []
 
-        ims_test_set = ims_tm_test_data(test_data=test_data)
-        measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
+    ims_test_set = ims_tm_test_data(test_data=test_data)
+    measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
-        for i in range(Config.LSTM_TESTING_TIME):
-            print('|--- Running time: {}'.format(i))
-            pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
-                                                               test_data=test_data_normalized,
-                                                               model=lstm_net.model)
+    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                test_data)
 
-            pred_tm = pred_tm * std_train + mean_train
+    for i in range(Config.LSTM_TESTING_TIME):
+        print('|--- Running time: {}'.format(i))
+        pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
+                                                           test_data=test_data_normalized,
+                                                           model=lstm_net.model)
 
-            err.append(error_ratio(y_true=test_data, y_pred=pred_tm, measured_matrix=measured_matrix))
-            r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
-            rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+        pred_tm_invert = pred_tm * std_train + mean_train
 
-            ims_tm = ims_tm * std_train + mean_train
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-            err_ims.append(error_ratio(y_pred=ims_tm,
-                                       y_true=ims_test_set,
-                                       measured_matrix=measured_matrix_ims))
+        ims_tm_invert = ims_tm * std_train + mean_train
 
-            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
-            rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm))
+        err_ims.append(error_ratio(y_pred=ims_tm_invert,
+                                   y_true=ims_test_set,
+                                   measured_matrix=measured_matrix_ims))
 
-        results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
-        results_summary['err'] = err
-        results_summary['r2'] = r2_score
-        results_summary['rmse'] = rmse
-        results_summary['err_ims'] = err_ims
-        results_summary['r2_ims'] = r2_score_ims
-        results_summary['rmse_ims'] = rmse_ims
+        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert))
+        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert))
 
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
-                                                                              alg_name, tag, Config.ADDED_RESULT_NAME),
-                               index=False)
+        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                        Config.ADDED_RESULT_NAME),
+                pred_tm_invert)
+
+    results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
+    results_summary['err'] = err
+    results_summary['r2'] = r2_score
+    results_summary['rmse'] = rmse
+    results_summary['err_ims'] = err_ims
+    results_summary['r2_ims'] = r2_score_ims
+    results_summary['rmse_ims'] = rmse_ims
+
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
+                                                                          alg_name, tag, Config.ADDED_RESULT_NAME),
+                           index=False)
 
     return

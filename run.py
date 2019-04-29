@@ -78,8 +78,11 @@ def main(args):
 
     if 'train' in args.run_mode or 'training' in args.run_mode:
         train(args)
-    else:
+    elif 'test' in args.run_mode:
         test(args)
+    else:
+        from common.ResultProcessing import plot_pred_results
+        plot_pred_results(args.data_name, args.alg, args.tag, 10, 5)
 
     return
 

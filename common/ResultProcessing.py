@@ -43,8 +43,8 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         for j in range(nflows):
             x = flows_x[j]
             y = flows_y[j]
-            plt.plot(range(day_size * ndays), test_data[-day_size * ndays:-day_size * 3, x, y], label='Actual')
-            plt.plot(range(day_size * ndays), pred[-day_size * ndays:-day_size * 3, x, y], label='Predicted')
+            plt.plot(range(day_size * ndays), test_data[-day_size * (ndays + 3):-day_size * 3, x, y], label='Actual')
+            plt.plot(range(day_size * ndays), pred[-day_size * (ndays + 3):-day_size * 3, x, y], label='Predicted')
             plt.xlabel('Timestep')
             plt.ylabel('Traffic Load')
 

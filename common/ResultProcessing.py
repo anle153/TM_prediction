@@ -55,5 +55,5 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         #     plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(x, y))
         #     plt.close()
 
-        print(calculate_r2_score(y_true=test_data[0:test_data.shape[0] - day_size * 3],
-                                 y_pred=pred[0:test_data.shape[0] - day_size * 3]))
+        print(calculate_r2_score(y_true=test_data[0:test_data.shape[0] - day_size * 1],
+                                 y_pred=pred[0:test_data.shape[0] - day_size * 1]))

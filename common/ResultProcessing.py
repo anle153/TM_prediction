@@ -37,8 +37,8 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         pred = np.load(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                Config.ADDED_RESULT_NAME))
 
-        flows_x = np.random.random_integers(0, test_data.shape[1], size=nflows)
-        flows_y = np.random.random_integers(0, test_data.shape[1], size=nflows)
+        flows_x = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
+        flows_y = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
 
         for j in range(nflows):
             x = flows_x[j]

@@ -97,7 +97,7 @@ def main(args):
         test(args)
     else:
         from common.ResultProcessing import plot_pred_results
-        plot_pred_results(args.data_name, args.alg, args.tag, 10, 5)
+        plot_pred_results(args.data_name, args.alg, args.tag, 100, 1)
 
     return
 

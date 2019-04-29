@@ -218,6 +218,11 @@ def test_holt_winter(data, args):
                                                           err_ims[running_time], rmse_ims[running_time],
                                                           r2_score_ims[running_time]))
 
+        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(running_time, data_name, alg_name, tag,
+                                                                        Config.ADDED_RESULT_NAME),
+                pred_tm)
+
+
     results_summary['No.'] = range(Config.HOLT_WINTER_TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2'] = r2_score

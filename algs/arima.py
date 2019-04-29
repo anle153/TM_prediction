@@ -125,6 +125,10 @@ def test_arima(data, args):
     if not os.path.isfile(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(0, data_name, alg_name)):
         train_arima(args, data)
 
+    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                test_data)
+
     for running_time in range(Config.ARIMA_TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
 
@@ -175,29 +179,34 @@ def test_arima(data, args):
             pred_tm[:, flow_id] = predictions
             ims_pred_tm[:, flow_id] = flow_ims_pred
 
-        pred_tm = pred_tm * std_train + mean_train
-        ims_pred_tm = ims_pred_tm * std_train + mean_train
+        pred_tm_invert = pred_tm * std_train + mean_train
+        ims_tm_invert = ims_pred_tm * std_train + mean_train
 
         measured_matrix = measured_matrix.astype(bool)
 
         # Calculate error
         err.append(error_ratio(y_true=test_data,
-                               y_pred=pred_tm,
+                               y_pred=pred_tm_invert,
                                measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
         # Calculate error of ims
-        err_ims.append(error_ratio(y_pred=ims_pred_tm,
+        err_ims.append(error_ratio(y_pred=ims_tm_invert,
                                    y_true=ims_test_set,
                                    measured_matrix=measured_matrix_ims))
-        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_pred_tm))
-        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_pred_tm))
+        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert))
+        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert))
 
         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time], rmse[running_time], r2_score[running_time],
                                                           err_ims[running_time], rmse_ims[running_time],
                                                           r2_score_ims[running_time]))
+
+        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(running_time, data_name, alg_name, tag,
+                                                                        Config.ADDED_RESULT_NAME),
+                pred_tm_invert)
+
 
     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
     results_summary['err'] = err

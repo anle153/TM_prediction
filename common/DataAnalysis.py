@@ -3,13 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-# DATASET
-GEANT_DATASET = 'Geant'
-ABILENE_DATASET = 'Abilene'
-
-# PLOTTING PATH CONFIGURATION
-DATA_ANALYSIS_DIR = './Data/Analysis'
-
 
 def plotDataSeries(x=None, series=None, filename=None, title=None, path_to_dir=None, xlabel=None, ylabel=None):
 
@@ -28,7 +21,6 @@ def plotDataSeries(x=None, series=None, filename=None, title=None, path_to_dir=N
         plt.savefig(path_to_dir+'/'+filename)
 
     plt.close()
-
 
 
 class DataAnalysis(object):
@@ -149,5 +141,3 @@ class DataAnalysis(object):
                 plt.legend()
             plt.savefig(plot_flow_day_over_period_dir + '/' + filename)
             plt.close()
-
-

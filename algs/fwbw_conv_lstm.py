@@ -276,7 +276,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         new_tm = np.concatenate([np.expand_dims(new_tm, axis=2), np.expand_dims(sampling, axis=2)], axis=2)
         tm_labels[ts + Config.FWBW_CONV_LSTM_STEP] = new_tm  # Shape = (timestep, 12, 12, 2)
 
-    return tm_labels[Config.FWBW_CONV_LSTM_STEP:, :, :, :], ims_tm
+    return tm_labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm
 
 
 def build_model(args, input_shape):
@@ -531,6 +531,10 @@ def test_fwbw_conv_lstm(data, args):
     measured_matrix_ims = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, Config.FWBW_CONV_LSTM_WIDE,
                                     Config.FWBW_CONV_LSTM_HIGH))
 
+    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                test_data)
+
     for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
 
@@ -562,6 +566,10 @@ def test_fwbw_conv_lstm(data, args):
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
                                                           err_ims[i], rmse_ims[i],
                                                           r2_score_ims[i]))
+
+        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                        Config.ADDED_RESULT_NAME),
+                pred_tm_invert)
 
     results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
     results_summary['err'] = err

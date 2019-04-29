@@ -48,5 +48,7 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
             plt.xlabel('Timestep')
             plt.ylabel('Traffic Load')
 
+            plt.legend()
+
             plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(x, y))
             plt.close()

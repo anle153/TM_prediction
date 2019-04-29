@@ -111,8 +111,8 @@ def create_Geant3d(datapath=GEANT_XML_PATH):
                     TM_row = get_row(xmlRow=src)
                     TM_t[int(src.get('id')) - 1] = TM_row
 
-                TM_t = np.expand_dims(TM_t, axis=0)
-                TM_3d = np.concatenate([TM_3d, TM_t], axis=0)
+                tm_t = np.expand_dims(TM_t, axis=0)
+                TM_3d = np.concatenate([TM_3d, tm_t], axis=0)
     else:
         raise ('Data path not exist!')
 

@@ -55,6 +55,9 @@ def print_fwbw_conv_lstm_info(run_mode):
     print('|--- STRIDES:\t{}'.format(Config.FWBW_CONV_LSTM_STRIDES))
     print('|--- DROPOUTS:\t{}'.format(Config.FWBW_CONV_LSTM_DROPOUTS))
     print('|--- RNN_DROPOUTS:\t{}'.format(Config.FWBW_CONV_LSTM_RNN_DROPOUTS))
+    print('|--- WIDE:\t{}'.format(Config.FWBW_CONV_LSTM_WIDE))
+    print('|--- HIGH:\t{}'.format(Config.FWBW_CONV_LSTM_HIGH))
+    print('|--- CHANNEL:\t{}'.format(Config.FWBW_CONV_LSTM_CHANNEL))
 
     if 'train' in run_mode:
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_CONV_LSTM_N_EPOCH))

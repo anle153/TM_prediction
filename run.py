@@ -5,7 +5,7 @@ import numpy as np
 from common.Config import DATA_PATH
 from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
 
-from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d
+from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d, create_Geant3d
 from common import Config
 
 
@@ -76,6 +76,21 @@ def main(args):
 
     print_info(args)
 
+    data_name = args.data_name
+
+    import os
+    if not os.path.isfile(Config.DATA_PATH + '{}.npy'.format(args.data_name)):
+        if data_name == 'Abilene':
+            create_abilene_data_3d('/home/anle/AbileneTM-all/')
+        elif data_name == 'Abilene2d':
+            create_abilene_data_2d('/home/anle/AbileneTM-all/')
+        elif data_name == 'Geant':
+            create_Geant3d()
+        elif data_name == 'Geant2d':
+            create_Geant2d()
+        else:
+            raise ('Unknown dataset name!')
+
     if 'train' in args.run_mode or 'training' in args.run_mode:
         train(args)
     elif 'test' in args.run_mode:
@@ -88,6 +103,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    # create_abilene_data_2d('/home/anle/AbileneTM-all/')
-    # create_Geant2d()
     main(sys.argv)

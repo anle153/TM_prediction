@@ -553,6 +553,7 @@ def test_fwbw_conv_lstm(data, args):
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
         rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
+        # Calculate error for multistep-ahead-prediction
         ims_tm_invert = ims_tm * std_train + mean_train
         ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
@@ -562,6 +563,7 @@ def test_fwbw_conv_lstm(data, args):
 
         r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
         rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+
         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
                                                           err_ims[i], rmse_ims[i],

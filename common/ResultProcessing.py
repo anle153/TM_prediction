@@ -37,23 +37,23 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         pred = np.load(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                Config.ADDED_RESULT_NAME))
 
-        flows_x = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
-        flows_y = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
-
-        for j in range(nflows):
-            x = flows_x[j]
-            y = flows_y[j]
-            plt.plot(range(test_data.shape[0] - day_size * (ndays + 3), test_data.shape[0] - day_size * 3),
-                     test_data[-day_size * (ndays + 3):-day_size * 3, x, y], label='Actual')
-            plt.plot(range(test_data.shape[0] - day_size * (ndays + 3), test_data.shape[0] - day_size * 3),
-                     pred[-day_size * (ndays + 3):-day_size * 3, x, y], label='Predicted')
-            plt.xlabel('Timestep')
-            plt.ylabel('Traffic Load')
-
-            plt.legend()
-
-            plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(x, y))
-            plt.close()
+        # flows_x = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
+        # flows_y = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
+        #
+        # for j in range(nflows):
+        #     x = flows_x[j]
+        #     y = flows_y[j]
+        #     plt.plot(range(test_data.shape[0] - day_size * (ndays), test_data.shape[0]),
+        #              test_data[-day_size * (ndays):, x, y], label='Actual')
+        #     plt.plot(range(test_data.shape[0] - day_size * (ndays), test_data.shape[0]),
+        #              pred[-day_size * (ndays):, x, y], label='Predicted')
+        #     plt.xlabel('Timestep')
+        #     plt.ylabel('Traffic Load')
+        #
+        #     plt.legend()
+        #
+        #     plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(x, y))
+        #     plt.close()
 
         print(calculate_r2_score(y_true=test_data[0:test_data.shape[0] - day_size * 3],
                                  y_pred=pred[0:test_data.shape[0] - day_size * 3]))

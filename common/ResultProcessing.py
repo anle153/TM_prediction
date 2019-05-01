@@ -57,9 +57,9 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         #     plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(x, y))
         #     plt.close()
 
-        test_data = test_data[0:test_data.shape[0] - day_size * ndays]
-        pred = pred[0:pred.shape[0] - day_size * ndays]
-        measure_matrix = measure_matrix[0:pred.shape[0] - day_size * ndays]
+        test_data = test_data[0:(test_data.shape[0] - day_size * ndays)]
+        pred = pred[0:(pred.shape[0] - day_size * ndays)]
+        measure_matrix = measure_matrix[0:(measure_matrix.shape[0] - day_size * ndays)]
 
         print('Error Ratio: {}'.format(error_ratio(y_true=test_data,
                                                    y_pred=pred,

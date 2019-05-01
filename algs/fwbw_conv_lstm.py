@@ -577,6 +577,9 @@ def test_fwbw_conv_lstm(data, args):
         np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                         Config.ADDED_RESULT_NAME),
                 pred_tm_invert)
+        np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                           Config.ADDED_RESULT_NAME),
+                measured_matrix)
 
     results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
     results_summary['err'] = err

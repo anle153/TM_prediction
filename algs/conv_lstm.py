@@ -48,6 +48,8 @@ def ims_tm_prediction(init_data_labels, conv_lstm_model):
 
 
 def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
+    tf_a = np.array([True, False])
+
     init_labels = np.ones((initial_data.shape[0], initial_data.shape[1], initial_data.shape[2]))
 
     tm_labels = np.zeros(
@@ -76,7 +78,8 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         predict_tm = predictX[-1, :, :]
 
         # Selecting next monitored flows randomly
-        sampling = np.random.choice(tf, size=(12, 12), p=(Config.CONV_LSTM_MON_RAIO, 1 - Config.CONV_LSTM_MON_RAIO))
+        sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
+                                    p=(Config.CONV_LSTM_MON_RAIO, 1 - Config.CONV_LSTM_MON_RAIO))
         inv_sampling = np.invert(sampling)
 
         pred_tm = predict_tm * inv_sampling

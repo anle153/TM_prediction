@@ -31,6 +31,8 @@ LSTM_MON_RAIO = 0.3
 LSTM_BEST_CHECKPOINT = 37
 LSTM_TESTING_TIME = 1
 
+LSTM_IMS = False
+
 # ----------------------------------------------
 
 # ------------- FWBW_CONV_LSTM Config ----------
@@ -58,6 +60,8 @@ FW_BEST_CHECKPOINT = 100
 BW_BEST_CHECKPOINT = 99
 FWBW_CONV_LSTM_RANDOM_ACTION = False
 FWBW_CONV_LSTM_HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]
+
+FWBW_IMS = False
 
 # ----------------------------------------------
 

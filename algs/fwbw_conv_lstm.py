@@ -222,7 +222,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
     for ts in tqdm(range(test_data.shape[0])):
 
-        if ts <= test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP:
+        if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP, :, :, :],
                                            forward_model=forward_model,
                                            backward_model=backward_model)
@@ -553,16 +553,21 @@ def test_fwbw_conv_lstm(data, args):
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
         rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-        # Calculate error for multistep-ahead-prediction
-        ims_tm_invert = ims_tm * std_train + mean_train
-        ims_ytrue = ims_tm_ytrue(test_data=test_data)
+        if Config.FWBW_IMS:
+            # Calculate error for multistep-ahead-prediction
+            ims_tm_invert = ims_tm * std_train + mean_train
+            ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
-        err_ims.append(error_ratio(y_pred=ims_tm_invert,
-                                   y_true=ims_ytrue,
-                                   measured_matrix=measured_matrix_ims))
+            err_ims.append(error_ratio(y_pred=ims_tm_invert,
+                                       y_true=ims_ytrue,
+                                       measured_matrix=measured_matrix_ims))
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
-        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+            r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
+            rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+        else:
+            err_ims.append(0)
+            r2_score_ims.append(0)
+            rmse_ims.append(0)
 
         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],

@@ -57,7 +57,7 @@ def predict_lstm_nn(init_data, test_data, model):
     for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
 
-        if ts <= test_data.shape[0] - Config.LSTM_IMS_STEP:
+        if Config.LSTM_IMS and (ts <= test_data.shape[0] - Config.LSTM_IMS_STEP):
             ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP:, :],
                                            model=model,
                                            init_labels=labels[ts:ts + Config.LSTM_STEP:, :])
@@ -268,14 +268,25 @@ def test_lstm_nn(data, args):
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
         rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-        ims_tm_invert = ims_tm * std_train + mean_train
+        if Config.LSTM_IMS:
+            ims_tm_invert = ims_tm * std_train + mean_train
 
-        err_ims.append(error_ratio(y_pred=ims_tm_invert,
-                                   y_true=ims_test_set,
-                                   measured_matrix=measured_matrix_ims))
+            err_ims.append(error_ratio(y_pred=ims_tm_invert,
+                                       y_true=ims_test_set,
+                                       measured_matrix=measured_matrix_ims))
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert))
-        rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert))
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert))
+
+        else:
+            err_ims.append(0)
+            r2_score_ims.append(0)
+            rmse_ims.append(0)
+
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
+                                                          r2_score_ims[i]))
 
         np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                         Config.ADDED_RESULT_NAME),

@@ -71,6 +71,7 @@ ARIMA_TESTING_TIME = 1
 ARIMA_MON_RATIO = 0.3
 
 ARIMA_IMS_STEP = 12
+ARIMA_IMS = False
 # ----------------------------------------------
 
 # -------- HOLT_WINTERS Config -----------------
@@ -82,6 +83,7 @@ HOLT_WINTER_TESTING_TIME = 1
 HOLT_WINTER_MON_RATIO = 0.3
 
 HOLT_WINTER_IMS_STEP = 12
+HOLT_WINTER_IMS = False
 
 # ----------- CONV_LSTM Config ----------------------
 
@@ -106,3 +108,5 @@ CONV_LSTM_HIGH = 12
 CONV_LSTM_CHANNEL = 2
 
 CONV_LSTM_MON_RAIO = 0.3
+
+CONV_LSTM_IMS = False

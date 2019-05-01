@@ -63,7 +63,8 @@ def print_fwbw_conv_lstm_info(run_mode):
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_CONV_LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.FWBW_CONV_LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_STEP))
-        print('|--- IMS_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_IMS_STEP))
+        if Config.FWBW_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_CONV_LSTM_TESTING_TIME))
         print('|--- FW_BEST_CHECKPOINT:\t{}'.format(Config.FW_BEST_CHECKPOINT))
@@ -88,7 +89,8 @@ def print_conv_lstm_info(run_mode):
         print('|--- N_EPOCH:\t{}'.format(Config.CONV_LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.CONV_LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.CONV_LSTM_STEP))
-        print('|--- IMS_STEP:\t{}'.format(Config.CONV_LSTM_IMS_STEP))
+        if Config.CONV_LSTM_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.CONV_LSTM_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.CONV_LSTM_TESTING_TIME))
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.CONV_LSTM_BEST_CHECKPOINT))
@@ -108,7 +110,8 @@ def print_lstm_info(run_mode):
         print('|--- N_EPOCH:\t{}'.format(Config.LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.LSTM_STEP))
-        print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
+        if Config.LSTM_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.LSTM_TESTING_TIME))
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
@@ -119,7 +122,8 @@ def print_arima_info(run_mode):
     print('            -----------            ')
 
     if 'train' in run_mode:
-        print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
+        if Config.ARIMA_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.ARIMA_TESTING_TIME))
         print('|--- ARIMA_UPDATE:\t{}'.format(Config.ARIMA_UPDATE))
@@ -133,7 +137,8 @@ def print_holt_winter_info(run_mode):
     print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
 
     if 'train' in run_mode:
-        print('|--- IMS_STEP:\t{}'.format(Config.HOLT_WINTER_IMS_STEP))
+        if Config.HOLT_WINTER_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.HOLT_WINTER_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.HOLT_WINTER_TESTING_TIME))
         print('|--- HOLT_WINTER_UPDATE:\t{}'.format(Config.HOLT_WINTER_UPDATE))

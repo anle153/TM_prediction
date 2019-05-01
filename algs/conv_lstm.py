@@ -62,7 +62,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
     for ts in tqdm(range(test_data.shape[0])):
 
-        if ts <= test_data.shape[0] - Config.CONV_LSTM_IMS_STEP:
+        if Config.CONV_LSTM_IMS and (ts <= test_data.shape[0] - Config.CONV_LSTM_IMS_STEP):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.CONV_LSTM_STEP, :, :, :],
                                            conv_lstm_model=conv_lstm_model)
 
@@ -283,19 +283,27 @@ def test_conv_lstm(data, args):
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
         rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-        ims_tm_invert = ims_tm * std_train + mean_train
-        ims_ytrue = ims_tm_ytrue(test_data=test_data)
+        if Config.CONV_LSTM_IMS:
+            ims_tm_invert = ims_tm * std_train + mean_train
+            ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
-        err_ims.append(error_ratio(y_pred=ims_tm_invert,
-                                   y_true=ims_ytrue,
-                                   measured_matrix=measured_matrix_ims))
+            err_ims.append(error_ratio(y_pred=ims_tm_invert,
+                                       y_true=ims_ytrue,
+                                       measured_matrix=measured_matrix_ims))
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
-        rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+            r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
+            rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+        else:
+            err_ims.append(0)
+            r2_score_ims.append(0)
+            rmse_ims.append(0)
 
         np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                         Config.ADDED_RESULT_NAME),
                 pred_tm_invert)
+        np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                           Config.ADDED_RESULT_NAME),
+                measured_matrix)
 
 
     results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)

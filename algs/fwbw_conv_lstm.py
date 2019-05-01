@@ -330,8 +330,12 @@ def train_fwbw_conv_lstm(data, args):
     data_name = args.data_name
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
+        assert Config.FWBW_CONV_LSTM_HIGH == 12
+        assert Config.FWBW_CONV_LSTM_WIDE == 12
     else:
         day_size = Config.GEANT_DAY_SIZE
+        assert Config.FWBW_CONV_LSTM_HIGH == 23
+        assert Config.FWBW_CONV_LSTM_WIDE == 23
 
     with tf.device('/device:GPU:{}'.format(gpu)):
 

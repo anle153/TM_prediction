@@ -226,8 +226,12 @@ def test_conv_lstm(data, args):
     data_name = args.data_name
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
+        assert Config.CONV_LSTM_WIDE == 12
+        assert Config.CONV_LSTM_HIGH == 12
     else:
         day_size = Config.GEANT_DAY_SIZE
+        assert Config.CONV_LSTM_WIDE == 23
+        assert Config.CONV_LSTM_HIGH == 23
 
     if not Config.ALL_DATA:
         data = data[0:Config.NUM_DAYS * day_size]

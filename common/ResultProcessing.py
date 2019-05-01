@@ -66,5 +66,5 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
                                                    measured_matrix=measure_matrix)))
         print('RMSE: {}'.format(calculate_rmse(y_true=test_data,
                                                y_pred=pred)))
-        print('R2:'.format(calculate_r2_score(y_true=test_data,
-                                              y_pred=pred)))
+        print('R2: {}'.format(calculate_r2_score(y_true=test_data,
+                                                 y_pred=pred)))

@@ -7,8 +7,8 @@ ADDED_RESULT_NAME = ''
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
 
-ALL_DATA = True
-NUM_DAYS = 166
+ALL_DATA = False
+NUM_DAYS = 160
 
 # ----------------------------------------------
 

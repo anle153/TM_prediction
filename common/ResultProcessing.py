@@ -61,10 +61,10 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         pred = pred[0:(pred.shape[0] - day_size * ndays)]
         measure_matrix = measure_matrix[0:(measure_matrix.shape[0] - day_size * ndays)]
 
-        print('Error Ratio: {}'.format(error_ratio(y_true=test_data,
-                                                   y_pred=pred,
-                                                   measured_matrix=measure_matrix)))
-        print('RMSE: {}'.format(calculate_rmse(y_true=test_data,
-                                               y_pred=pred)))
-        print('R2: {}'.format(calculate_r2_score(y_true=test_data,
-                                                 y_pred=pred)))
+        print('|--- Error Ratio: {}'.format(error_ratio(y_true=test_data,
+                                                        y_pred=pred,
+                                                        measured_matrix=measure_matrix)))
+        print('|--- RMSE: {}'.format(calculate_rmse(y_true=test_data,
+                                                    y_pred=pred)))
+        print('|--- R2: {}'.format(calculate_r2_score(y_true=test_data,
+                                                      y_pred=pred)))

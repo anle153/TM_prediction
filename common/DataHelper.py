@@ -119,3 +119,17 @@ def create_Geant3d(datapath=GEANT_XML_PATH):
     np.save(Config.DATA_PATH + 'Geant.npy', TM_3d)
 
     return
+
+
+def data_analysis(data, args):
+    alg_name = args.alg
+    data_name = args.data_name
+    tag = args.tag
+    gpu = args.gpu
+
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    ndays = data.shape[0] / day_size

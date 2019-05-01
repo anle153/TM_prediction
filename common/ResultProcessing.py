@@ -59,6 +59,7 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
 
         test_data = test_data[:test_data.shape[0] - day_size * ndays]
         pred = pred[:pred.shape[0] - day_size * ndays]
+        measure_matrix = measure_matrix[:pred.shape[0] - day_size * ndays]
 
         print('Error Ratio: {}'.format(error_ratio(y_true=test_data,
                                                    y_pred=pred,

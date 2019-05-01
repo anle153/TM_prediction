@@ -305,6 +305,12 @@ def test_conv_lstm(data, args):
                                                                            Config.ADDED_RESULT_NAME),
                 measured_matrix)
 
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
+                                                          r2_score_ims[i]))
+
+
 
     results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)
     results_summary['err'] = err

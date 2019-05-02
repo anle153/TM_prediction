@@ -47,21 +47,21 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         measure_matrix = np.load(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                             Config.ADDED_RESULT_NAME))
 
-        for flow_x in range(12):
-            for flow_y in range(12):
-                plt.plot(range((test_data.shape[0] - day_size * day_x), (test_data.shape[0] - day_size * day_y)),
-                         test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y),
-                         flow_x, flow_y], label='Actual')
-                plt.plot(range((pred.shape[0] - day_size * day_x), (pred.shape[0] - day_size * day_y)),
-                         pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y), flow_x, flow_y],
-                         label='Predicted')
-                plt.xlabel('Timestep')
-                plt.ylabel('Traffic Load')
-
-                plt.legend()
-
-                plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(flow_x, flow_y))
-                plt.close()
+        # for flow_x in range(12):
+        #     for flow_y in range(12):
+        #         plt.plot(range((test_data.shape[0] - day_size * day_x), (test_data.shape[0] - day_size * day_y)),
+        #                  test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y),
+        #                  flow_x, flow_y], label='Actual')
+        #         plt.plot(range((pred.shape[0] - day_size * day_x), (pred.shape[0] - day_size * day_y)),
+        #                  pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y), flow_x, flow_y],
+        #                  label='Predicted')
+        #         plt.xlabel('Timestep')
+        #         plt.ylabel('Traffic Load')
+        #
+        #         plt.legend()
+        #
+        #         plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(flow_x, flow_y))
+        #         plt.close()
 
         # plt.plot(range(9005, 9020),
         #          test_data[9005:9020, 1,
@@ -77,10 +77,10 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         # plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(1, 1))
         # plt.close()
 
-        test_data = test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y)]
-        pred = pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y)]
-        measure_matrix = measure_matrix[
-                         (measure_matrix.shape[0] - day_size * day_x):(measure_matrix.shape[0] - day_size * day_y)]
+        # test_data = test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y)]
+        # pred = pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y)]
+        # measure_matrix = measure_matrix[
+        #                  (measure_matrix.shape[0] - day_size * day_x):(measure_matrix.shape[0] - day_size * day_y)]
 
         print('|--- Error Ratio: {}'.format(error_ratio(y_true=test_data,
                                                         y_pred=pred,

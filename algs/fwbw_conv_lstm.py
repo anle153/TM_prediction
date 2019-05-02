@@ -363,6 +363,8 @@ def train_fwbw_conv_lstm(data, args):
         # -------------------------------- Create offline training and validating dataset ------------------------------
 
         if not os.path.isfile(fw_net.saving_path + 'trainX_fw.npy'):
+            print('|--- Create offline train set for forward net!')
+
             trainX_fw, trainY_fw = create_offline_convlstm_data_fix_ratio(train_data_normalized,
                                                                           input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
                                                                           0.5)
@@ -373,6 +375,8 @@ def train_fwbw_conv_lstm(data, args):
             trainY_fw = np.load(fw_net.saving_path + 'trainY_fw.npy')
 
         if not os.path.isfile(fw_net.saving_path + 'validX_fw.npy'):
+            print('|--- Create offline valid set for forward net!')
+
             validX_fw, validY_fw = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
                                                                           input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
                                                                           0.5)
@@ -427,6 +431,8 @@ def train_fwbw_conv_lstm(data, args):
         valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
 
         if not os.path.isfile(bw_net.saving_path + 'trainX_bw.npy'):
+            print('|--- Create offline train set for backward net!')
+
             trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
                                                                           input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
                                                                           0.5)
@@ -437,6 +443,8 @@ def train_fwbw_conv_lstm(data, args):
             trainY_bw = np.load(bw_net.saving_path + 'trainY_bw.npy')
 
         if not os.path.isfile(bw_net.saving_path + 'validX_bw.npy'):
+            print('|--- Create offline valid set for backward net!')
+
             validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
                                                                           input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
                                                                           0.5)

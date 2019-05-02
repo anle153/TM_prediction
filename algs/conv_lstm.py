@@ -153,6 +153,8 @@ def train_conv_lstm(data, args):
 
         # -------------------------------- Create offline training and validating dataset ------------------------------
         if not os.path.isfile(conv_lstm_net.saving_path + 'trainX.npy'):
+            print('|--- Create offline train set for conv_lstm net!')
+
             trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
                                                                     input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
             np.save(conv_lstm_net.saving_path + 'trainX.npy', trainX)
@@ -162,6 +164,8 @@ def train_conv_lstm(data, args):
             trainY = np.load(conv_lstm_net.saving_path + 'trainY.npy')
 
         if not os.path.isfile(conv_lstm_net.saving_path + 'validX.npy'):
+            print('|--- Create offline valid set for conv_lstm net!')
+
             validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
                                                                     input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
             np.save(conv_lstm_net.saving_path + 'validX.npy', validX)

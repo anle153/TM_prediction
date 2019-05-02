@@ -15,7 +15,6 @@ NUM_DAYS = 160
 # ----------------- LSTM Config ---------------
 LSTM_N_EPOCH = 100
 LSTM_BATCH_SIZE = 64
-LSTM_NUM_ITER = 20000
 LSTM_HIDDEN_UNIT = 64
 LSTM_DROPOUT = 0.5
 

@@ -3,13 +3,18 @@ from common import Config
 import numpy as np
 import os
 from common.error_utils import calculate_r2_score, error_ratio, calculate_rmse
+from common.DataPreprocessing import prepare_train_valid_test_3d
 
 
 def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
+    data_raw = np.load(Config.DATA_PATH + '{}.npy'.format(data_name))
+
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
         day_size = Config.GEANT_DAY_SIZE
+
+    # train_set, valid_set, test_set = prepare_train_valid_test_3d(data_raw, day_size=day_size)
 
     plotted_path = Config.RESULTS_PATH + 'Plotted_results/{}-{}-{}-{}/'.format(data_name,
                                                                                alg_name,
@@ -33,33 +38,49 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
     else:
         raise ValueError('Unkown alg!')
 
+    day_x = 20
+    day_y = 19
+
     for i in range(run_time):
         pred = np.load(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                Config.ADDED_RESULT_NAME))
         measure_matrix = np.load(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                             Config.ADDED_RESULT_NAME))
 
-        # flows_x = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
-        # flows_y = np.random.random_integers(0, test_data.shape[1] - 1, size=nflows)
-        #
-        # for j in range(nflows):
-        #     x = flows_x[j]
-        #     y = flows_y[j]
-        #     plt.plot(range(test_data.shape[0] - day_size * (ndays), test_data.shape[0]),
-        #              test_data[-day_size * (ndays):, x, y], label='Actual')
-        #     plt.plot(range(test_data.shape[0] - day_size * (ndays), test_data.shape[0]),
-        #              pred[-day_size * (ndays):, x, y], label='Predicted')
-        #     plt.xlabel('Timestep')
-        #     plt.ylabel('Traffic Load')
-        #
-        #     plt.legend()
-        #
-        #     plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(x, y))
-        #     plt.close()
+        for flow_x in range(12):
+            for flow_y in range(12):
+                plt.plot(range((test_data.shape[0] - day_size * day_x), (test_data.shape[0] - day_size * day_y)),
+                         test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y),
+                         flow_x, flow_y], label='Actual')
+                plt.plot(range((pred.shape[0] - day_size * day_x), (pred.shape[0] - day_size * day_y)),
+                         pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y), flow_x, flow_y],
+                         label='Predicted')
+                plt.xlabel('Timestep')
+                plt.ylabel('Traffic Load')
 
-        test_data = test_data[0:(test_data.shape[0] - day_size * ndays)]
-        pred = pred[0:(pred.shape[0] - day_size * ndays)]
-        measure_matrix = measure_matrix[0:(measure_matrix.shape[0] - day_size * ndays)]
+                plt.legend()
+
+                plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(flow_x, flow_y))
+                plt.close()
+
+        # plt.plot(range(9005, 9020),
+        #          test_data[9005:9020, 1,
+        #          1], label='Actual')
+        # plt.plot(range(9005,9020),
+        #          pred[9005:9020, 1, 1],
+        #          label='Predicted')
+        # plt.xlabel('Timestep')
+        # plt.ylabel('Traffic Load')
+        #
+        # plt.legend()
+        #
+        # plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(1, 1))
+        # plt.close()
+
+        test_data = test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y)]
+        pred = pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y)]
+        measure_matrix = measure_matrix[
+                         (measure_matrix.shape[0] - day_size * day_x):(measure_matrix.shape[0] - day_size * day_y)]
 
         print('|--- Error Ratio: {}'.format(error_ratio(y_true=test_data,
                                                         y_pred=pred,

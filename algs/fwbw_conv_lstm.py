@@ -210,10 +210,10 @@ def ims_tm_prediction(init_data_labels, forward_model, backward_model):
 def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_model):
     tf_a = np.array([True, False])
 
-    init_labels = np.ones((initial_data.shape[0], initial_data.shape[1], initial_data.shape[2]))
+    init_labels = np.ones(shape=initial_data.shape)
 
     tm_labels = np.zeros(
-        shape=(initial_data.shape[0] + test_data.shape[0], initial_data.shape[1], initial_data.shape[2], 2))
+        shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2], 2))
     tm_labels[0:initial_data.shape[0], :, :, 0] = initial_data
     tm_labels[0:init_labels.shape[0], :, :, 1] = init_labels
 
@@ -501,6 +501,8 @@ def ims_tm_ytrue(test_data):
 
 def test_fwbw_conv_lstm(data, args):
     print('|-- Run model testing.')
+    gpu = args.gpu
+
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -524,7 +526,8 @@ def test_fwbw_conv_lstm(data, args):
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
-    fw_net, bw_net = load_trained_models(args, input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
+    with tf.device('/device:GPU:{}'.format(gpu)):
+        fw_net, bw_net = load_trained_models(args, input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
 
     results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
@@ -539,6 +542,10 @@ def test_fwbw_conv_lstm(data, args):
         np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
                 test_data)
 
+    if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
+                test_data_normalized)
+
     for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
 
@@ -550,6 +557,10 @@ def test_fwbw_conv_lstm(data, args):
 
         pred_tm = tm_labels[:, :, :, 0]
         measured_matrix = tm_labels[:, :, :, 1]
+
+        np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                               Config.ADDED_RESULT_NAME),
+                pred_tm)
 
         pred_tm_invert = pred_tm * std_train + mean_train
 

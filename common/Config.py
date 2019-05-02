@@ -10,6 +10,8 @@ GEANT_DAY_SIZE = 96
 ALL_DATA = True
 NUM_DAYS = 160
 
+MIN_MAX_SCALER = True
+
 # ----------------------------------------------
 
 # ----------------- LSTM Config ---------------

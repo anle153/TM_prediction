@@ -342,10 +342,17 @@ def train_fwbw_conv_lstm(data, args):
         print('|--- Splitting train-test set.')
         train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
         print('|--- Normalizing the train set.')
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        train_data_normalized = (train_data - mean_train) / std_train
-        valid_data_normalized = (valid_data - mean_train) / std_train
+        if Config.MIN_MAX_SCALER:
+            min_train = np.mean(train_data)
+            max_train = np.max(train_data)
+            train_data_normalized = (train_data - min_train) / (max_train - min_train)
+            valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
+        else:
+            mean_train = np.mean(train_data)
+            std_train = np.std(train_data)
+            train_data_normalized = (train_data - mean_train) / std_train
+            valid_data_normalized = (valid_data - mean_train) / std_train
+
         # test_data = (test_data - mean_train) / std_train
 
         input_shape = (Config.FWBW_CONV_LSTM_STEP,
@@ -448,36 +455,28 @@ def train_fwbw_conv_lstm(data, args):
         else:
             print('|---Compile model. Saving path: %s' % bw_net.saving_path)
             from_epoch_bw = bw_net.load_model_from_check_point()
-            training_bw_history = None
-            try:
-                if from_epoch_bw > 0:
+            if from_epoch_bw > 0:
+                training_bw_history = bw_net.model.fit(x=trainX_bw,
+                                                       y=trainY_bw,
+                                                       batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                       epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                       callbacks=bw_net.callbacks_list,
+                                                       validation_data=(validX_bw, validY_bw),
+                                                       shuffle=True,
+                                                       initial_epoch=from_epoch_bw)
 
-                    training_bw_history = bw_net.model.fit(x=trainX_bw,
-                                                           y=trainY_bw,
-                                                           batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                           epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                           callbacks=bw_net.callbacks_list,
-                                                           validation_data=(validX_bw, validY_bw),
-                                                           shuffle=True,
-                                                           initial_epoch=from_epoch_bw)
+            else:
+                print('|--- Training new backward model.')
 
-                else:
-                    print('|--- Training new backward model.')
-
-                    training_bw_history = bw_net.model.fit(x=trainX_bw,
-                                                           y=trainY_bw,
-                                                           batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                           epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                           callbacks=bw_net.callbacks_list,
-                                                           validation_data=(validX_bw, validY_bw),
-                                                           shuffle=True)
-                    if training_bw_history is not None:
-                        bw_net.plot_training_history(training_bw_history)
-
-            except KeyboardInterrupt:
-                if training_bw_history is not None:
-                    bw_net.plot_training_history(training_bw_history)
-                raise
+                training_bw_history = bw_net.model.fit(x=trainX_bw,
+                                                       y=trainY_bw,
+                                                       batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                       epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                       callbacks=bw_net.callbacks_list,
+                                                       validation_data=(validX_bw, validY_bw),
+                                                       shuffle=True)
+            if training_bw_history is not None:
+                bw_net.plot_training_history(training_bw_history)
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -514,18 +513,24 @@ def test_fwbw_conv_lstm(data, args):
     if not Config.ALL_DATA:
         data = data[0:Config.NUM_DAYS * day_size]
 
-
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
     if 'Abilene' in data_name:
         print('|--- Remove last 3 days in test data.')
         test_data = test_data[0:-day_size * 3]
     print('|--- Normalizing the train set.')
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    # train_data_normalized = (train_data - mean_train) / std_train
-    valid_data_normalized = (valid_data - mean_train) / std_train
-    test_data_normalized = (test_data - mean_train) / std_train
+
+    min_train, max_train, mean_train, std_train = 0, 0, 0, 0
+    if Config.MIN_MAX_SCALER:
+        min_train = np.mean(train_data)
+        max_train = np.max(train_data)
+        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
+        test_data_normalized = (test_data - min_train) / (max_train - min_train)
+    else:
+        mean_train = np.mean(train_data)
+        std_train = np.std(train_data)
+        valid_data_normalized = (valid_data - mean_train) / std_train
+        test_data_normalized = (test_data - mean_train) / std_train
 
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
@@ -566,7 +571,10 @@ def test_fwbw_conv_lstm(data, args):
                                                                                Config.ADDED_RESULT_NAME),
                 pred_tm)
 
-        pred_tm_invert = pred_tm * std_train + mean_train
+        if Config.MIN_MAX_SCALER:
+            pred_tm_invert = pred_tm * (max_train - min_train) + min_train
+        else:
+            pred_tm_invert = pred_tm * std_train + mean_train
 
         err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
@@ -574,7 +582,11 @@ def test_fwbw_conv_lstm(data, args):
 
         if Config.FWBW_IMS:
             # Calculate error for multistep-ahead-prediction
-            ims_tm_invert = ims_tm * std_train + mean_train
+            if Config.MIN_MAX_SCALER:
+                ims_tm_invert = ims_tm * (max_train - min_train) + min_train
+            else:
+                ims_tm_invert = ims_tm * std_train + mean_train
+
             ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
             err_ims.append(error_ratio(y_pred=ims_tm_invert,

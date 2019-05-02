@@ -260,3 +260,4 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
             i += 1
 
     return dataX, dataY
+

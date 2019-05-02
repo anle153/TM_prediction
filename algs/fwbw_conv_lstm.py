@@ -514,8 +514,12 @@ def test_fwbw_conv_lstm(data, args):
     if not Config.ALL_DATA:
         data = data[0:Config.NUM_DAYS * day_size]
 
+
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
+    if 'Abilene' in data_name:
+        print('|--- Remove last 3 days in test data.')
+        test_data = test_data[0:-day_size * 3]
     print('|--- Normalizing the train set.')
     mean_train = np.mean(train_data)
     std_train = np.std(train_data)

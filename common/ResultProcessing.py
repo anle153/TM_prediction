@@ -38,8 +38,8 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
     else:
         raise ValueError('Unkown alg!')
 
-    day_x = 20
-    day_y = 19
+    day_x = 3
+    day_y = 2
 
     for i in range(run_time):
         pred = np.load(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
@@ -47,21 +47,21 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
         measure_matrix = np.load(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                             Config.ADDED_RESULT_NAME))
 
-        # for flow_x in range(12):
-        #     for flow_y in range(12):
-        #         plt.plot(range((test_data.shape[0] - day_size * day_x), (test_data.shape[0] - day_size * day_y)),
-        #                  test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y),
-        #                  flow_x, flow_y], label='Actual')
-        #         plt.plot(range((pred.shape[0] - day_size * day_x), (pred.shape[0] - day_size * day_y)),
-        #                  pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y), flow_x, flow_y],
-        #                  label='Predicted')
-        #         plt.xlabel('Timestep')
-        #         plt.ylabel('Traffic Load')
-        #
-        #         plt.legend()
-        #
-        #         plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(flow_x, flow_y))
-        #         plt.close()
+        for flow_x in range(12):
+            for flow_y in range(12):
+                plt.plot(range((test_data.shape[0] - day_size * day_x), (test_data.shape[0] - day_size * day_y)),
+                         test_data[(test_data.shape[0] - day_size * day_x):(test_data.shape[0] - day_size * day_y),
+                         flow_x, flow_y], label='Actual')
+                plt.plot(range((pred.shape[0] - day_size * day_x), (pred.shape[0] - day_size * day_y)),
+                         pred[(pred.shape[0] - day_size * day_x):(pred.shape[0] - day_size * day_y), flow_x, flow_y],
+                         label='Predicted')
+                plt.xlabel('Timestep')
+                plt.ylabel('Traffic Load')
+
+                plt.legend()
+
+                plt.savefig(plotted_path + 'Flow-{}-{}.png'.format(flow_x, flow_y))
+                plt.close()
 
         # plt.plot(range(9005, 9020),
         #          test_data[9005:9020, 1,

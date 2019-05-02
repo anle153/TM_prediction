@@ -86,6 +86,9 @@ def test_holt_winter(data, args):
         data = data[0:day_size * Config.NUM_DAYS, :]
 
     train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
+    if 'Abilene' in data_name:
+        print('|--- Remove last 3 days in test data.')
+        test_data = test_data[0:-day_size * 3]
 
     # mean_train = np.mean(train_data)
     # std_train = np.std(train_data)

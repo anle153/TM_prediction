@@ -97,10 +97,16 @@ def test_arima(data, args):
         print('|--- Remove last 3 days in test data.')
         test_data = test_data[0:-day_size * 3]
 
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    train_data_normalized = (train_data - mean_train) / std_train
-    test_data_normalized = (test_data - mean_train) / std_train
+    if Config.MIN_MAX_SCALER:
+        min_train = np.mean(train_data)
+        max_train = np.max(train_data)
+        train_data_normalized = (train_data - min_train) / (max_train - min_train)
+        test_data_normalized = (test_data - min_train) / (max_train - min_train)
+    else:
+        mean_train = np.mean(train_data)
+        std_train = np.std(train_data)
+        train_data_normalized = (train_data - mean_train) / std_train
+        test_data_normalized = (test_data - mean_train) / std_train
 
     training_set_series = []
     for flow_id in range(train_data_normalized.shape[1]):

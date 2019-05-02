@@ -295,14 +295,21 @@ def test_conv_lstm(data, args):
         pred_tm = tm_labels[:, :, :, 0]
         measured_matrix = tm_labels[:, :, :, 1]
 
-        pred_tm_invert = pred_tm * std_train + mean_train
+        if Config.MIN_MAX_SCALER:
+            pred_tm_invert = pred_tm * (max_train - min_train) + min_train
+        else:
+            pred_tm_invert = pred_tm * std_train + mean_train
 
         err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
         rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
         if Config.CONV_LSTM_IMS:
-            ims_tm_invert = ims_tm * std_train + mean_train
+            if Config.MIN_MAX_SCALER:
+                ims_tm_invert = ims_tm * (max_train - min_train) + min_train
+            else:
+                ims_tm_invert = ims_tm * std_train + mean_train
+
             ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
             err_ims.append(error_ratio(y_pred=ims_tm_invert,

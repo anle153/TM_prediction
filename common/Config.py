@@ -2,7 +2,7 @@
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'random'
+ADDED_RESULT_NAME = ''
 
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96

@@ -135,83 +135,87 @@ def train_conv_lstm(data, args):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
-
-        print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
-        print('|--- Normalizing the train set.')
+    print('|--- Splitting train-test set.')
+    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
+    print('|--- Normalizing the train set.')
+    if Config.MIN_MAX_SCALER:
+        min_train = np.mean(train_data)
+        max_train = np.max(train_data)
+        train_data_normalized = (train_data - min_train) / (max_train - min_train)
+        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
+    else:
         mean_train = np.mean(train_data)
         std_train = np.std(train_data)
         train_data_normalized = (train_data - mean_train) / std_train
         valid_data_normalized = (valid_data - mean_train) / std_train
-        # test_data = (test_data - mean_train) / std_train
 
-        input_shape = (Config.CONV_LSTM_STEP,
-                       Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
+    input_shape = (Config.CONV_LSTM_STEP,
+                   Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
+    with tf.device('/device:GPU:{}'.format(gpu)):
         conv_lstm_net = build_model(args, input_shape)
 
-        # -------------------------------- Create offline training and validating dataset ------------------------------
-        if not os.path.isfile(conv_lstm_net.saving_path + 'trainX.npy'):
-            print('|--- Create offline train set for conv_lstm net!')
+    # -------------------------------- Create offline training and validating dataset ------------------------------
+    if not os.path.isfile(conv_lstm_net.saving_path + 'trainX.npy'):
+        print('|--- Create offline train set for conv_lstm net!')
 
-            trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                    input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
-            np.save(conv_lstm_net.saving_path + 'trainX.npy', trainX)
-            np.save(conv_lstm_net.saving_path + 'trainY.npy', trainY)
+        trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
+                                                                input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
+        np.save(conv_lstm_net.saving_path + 'trainX.npy', trainX)
+        np.save(conv_lstm_net.saving_path + 'trainY.npy', trainY)
+    else:
+        trainX = np.load(conv_lstm_net.saving_path + 'trainX.npy')
+        trainY = np.load(conv_lstm_net.saving_path + 'trainY.npy')
+
+    if not os.path.isfile(conv_lstm_net.saving_path + 'validX.npy'):
+        print('|--- Create offline valid set for conv_lstm net!')
+
+        validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
+                                                                input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
+        np.save(conv_lstm_net.saving_path + 'validX.npy', validX)
+        np.save(conv_lstm_net.saving_path + 'validY.npy', validY)
+    else:
+        validX = np.load(conv_lstm_net.saving_path + 'validX.npy')
+        validY = np.load(conv_lstm_net.saving_path + 'validY.npy')
+    # --------------------------------------------------------------------------------------------------------------
+
+    if os.path.isfile(
+            path=conv_lstm_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
+        print('|--- Model exist!')
+        conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
+    else:
+        print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
+
+        # Load model check point
+        from_epoch = conv_lstm_net.load_model_from_check_point()
+        if from_epoch > 0:
+            print('|--- Continue training model from epoch %i --- ' % from_epoch)
+            training_history = conv_lstm_net.model.fit(x=trainX,
+                                                       y=trainY,
+                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                       epochs=Config.CONV_LSTM_N_EPOCH,
+                                                       callbacks=conv_lstm_net.callbacks_list,
+                                                       validation_data=(validX, validY),
+                                                       shuffle=True,
+                                                       initial_epoch=from_epoch)
         else:
-            trainX = np.load(conv_lstm_net.saving_path + 'trainX.npy')
-            trainY = np.load(conv_lstm_net.saving_path + 'trainY.npy')
+            print('|--- Training new model.')
 
-        if not os.path.isfile(conv_lstm_net.saving_path + 'validX.npy'):
-            print('|--- Create offline valid set for conv_lstm net!')
+            training_history = conv_lstm_net.model.fit(x=trainX,
+                                                       y=trainY,
+                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                       epochs=Config.CONV_LSTM_N_EPOCH,
+                                                       callbacks=conv_lstm_net.callbacks_list,
+                                                       validation_data=(validX, validY),
+                                                       shuffle=True,
+                                                       initial_epoch=from_epoch)
 
-            validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                    input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
-            np.save(conv_lstm_net.saving_path + 'validX.npy', validX)
-            np.save(conv_lstm_net.saving_path + 'validY.npy', validY)
-        else:
-            validX = np.load(conv_lstm_net.saving_path + 'validX.npy')
-            validY = np.load(conv_lstm_net.saving_path + 'validY.npy')
-        # --------------------------------------------------------------------------------------------------------------
+        # Plot the training history
+        if training_history is not None:
+            conv_lstm_net.plot_training_history(training_history)
 
-        if os.path.isfile(
-                path=conv_lstm_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
-            print('|--- Model exist!')
-            conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
-        else:
-            print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
-
-            # Load model check point
-            from_epoch = conv_lstm_net.load_model_from_check_point()
-            if from_epoch > 0:
-                print('|--- Continue training model from epoch %i --- ' % from_epoch)
-                training_history = conv_lstm_net.model.fit(x=trainX,
-                                                           y=trainY,
-                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                           epochs=Config.CONV_LSTM_N_EPOCH,
-                                                           callbacks=conv_lstm_net.callbacks_list,
-                                                           validation_data=(validX, validY),
-                                                           shuffle=True,
-                                                           initial_epoch=from_epoch)
-            else:
-                print('|--- Training new model.')
-
-                training_history = conv_lstm_net.model.fit(x=trainX,
-                                                           y=trainY,
-                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                           epochs=Config.CONV_LSTM_N_EPOCH,
-                                                           callbacks=conv_lstm_net.callbacks_list,
-                                                           validation_data=(validX, validY),
-                                                           shuffle=True,
-                                                           initial_epoch=from_epoch)
-
-            # Plot the training history
-            if training_history is not None:
-                conv_lstm_net.plot_training_history(training_history)
-
-        print('---------------------------------CONV_LSTM_NET SUMMARY---------------------------------')
-        print(conv_lstm_net.model.summary())
+    print('---------------------------------CONV_LSTM_NET SUMMARY---------------------------------')
+    print(conv_lstm_net.model.summary())
 
     return
 
@@ -250,11 +254,17 @@ def test_conv_lstm(data, args):
         test_data = test_data[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    # train_data_normalized = (train_data - mean_train) / std_train
-    valid_data_normalized = (valid_data - mean_train) / std_train
-    test_data_normalized = (test_data - mean_train) / std_train
+    min_train, max_train, mean_train, std_train = 0, 0, 0, 0
+    if Config.MIN_MAX_SCALER:
+        min_train = np.mean(train_data)
+        max_train = np.max(train_data)
+        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
+        test_data_normalized = (test_data - min_train) / (max_train - min_train)
+    else:
+        mean_train = np.mean(train_data)
+        std_train = np.std(train_data)
+        valid_data_normalized = (valid_data - mean_train) / std_train
+        test_data_normalized = (test_data - mean_train) / std_train
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)

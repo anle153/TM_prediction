@@ -347,16 +347,24 @@ def train_fwbw_conv_lstm(data, args):
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
+
+    scalers = {
+        'min_train': 0,
+        'max_train': 0,
+        'mean_train': 0,
+        'std_train': 0,
+    }
+
     if Config.MIN_MAX_SCALER:
-        min_train = np.min(train_data)
-        max_train = np.max(train_data)
-        train_data_normalized = (train_data - min_train) / (max_train - min_train)
-        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
+        scalers['min_train'] = np.min(train_data)
+        scalers['max_train'] = np.max(train_data)
+        train_data_normalized = (train_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
     else:
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        train_data_normalized = (train_data - mean_train) / std_train
-        valid_data_normalized = (valid_data - mean_train) / std_train
+        scalers['mean_train'] = np.mean(train_data)
+        scalers['std_train'] = np.std(train_data)
+        train_data_normalized = (train_data - scalers['mean_train']) / scalers['std_train']
+        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
 
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
@@ -397,7 +405,7 @@ def train_fwbw_conv_lstm(data, args):
     with experiment.train():
         if os.path.isfile(
                 path=fw_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
-            print('|--- Forward model exist!')
+            print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_BEST_CHECKPOINT))
             fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT)
         else:
             print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
@@ -463,7 +471,7 @@ def train_fwbw_conv_lstm(data, args):
         # --------------------------------------------Training bw model-------------------------------------------------
 
         if os.path.isfile(path=bw_net.saving_path + 'weights-%i-0.00.hdf5' % Config.FWBW_CONV_LSTM_N_EPOCH):
-            print('|--- Backward model exist!')
+            print('|--- Backward model exist! Load model from epoch: {}'.format(Config.BW_BEST_CHECKPOINT))
             bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
         else:
             print('|---Compile model. Saving path: %s' % bw_net.saving_path)
@@ -500,6 +508,8 @@ def train_fwbw_conv_lstm(data, args):
     print('---------------------------------BW_NET SUMMARY---------------------------------')
     print(bw_net.model.summary())
 
+    run_test(experiment, valid_data, valid_data_normalized, train_data[-Config.FWBW_CONV_LSTM_STEP:],
+             fw_net, bw_net, params, scalers, args)
 
     return
 
@@ -540,23 +550,40 @@ def test_fwbw_conv_lstm(data, args):
         test_data = test_data[0:-day_size * 3]
     print('|--- Normalizing the train set.')
 
-    min_train, max_train, mean_train, std_train = 0, 0, 0, 0
+    scalers = {
+        'min_train': 0,
+        'max_train': 0,
+        'mean_train': 0,
+        'std_train': 0,
+    }
     if Config.MIN_MAX_SCALER:
-        min_train = np.min(train_data)
-        max_train = np.max(train_data)
-        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
-        test_data_normalized = (test_data - min_train) / (max_train - min_train)
+        scalers['min_train'] = np.min(train_data)
+        scalers['max_train'] = np.max(train_data)
+        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+        test_data_normalized = (test_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
     else:
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        valid_data_normalized = (valid_data - mean_train) / std_train
-        test_data_normalized = (test_data - mean_train) / std_train
+        scalers['mean_train'] = np.mean(train_data)
+        scalers['std_train'] = np.std(train_data)
+        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
+        test_data_normalized = (test_data - scalers['mean_train']) / scalers['std_train']
 
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
         fw_net, bw_net = load_trained_models(args, input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
+
+    run_test(experiment, test_data, test_data_normalized, valid_data_normalized[-Config.FWBW_CONV_LSTM_STEP:],
+             fw_net, bw_net, params, scalers, args)
+
+    return
+
+
+def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args,
+             save_results=False):
+    alg_name = args.alg
+    tag = args.tag
+    data_name = args.data_name
 
     results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
@@ -566,32 +593,32 @@ def test_fwbw_conv_lstm(data, args):
 
     measured_matrix_ims = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, Config.FWBW_CONV_LSTM_WIDE,
                                     Config.FWBW_CONV_LSTM_HIGH))
+    if save_results:
+        if Config.MIN_MAX_SCALER:
+            if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
+                np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
+                        test_data)
 
-    if Config.MIN_MAX_SCALER:
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
-            np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
-                    test_data)
+            if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
+                print(())
+                np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
+                        test_data_normalized)
+        else:
+            if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+                np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                        test_data)
 
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
-            print(())
-            np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
-                    test_data_normalized)
-    else:
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-            np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
-                    test_data)
-
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
-            print(())
-            np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
-                    test_data_normalized)
+            if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
+                print(())
+                np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
+                        test_data_normalized)
 
     with experiment.test():
         for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
             print('|--- Run time {}'.format(i))
 
             tm_labels, ims_tm = predict_fwbw_conv_lstm(
-                initial_data=valid_data_normalized[-Config.FWBW_CONV_LSTM_STEP:],
+                initial_data=init_data,
                 test_data=test_data_normalized,
                 forward_model=fw_net.model,
                 backward_model=bw_net.model)
@@ -599,14 +626,10 @@ def test_fwbw_conv_lstm(data, args):
             pred_tm = tm_labels[:, :, :, 0]
             measured_matrix = tm_labels[:, :, :, 1]
 
-            np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                   Config.ADDED_RESULT_NAME),
-                    pred_tm)
-
             if Config.MIN_MAX_SCALER:
-                pred_tm_invert = pred_tm * (max_train - min_train) + min_train
+                pred_tm_invert = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
             else:
-                pred_tm_invert = pred_tm * std_train + mean_train
+                pred_tm_invert = pred_tm * scalers['std_train'] + scalers['mean_train']
 
             err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
             r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
@@ -615,9 +638,9 @@ def test_fwbw_conv_lstm(data, args):
             if Config.FWBW_IMS:
                 # Calculate error for multistep-ahead-prediction
                 if Config.MIN_MAX_SCALER:
-                    ims_tm_invert = ims_tm * (max_train - min_train) + min_train
+                    ims_tm_invert = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
                 else:
-                    ims_tm_invert = ims_tm * std_train + mean_train
+                    ims_tm_invert = ims_tm * scalers['std_train'] + scalers['mean_train']
 
                 ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
@@ -636,13 +659,16 @@ def test_fwbw_conv_lstm(data, args):
             print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
                                                               err_ims[i], rmse_ims[i],
                                                               r2_score_ims[i]))
-
-            np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                            Config.ADDED_RESULT_NAME),
-                    pred_tm_invert)
-            np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                               Config.ADDED_RESULT_NAME),
-                    measured_matrix)
+            if save_results:
+                np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                                Config.ADDED_RESULT_NAME),
+                        pred_tm_invert)
+                np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                                   Config.ADDED_RESULT_NAME),
+                        measured_matrix)
+                np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                                       Config.ADDED_RESULT_NAME),
+                        pred_tm)
 
         results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
         results_summary['err'] = err

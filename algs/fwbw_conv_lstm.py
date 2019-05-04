@@ -398,8 +398,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
     # --------------------------------------------Training fw model-------------------------------------------------
 
     with experiment.train():
-        if os.path.isfile(
-                path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
+        if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
             print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_BEST_CHECKPOINT))
             fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT)
         else:
@@ -465,7 +464,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
 
         # --------------------------------------------Training bw model-------------------------------------------------
 
-        if os.path.isfile(path=bw_net.saving_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
+        if os.path.isfile(path=bw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
             print('|--- Backward model exist! Load model from epoch: {}'.format(Config.BW_BEST_CHECKPOINT))
             bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
         else:

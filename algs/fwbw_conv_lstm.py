@@ -497,10 +497,10 @@ def train_fwbw_conv_lstm(data, experiment, args):
 
     # --------------------------------------------------------------------------------------------------------------
 
-    print('---------------------------------FW_NET SUMMARY---------------------------------')
-    print(fw_net.model.summary())
-    print('---------------------------------BW_NET SUMMARY---------------------------------')
-    print(bw_net.model.summary())
+    # print('---------------------------------FW_NET SUMMARY---------------------------------')
+    # print(fw_net.model.summary())
+    # print('---------------------------------BW_NET SUMMARY---------------------------------')
+    # print(bw_net.model.summary())
 
     run_test(experiment, valid_data, valid_data_normalized, train_data[-Config.FWBW_CONV_LSTM_STEP:],
              fw_net, bw_net, params, scalers, args, save_results=True)

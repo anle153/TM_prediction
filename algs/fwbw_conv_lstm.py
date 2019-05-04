@@ -2,8 +2,6 @@ import os
 
 import numpy as np
 import pandas as pd
-from comet_ml import Experiment
-
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
@@ -324,10 +322,8 @@ def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
     return fw_net, bw_net
 
 
-def train_fwbw_conv_lstm(data, args):
+def train_fwbw_conv_lstm(data, experiment, args):
     print('|-- Run model training.')
-
-    experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
 
     params = Config.set_comet_params_fwbw_conv_lstm()
 
@@ -523,11 +519,9 @@ def ims_tm_ytrue(test_data):
     return ims_test_set
 
 
-def test_fwbw_conv_lstm(data, args):
+def test_fwbw_conv_lstm(data, experiment, args):
     print('|-- Run model testing.')
     gpu = args.gpu
-
-    experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
 
     params = Config.set_comet_params_fwbw_conv_lstm()
 

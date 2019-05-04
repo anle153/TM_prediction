@@ -3,13 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from tqdm import tqdm
 
 from Models.RNN_LSTM import lstm
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, generator_lstm_nn_train_data, \
-    create_offline_lstm_nn_data
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_lstm_nn_data
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
-from tqdm import tqdm
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -117,7 +116,7 @@ def build_model(args, input_shape):
     return net
 
 
-def train_lstm_nn(data, args):
+def train_lstm_nn(data, experiment, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
@@ -217,7 +216,7 @@ def load_trained_model(args, input_shape, best_ckp):
     return lstm_net
 
 
-def test_lstm_nn(data, args):
+def test_lstm_nn(data, experiment, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name

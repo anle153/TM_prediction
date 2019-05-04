@@ -125,7 +125,7 @@ def load_trained_models(args, input_shape, best_ckp):
     return conv_lstm_net
 
 
-def train_conv_lstm(data, args):
+def train_conv_lstm(data, experiment, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
@@ -230,7 +230,7 @@ def ims_tm_ytrue(test_data):
     return ims_test_set
 
 
-def test_conv_lstm(data, args):
+def test_conv_lstm(data, experiment, args):
     print('|-- Run model testing.')
     alg_name = args.alg
     tag = args.tag

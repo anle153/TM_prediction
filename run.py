@@ -1,12 +1,12 @@
 import sys
 
 import numpy as np
+from comet_ml import Experiment
 
-from common.Config import DATA_PATH
-from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
-
-from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d, create_Geant3d
 from common import Config
+from common.Config import DATA_PATH
+from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d, create_Geant3d
+from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
 
 
 def train(args):
@@ -16,13 +16,16 @@ def train(args):
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
-        train_fwbw_conv_lstm(args=args, data=data)
+        experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        train_fwbw_conv_lstm(args=args, data=data, experiment=experiment)
     elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
         from algs.conv_lstm import train_conv_lstm
-        train_conv_lstm(args=args, data=data)
+        experiment = Experiment(project_name='tmp-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        train_conv_lstm(args=args, data=data, experiment=experiment)
     elif 'lstm-nn' in alg_name:
         from algs.lstm_nn import train_lstm_nn
-        train_lstm_nn(args=args, data=data)
+        experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
+        train_lstm_nn(args=args, data=data, experiment=experiment)
     elif 'arima' in alg_name:
         from algs.arima import train_arima
         train_arima(args=args, data=data)
@@ -40,13 +43,16 @@ def test(args):
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         from algs.fwbw_conv_lstm import test_fwbw_conv_lstm
-        test_fwbw_conv_lstm(args=args, data=data)
+        experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        test_fwbw_conv_lstm(args=args, data=data, experiment=experiment)
     elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
         from algs.conv_lstm import test_conv_lstm
-        test_conv_lstm(args=args, data=data)
+        experiment = Experiment(project_name='tmp-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        test_conv_lstm(args=args, data=data, experiment=experiment)
     elif 'lstm-nn' in alg_name:
         from algs.lstm_nn import test_lstm_nn
-        test_lstm_nn(args=args, data=data)
+        experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
+        test_lstm_nn(args=args, data=data, experiment=experiment)
     elif 'arima' in alg_name:
         from algs.arima import test_arima
         test_arima(args=args, data=data)

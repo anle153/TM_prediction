@@ -494,7 +494,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
             if training_bw_history is not None:
                 bw_net.plot_training_history(training_bw_history)
 
-        experiment.log_parameters(params)
+            experiment.log_parameters(params)
 
     # --------------------------------------------------------------------------------------------------------------
 

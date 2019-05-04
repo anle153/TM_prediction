@@ -179,8 +179,7 @@ def train_conv_lstm(data, experiment, args):
         validY = np.load(conv_lstm_net.saving_path + 'validY.npy')
     # --------------------------------------------------------------------------------------------------------------
 
-    if os.path.isfile(
-            path=conv_lstm_net.checkpoints_path + 'weights-{:02d}-0.00.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
+    if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
         print('|--- Model exist!')
         conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
     else:

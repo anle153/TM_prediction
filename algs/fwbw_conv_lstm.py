@@ -2,18 +2,17 @@ import os
 
 import numpy as np
 import pandas as pd
+from comet_ml import Experiment
+
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_3d, generator_convlstm_train_data, \
-    generator_convlstm_train_data_fix_ratio, create_offline_convlstm_data_fix_ratio
+from common.DataPreprocessing import prepare_train_valid_test_3d, create_offline_convlstm_data_fix_ratio
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
-
-from comet_ml import Experiment
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True

@@ -341,7 +341,7 @@ def train_fwbw_conv_lstm(data, args):
     train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
     if Config.MIN_MAX_SCALER:
-        min_train = np.mean(train_data)
+        min_train = np.min(train_data)
         max_train = np.max(train_data)
         train_data_normalized = (train_data - min_train) / (max_train - min_train)
         valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
@@ -527,7 +527,7 @@ def test_fwbw_conv_lstm(data, args):
 
     min_train, max_train, mean_train, std_train = 0, 0, 0, 0
     if Config.MIN_MAX_SCALER:
-        min_train = np.mean(train_data)
+        min_train = np.min(train_data)
         max_train = np.max(train_data)
         valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
         test_data_normalized = (test_data - min_train) / (max_train - min_train)

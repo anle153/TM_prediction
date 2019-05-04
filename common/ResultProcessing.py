@@ -23,7 +23,10 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
     if not os.path.exists(plotted_path):
         os.makedirs(plotted_path)
 
-    test_data = np.load(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name))
+    if Config.MIN_MAX_SCALER:
+        test_data = np.load(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name))
+    else:
+        test_data = np.load(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name))
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         run_time = Config.FWBW_CONV_LSTM_TESTING_TIME
@@ -42,6 +45,7 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
     day_y = 0
 
     for i in range(run_time):
+
         pred = np.load(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
                                                                                Config.ADDED_RESULT_NAME))
         measure_matrix = np.load(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,

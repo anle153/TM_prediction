@@ -98,7 +98,7 @@ def test_arima(data, args):
         test_data = test_data[0:-day_size * 3]
 
     if Config.MIN_MAX_SCALER:
-        min_train = np.mean(train_data)
+        min_train = np.min(train_data)
         max_train = np.max(train_data)
         train_data_normalized = (train_data - min_train) / (max_train - min_train)
         test_data_normalized = (test_data - min_train) / (max_train - min_train)

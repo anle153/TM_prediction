@@ -38,8 +38,8 @@ def plot_pred_results(data_name, alg_name, tag, nflows, ndays):
     else:
         raise ValueError('Unkown alg!')
 
-    day_x = 3
-    day_y = 2
+    day_x = 1
+    day_y = 0
 
     for i in range(run_time):
         pred = np.load(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,

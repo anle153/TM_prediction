@@ -315,8 +315,8 @@ def build_model(args, input_shape):
 
 
 def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
-    print('|--- Load trained model')
     fw_net, bw_net = build_model(args, input_shape)
+    print('|--- Load trained model from: {}'.format(fw_net.checkpoints_path))
     fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}.hdf5".format(fw_ckp))
     bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}.hdf5".format(bw_ckp))
 
@@ -552,13 +552,24 @@ def test_fwbw_conv_lstm(data, args):
     measured_matrix_ims = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, Config.FWBW_CONV_LSTM_WIDE,
                                     Config.FWBW_CONV_LSTM_HIGH))
 
-    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
-                test_data)
+    if Config.MIN_MAX_SCALER:
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
+                    test_data)
 
-    if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
-                test_data_normalized)
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
+            print(())
+            np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
+                    test_data_normalized)
+    else:
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                    test_data)
+
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
+            print(())
+            np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
+                    test_data_normalized)
 
     for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))

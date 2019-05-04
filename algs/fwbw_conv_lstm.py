@@ -599,8 +599,9 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                 np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name),
                         test_data_normalized)
 
-        if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'):
-            os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/')
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
+                                                                      alg_name, tag, Config.ADDED_RESULT_NAME)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.ADDED_RESULT_NAME))
 
     with experiment.test():
         for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
@@ -667,8 +668,8 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
         results_summary['r2_ims'] = r2_score_ims
         results_summary['rmse_ims'] = rmse_ims
 
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
-                                                                              alg_name, tag, Config.ADDED_RESULT_NAME),
+        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
+                                                                                      alg_name, tag, Config.ADDED_RESULT_NAME),
                                index=False)
 
         metrics = {

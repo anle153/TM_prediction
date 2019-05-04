@@ -229,6 +229,9 @@ def train_conv_lstm(data, experiment, args):
 
         experiment.log_parameters(params)
 
+    run_test(experiment, valid_data, valid_data_normalized, train_data[-Config.CONV_LSTM_STEP:],
+             conv_lstm_net, params, scalers, args,
+             save_results=False)
     return
 
 
@@ -244,8 +247,7 @@ def ims_tm_ytrue(test_data):
 
 def test_conv_lstm(data, experiment, args):
     print('|-- Run model testing.')
-    alg_name = args.alg
-    tag = args.tag
+    params = Config.set_comet_params_conv_lstm()
     data_name = args.data_name
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
@@ -266,22 +268,29 @@ def test_conv_lstm(data, experiment, args):
         test_data = test_data[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    min_train, max_train, mean_train, std_train = 0, 0, 0, 0
+    scalers = {
+        'min_train': 0,
+        'max_train': 0,
+        'mean_train': 0,
+        'std_train': 0,
+    }
     if Config.MIN_MAX_SCALER:
-        min_train = np.min(train_data)
-        max_train = np.max(train_data)
-        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
-        test_data_normalized = (test_data - min_train) / (max_train - min_train)
+        scalers['min_train'] = np.min(train_data)
+        scalers['max_train'] = np.max(train_data)
+        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+        test_data_normalized = (test_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
     else:
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        valid_data_normalized = (valid_data - mean_train) / std_train
-        test_data_normalized = (test_data - mean_train) / std_train
+        scalers['mean_train'] = np.mean(train_data)
+        scalers['std_train'] = np.std(train_data)
+        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
+        test_data_normalized = (test_data - scalers['mean_train']) / scalers['std_train']
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
     conv_lstm_net = load_trained_models(args, input_shape, Config.CONV_LSTM_BEST_CHECKPOINT)
+    run_test(experiment, test_data, test_data_normalized, valid_data_normalized[-Config.FWBW_CONV_LSTM_STEP:],
+             conv_lstm_net, params, scalers, args)
 
 
     return

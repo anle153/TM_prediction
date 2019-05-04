@@ -397,103 +397,102 @@ def train_fwbw_conv_lstm(data, experiment, args):
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    with experiment.train():
-        if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
-            print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_BEST_CHECKPOINT))
-            fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT)
+    if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
+        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_BEST_CHECKPOINT))
+        fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT)
+    else:
+        print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
+
+        # Load model check point
+        from_epoch = fw_net.load_model_from_check_point()
+        if from_epoch > 0:
+            print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
+            training_fw_history = fw_net.model.fit(x=trainX_fw,
+                                                   y=trainY_fw,
+                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                   callbacks=fw_net.callbacks_list,
+                                                   validation_data=(validX_fw, validY_fw),
+                                                   shuffle=True,
+                                                   initial_epoch=from_epoch)
         else:
-            print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
+            print('|--- Training new forward model.')
 
-            # Load model check point
-            from_epoch = fw_net.load_model_from_check_point()
-            if from_epoch > 0:
-                print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-                training_fw_history = fw_net.model.fit(x=trainX_fw,
-                                                       y=trainY_fw,
-                                                       batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                       callbacks=fw_net.callbacks_list,
-                                                       validation_data=(validX_fw, validY_fw),
-                                                       shuffle=True,
-                                                       initial_epoch=from_epoch)
-            else:
-                print('|--- Training new forward model.')
+            training_fw_history = fw_net.model.fit(x=trainX_fw,
+                                                   y=trainY_fw,
+                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                   callbacks=fw_net.callbacks_list,
+                                                   validation_data=(validX_fw, validY_fw),
+                                                   shuffle=True)
 
-                training_fw_history = fw_net.model.fit(x=trainX_fw,
-                                                       y=trainY_fw,
-                                                       batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                       callbacks=fw_net.callbacks_list,
-                                                       validation_data=(validX_fw, validY_fw),
-                                                       shuffle=True)
+        # Plot the training history
+        if training_fw_history is not None:
+            fw_net.plot_training_history(training_fw_history)
+    # --------------------------------------------------------------------------------------------------------------
 
-            # Plot the training history
-            if training_fw_history is not None:
-                fw_net.plot_training_history(training_fw_history)
-        # --------------------------------------------------------------------------------------------------------------
+    # --------------------------- Create offline training and validating dataset for bw net ------------------------
 
-        # --------------------------- Create offline training and validating dataset for bw net ------------------------
+    train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
+    valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
 
-        train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
-        valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
+    if not os.path.isfile(bw_net.saving_path + 'trainX_bw.npy'):
+        print('|--- Create offline train set for backward net!')
 
-        if not os.path.isfile(bw_net.saving_path + 'trainX_bw.npy'):
-            print('|--- Create offline train set for backward net!')
+        trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
+                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                      0.5)
+        np.save(bw_net.saving_path + 'trainX_bw.npy', trainX_bw)
+        np.save(bw_net.saving_path + 'trainY_bw.npy', trainY_bw)
+    else:
+        trainX_bw = np.load(bw_net.saving_path + 'trainX_bw.npy')
+        trainY_bw = np.load(bw_net.saving_path + 'trainY_bw.npy')
 
-            trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
-                                                                          input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                          0.5)
-            np.save(bw_net.saving_path + 'trainX_bw.npy', trainX_bw)
-            np.save(bw_net.saving_path + 'trainY_bw.npy', trainY_bw)
+    if not os.path.isfile(bw_net.saving_path + 'validX_bw.npy'):
+        print('|--- Create offline valid set for backward net!')
+
+        validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
+                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                      0.5)
+        np.save(bw_net.saving_path + 'validX_bw.npy', validX_bw)
+        np.save(bw_net.saving_path + 'validY_bw.npy', validY_bw)
+    else:
+        validX_bw = np.load(bw_net.saving_path + 'validX_bw.npy')
+        validY_bw = np.load(bw_net.saving_path + 'validY_bw.npy')
+    # --------------------------------------------------------------------------------------------------------------
+
+    # --------------------------------------------Training bw model-------------------------------------------------
+
+    if os.path.isfile(path=bw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
+        print('|--- Backward model exist! Load model from epoch: {}'.format(Config.BW_BEST_CHECKPOINT))
+        bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
+    else:
+        print('|---Compile model. Saving path: %s' % bw_net.saving_path)
+        from_epoch_bw = bw_net.load_model_from_check_point()
+        if from_epoch_bw > 0:
+            training_bw_history = bw_net.model.fit(x=trainX_bw,
+                                                   y=trainY_bw,
+                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                   callbacks=bw_net.callbacks_list,
+                                                   validation_data=(validX_bw, validY_bw),
+                                                   shuffle=True,
+                                                   initial_epoch=from_epoch_bw)
+
         else:
-            trainX_bw = np.load(bw_net.saving_path + 'trainX_bw.npy')
-            trainY_bw = np.load(bw_net.saving_path + 'trainY_bw.npy')
+            print('|--- Training new backward model.')
 
-        if not os.path.isfile(bw_net.saving_path + 'validX_bw.npy'):
-            print('|--- Create offline valid set for backward net!')
+            training_bw_history = bw_net.model.fit(x=trainX_bw,
+                                                   y=trainY_bw,
+                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                   callbacks=bw_net.callbacks_list,
+                                                   validation_data=(validX_bw, validY_bw),
+                                                   shuffle=True)
+        if training_bw_history is not None:
+            bw_net.plot_training_history(training_bw_history)
 
-            validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
-                                                                          input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                          0.5)
-            np.save(bw_net.saving_path + 'validX_bw.npy', validX_bw)
-            np.save(bw_net.saving_path + 'validY_bw.npy', validY_bw)
-        else:
-            validX_bw = np.load(bw_net.saving_path + 'validX_bw.npy')
-            validY_bw = np.load(bw_net.saving_path + 'validY_bw.npy')
-        # --------------------------------------------------------------------------------------------------------------
-
-        # --------------------------------------------Training bw model-------------------------------------------------
-
-        if os.path.isfile(path=bw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
-            print('|--- Backward model exist! Load model from epoch: {}'.format(Config.BW_BEST_CHECKPOINT))
-            bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
-        else:
-            print('|---Compile model. Saving path: %s' % bw_net.saving_path)
-            from_epoch_bw = bw_net.load_model_from_check_point()
-            if from_epoch_bw > 0:
-                training_bw_history = bw_net.model.fit(x=trainX_bw,
-                                                       y=trainY_bw,
-                                                       batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                       callbacks=bw_net.callbacks_list,
-                                                       validation_data=(validX_bw, validY_bw),
-                                                       shuffle=True,
-                                                       initial_epoch=from_epoch_bw)
-
-            else:
-                print('|--- Training new backward model.')
-
-                training_bw_history = bw_net.model.fit(x=trainX_bw,
-                                                       y=trainY_bw,
-                                                       batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                       callbacks=bw_net.callbacks_list,
-                                                       validation_data=(validX_bw, validY_bw),
-                                                       shuffle=True)
-            if training_bw_history is not None:
-                bw_net.plot_training_history(training_bw_history)
-
-            experiment.log_parameters(params)
+        experiment.log_parameters(params)
 
     # --------------------------------------------------------------------------------------------------------------
 

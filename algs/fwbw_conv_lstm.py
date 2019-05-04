@@ -584,8 +584,8 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
     measured_matrix_ims = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, Config.FWBW_CONV_LSTM_WIDE,
                                     Config.FWBW_CONV_LSTM_HIGH))
     if save_results:
-        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}_minmax.npy'.format(data_name)):
-            np.save(Config.RESULTS_PATH + 'ground_true_{}_minmax.npy'.format(data_name),
+        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
                     test_data)
 
         if Config.MIN_MAX_SCALER:
@@ -646,14 +646,14 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                                                               err_ims[i], rmse_ims[i],
                                                               r2_score_ims[i]))
             if save_results:
-                np.save(Config.RESULTS_PATH + 'pred-{}_{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                               Config.ADDED_RESULT_NAME),
+                np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+                                                                               Config.ADDED_RESULT_NAME, i),
                         pred_tm_invert)
-                np.save(Config.RESULTS_PATH + 'measure-{}_{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                  Config.ADDED_RESULT_NAME),
+                np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+                                                                                  Config.ADDED_RESULT_NAME, i),
                         measured_matrix)
-                np.save(Config.RESULTS_PATH + 'pred_scaled-{}_{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                      Config.ADDED_RESULT_NAME),
+                np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+                                                                                      Config.ADDED_RESULT_NAME, i),
                         pred_tm)
 
         results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)

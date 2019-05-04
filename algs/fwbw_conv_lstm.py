@@ -503,7 +503,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
     print(bw_net.model.summary())
 
     run_test(experiment, valid_data, valid_data_normalized, train_data[-Config.FWBW_CONV_LSTM_STEP:],
-             fw_net, bw_net, params, scalers, args)
+             fw_net, bw_net, params, scalers, args, save_results=True)
 
     return
 
@@ -584,23 +584,19 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
     measured_matrix_ims = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, Config.FWBW_CONV_LSTM_WIDE,
                                     Config.FWBW_CONV_LSTM_HIGH))
     if save_results:
-        if Config.MIN_MAX_SCALER:
-            if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
-                np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
-                        test_data)
+        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}_minmax.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + 'ground_true_{}_minmax.npy'.format(data_name),
+                    test_data)
 
-            if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
+        if Config.MIN_MAX_SCALER:
+            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name)):
                 print(())
-                np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
+                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name),
                         test_data_normalized)
         else:
-            if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-                np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
-                        test_data)
-
-            if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
+            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name)):
                 print(())
-                np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
+                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name),
                         test_data_normalized)
 
     with experiment.test():
@@ -623,7 +619,7 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
 
             err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
             r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
-            rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
+            rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert / 1000000))
 
             if Config.FWBW_IMS:
                 # Calculate error for multistep-ahead-prediction
@@ -639,7 +635,7 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                                            measured_matrix=measured_matrix_ims))
 
                 r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
-                rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+                rmse_ims.append(calculate_rmse(y_true=ims_ytrue / 1000000, y_pred=ims_tm_invert / 1000000))
             else:
                 err_ims.append(0)
                 r2_score_ims.append(0)
@@ -650,14 +646,14 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                                                               err_ims[i], rmse_ims[i],
                                                               r2_score_ims[i]))
             if save_results:
-                np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                Config.ADDED_RESULT_NAME),
+                np.save(Config.RESULTS_PATH + 'pred-{}_{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                               Config.ADDED_RESULT_NAME),
                         pred_tm_invert)
-                np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                   Config.ADDED_RESULT_NAME),
+                np.save(Config.RESULTS_PATH + 'measure-{}_{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                                  Config.ADDED_RESULT_NAME),
                         measured_matrix)
-                np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                       Config.ADDED_RESULT_NAME),
+                np.save(Config.RESULTS_PATH + 'pred_scaled-{}_{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                                      Config.ADDED_RESULT_NAME),
                         pred_tm)
 
         results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
@@ -673,19 +669,12 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                                index=False)
 
         metrics = {
-            'avg_err': np.mean(np.array(results_summary['err'])),
-            'avg_rmse': np.mean(np.array(results_summary['rmse'])),
-            'avg_r2': np.mean(np.array(results_summary['r2'])),
-            'avg_err_ims': np.mean(np.array(results_summary['err_ims'])),
-            'avg_rmse_ims': np.mean(np.array(results_summary['rmse_ims'])),
-            'avg_r2_ims': np.mean(np.array(results_summary['r2_ims'])),
-
-            'std_err': np.std(np.array(results_summary['err'])),
-            'std_rmse': np.std(np.array(results_summary['rmse'])),
-            'std_r2': np.std(np.array(results_summary['r2'])),
-            'std_err_ims': np.std(np.array(results_summary['err_ims'])),
-            'std_rmse_ims': np.std(np.array(results_summary['rmse_ims'])),
-            'std_r2_ims': np.std(np.array(results_summary['r2_ims']))
+            'err': results_summary['err'],
+            'rmse': results_summary['rmse'],
+            'r2': results_summary['r2'],
+            'err_ims': results_summary['err_ims'],
+            'rmse_ims': results_summary['rmse_ims'],
+            'r2_ims': results_summary['rmse_ims'],
         }
 
         experiment.log_metrics(metrics)

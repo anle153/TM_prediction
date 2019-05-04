@@ -266,15 +266,34 @@ def test_lstm_nn(data, args):
     ims_test_set = ims_tm_test_data(test_data=test_data)
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
-    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
-                test_data)
+    if Config.MIN_MAX_SCALER:
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
+                    test_data)
+
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
+            print(())
+            np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
+                    test_data_normalized)
+    else:
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                    test_data)
+
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
+            print(())
+            np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
+                    test_data_normalized)
 
     for i in range(Config.LSTM_TESTING_TIME):
         print('|--- Running time: {}'.format(i))
         pred_tm, measured_matrix, ims_tm = predict_lstm_nn(init_data=valid_data_normalized[-Config.LSTM_STEP:, :],
                                                            test_data=test_data_normalized,
                                                            model=lstm_net.model)
+
+        np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                               Config.ADDED_RESULT_NAME),
+                pred_tm)
 
         if Config.MIN_MAX_SCALER:
             pred_tm_invert = pred_tm * (max_train - min_train) + min_train

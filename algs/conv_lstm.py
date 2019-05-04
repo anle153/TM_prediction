@@ -280,9 +280,24 @@ def test_conv_lstm(data, args):
     measured_matrix_ims = np.zeros(
         (test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
-    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
-                test_data)
+    if Config.MIN_MAX_SCALER:
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
+                    test_data)
+
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
+            print(())
+            np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
+                    test_data_normalized)
+    else:
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+                    test_data)
+
+        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
+            print(())
+            np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
+                    test_data_normalized)
 
     for i in range(Config.CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
@@ -294,6 +309,10 @@ def test_conv_lstm(data, args):
 
         pred_tm = tm_labels[:, :, :, 0]
         measured_matrix = tm_labels[:, :, :, 1]
+
+        np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                               Config.ADDED_RESULT_NAME),
+                pred_tm)
 
         if Config.MIN_MAX_SCALER:
             pred_tm_invert = pred_tm * (max_train - min_train) + min_train

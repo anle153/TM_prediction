@@ -13,6 +13,8 @@ from common.DataPreprocessing import prepare_train_valid_test_3d, generator_conv
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
+from comet_ml import Experiment
+
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
@@ -325,6 +327,11 @@ def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
 
 def train_fwbw_conv_lstm(data, args):
     print('|-- Run model training.')
+
+    experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+
+    params = Config.set_comet_params_fwbw_conv_lstm()
+
     gpu = args.gpu
 
     data_name = args.data_name

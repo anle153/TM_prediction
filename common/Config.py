@@ -111,3 +111,38 @@ CONV_LSTM_CHANNEL = 2
 CONV_LSTM_MON_RAIO = 0.3
 
 CONV_LSTM_IMS = False
+
+
+def set_comet_params_fwbw_conv_lstm():
+    params = {
+        'cnn_layers': FWBW_CONV_LSTM_LAYERS,
+        'epochs': FWBW_CONV_LSTM_N_EPOCH,
+        'batch_size': FWBW_CONV_LSTM_BATCH_SIZE,
+        'mon_ratio': FWBW_CONV_LSTM_MON_RAIO,
+        'lstm_step': FWBW_CONV_LSTM_STEP,
+        'random_action': FWBW_CONV_LSTM_RANDOM_ACTION
+    }
+
+    for i in range(FWBW_CONV_LSTM_LAYERS):
+        params['layer{}_filter'.format(i + 1)] = FWBW_CONV_LSTM_FILTERS[i]
+        params['layer{}_kernel_size'.format(i + 1)] = FWBW_CONV_LSTM_KERNEL_SIZE[i]
+        params['layer{}_stride'.format(i + 1)] = FWBW_CONV_LSTM_STRIDES[i]
+        params['layer{}_dropout'.format(i + 1)] = FWBW_CONV_LSTM_DROPOUTS[i]
+        params['layer{}_rnn_dropout'.format(i + 1)] = FWBW_CONV_LSTM_RNN_DROPOUTS[i]
+
+
+def set_comet_params_conv_lstm():
+    params = {
+        'cnn_layers': CONV_LSTM_LAYERS,
+        'epochs': CONV_LSTM_N_EPOCH,
+        'batch_size': CONV_LSTM_BATCH_SIZE,
+        'mon_ratio': CONV_LSTM_MON_RAIO,
+        'lstm_step': CONV_LSTM_STEP,
+    }
+
+    for i in range(FWBW_CONV_LSTM_LAYERS):
+        params['layer{}_filter'.format(i + 1)] = CONV_LSTM_FILTERS[i]
+        params['layer{}_kernel_size'.format(i + 1)] = CONV_LSTM_KERNEL_SIZE[i]
+        params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]
+        params['layer{}_dropout'.format(i + 1)] = CONV_LSTM_DROPOUTS[i]
+        params['layer{}_rnn_dropout'.format(i + 1)] = CONV_LSTM_RNN_DROPOUTS[i]

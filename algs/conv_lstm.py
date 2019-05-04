@@ -129,6 +129,8 @@ def train_conv_lstm(data, experiment, args):
     print('|-- Run model training.')
     gpu = args.gpu
 
+    params = Config.set_comet_params_conv_lstm()
+
     data_name = args.data_name
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
@@ -138,16 +140,24 @@ def train_conv_lstm(data, experiment, args):
     print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
+
+    scalers = {
+        'min_train': 0,
+        'max_train': 0,
+        'mean_train': 0,
+        'std_train': 0,
+    }
+
     if Config.MIN_MAX_SCALER:
-        min_train = np.min(train_data)
-        max_train = np.max(train_data)
-        train_data_normalized = (train_data - min_train) / (max_train - min_train)
-        valid_data_normalized = (valid_data - min_train) / (max_train - min_train)
+        scalers['min_train'] = np.min(train_data)
+        scalers['max_train'] = np.max(train_data)
+        train_data_normalized = (train_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
     else:
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        train_data_normalized = (train_data - mean_train) / std_train
-        valid_data_normalized = (valid_data - mean_train) / std_train
+        scalers['mean_train'] = np.mean(train_data)
+        scalers['std_train'] = np.std(train_data)
+        train_data_normalized = (train_data - scalers['mean_train']) / scalers['std_train']
+        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
@@ -179,42 +189,45 @@ def train_conv_lstm(data, experiment, args):
         validY = np.load(conv_lstm_net.saving_path + 'validY.npy')
     # --------------------------------------------------------------------------------------------------------------
 
-    if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
-        print('|--- Model exist!')
-        conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
-    else:
-        print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
-
-        # Load model check point
-        from_epoch = conv_lstm_net.load_model_from_check_point()
-        if from_epoch > 0:
-            print('|--- Continue training model from epoch %i --- ' % from_epoch)
-            training_history = conv_lstm_net.model.fit(x=trainX,
-                                                       y=trainY,
-                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.CONV_LSTM_N_EPOCH,
-                                                       callbacks=conv_lstm_net.callbacks_list,
-                                                       validation_data=(validX, validY),
-                                                       shuffle=True,
-                                                       initial_epoch=from_epoch)
+    with experiment.train():
+        if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
+            print('|--- Model exist!')
+            conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
         else:
-            print('|--- Training new model.')
+            print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
 
-            training_history = conv_lstm_net.model.fit(x=trainX,
-                                                       y=trainY,
-                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.CONV_LSTM_N_EPOCH,
-                                                       callbacks=conv_lstm_net.callbacks_list,
-                                                       validation_data=(validX, validY),
-                                                       shuffle=True,
-                                                       initial_epoch=from_epoch)
+            # Load model check point
+            from_epoch = conv_lstm_net.load_model_from_check_point()
+            if from_epoch > 0:
+                print('|--- Continue training model from epoch %i --- ' % from_epoch)
+                training_history = conv_lstm_net.model.fit(x=trainX,
+                                                           y=trainY,
+                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.CONV_LSTM_N_EPOCH,
+                                                           callbacks=conv_lstm_net.callbacks_list,
+                                                           validation_data=(validX, validY),
+                                                           shuffle=True,
+                                                           initial_epoch=from_epoch)
+            else:
+                print('|--- Training new model.')
 
-        # Plot the training history
-        if training_history is not None:
-            conv_lstm_net.plot_training_history(training_history)
+                training_history = conv_lstm_net.model.fit(x=trainX,
+                                                           y=trainY,
+                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.CONV_LSTM_N_EPOCH,
+                                                           callbacks=conv_lstm_net.callbacks_list,
+                                                           validation_data=(validX, validY),
+                                                           shuffle=True,
+                                                           initial_epoch=from_epoch)
 
-    print('---------------------------------CONV_LSTM_NET SUMMARY---------------------------------')
-    print(conv_lstm_net.model.summary())
+            # Plot the training history
+            if training_history is not None:
+                conv_lstm_net.plot_training_history(training_history)
+
+        print('---------------------------------CONV_LSTM_NET SUMMARY---------------------------------')
+        print(conv_lstm_net.model.summary())
+
+        experiment.log_parameters(params)
 
     return
 
@@ -270,6 +283,16 @@ def test_conv_lstm(data, experiment, args):
 
     conv_lstm_net = load_trained_models(args, input_shape, Config.CONV_LSTM_BEST_CHECKPOINT)
 
+
+    return
+
+
+def run_test(experiment, test_data, test_data_normalized, init_data, conv_lstm_net, params, scalers, args,
+             save_results=False):
+    alg_name = args.alg
+    tag = args.tag
+    data_name = args.data_name
+
     results_summary = pd.DataFrame(index=range(Config.CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
@@ -279,93 +302,100 @@ def test_conv_lstm(data, experiment, args):
     measured_matrix_ims = np.zeros(
         (test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
-    if Config.MIN_MAX_SCALER:
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name)):
-            np.save(Config.RESULTS_PATH + '[test-data]{}_minmax.npy'.format(data_name),
+    if save_results:
+        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+            np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
                     test_data)
-
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name)):
-            print(())
-            np.save(Config.RESULTS_PATH + '[test-data-scale]{}_minmax.npy'.format(data_name),
-                    test_data_normalized)
-    else:
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-            np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
-                    test_data)
-
-        if not os.path.isfile(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name)):
-            print(())
-            np.save(Config.RESULTS_PATH + '[test-data-scale]{}.npy'.format(data_name),
-                    test_data_normalized)
-
-    for i in range(Config.CONV_LSTM_TESTING_TIME):
-        print('|--- Run time {}'.format(i))
-
-        tm_labels, ims_tm = predict_conv_lstm(
-            initial_data=valid_data_normalized[-Config.CONV_LSTM_STEP:, :, :],
-            test_data=test_data_normalized,
-            conv_lstm_model=conv_lstm_net.model)
-
-        pred_tm = tm_labels[:, :, :, 0]
-        measured_matrix = tm_labels[:, :, :, 1]
-
-        np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                               Config.ADDED_RESULT_NAME),
-                pred_tm)
 
         if Config.MIN_MAX_SCALER:
-            pred_tm_invert = pred_tm * (max_train - min_train) + min_train
+            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name)):
+                print(())
+                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name),
+                        test_data_normalized)
         else:
-            pred_tm_invert = pred_tm * std_train + mean_train
+            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name)):
+                print(())
+                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name),
+                        test_data_normalized)
 
-        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
+    with experiment.test():
+        for i in range(Config.CONV_LSTM_TESTING_TIME):
+            print('|--- Run time {}'.format(i))
 
-        if Config.CONV_LSTM_IMS:
+            tm_labels, ims_tm = predict_conv_lstm(
+                initial_data=init_data,
+                test_data=test_data_normalized,
+                conv_lstm_model=conv_lstm_net.model)
+
+            pred_tm = tm_labels[:, :, :, 0]
+            measured_matrix = tm_labels[:, :, :, 1]
+
+            np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                                   Config.ADDED_RESULT_NAME),
+                    pred_tm)
+
             if Config.MIN_MAX_SCALER:
-                ims_tm_invert = ims_tm * (max_train - min_train) + min_train
+                pred_tm_invert = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
             else:
-                ims_tm_invert = ims_tm * std_train + mean_train
+                pred_tm_invert = pred_tm * scalers['std_train'] + scalers['mean_train']
 
-            ims_ytrue = ims_tm_ytrue(test_data=test_data)
+            err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
+            r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
+            rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
 
-            err_ims.append(error_ratio(y_pred=ims_tm_invert,
-                                       y_true=ims_ytrue,
-                                       measured_matrix=measured_matrix_ims))
+            if Config.CONV_LSTM_IMS:
+                if Config.MIN_MAX_SCALER:
+                    ims_tm_invert = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
+                else:
+                    ims_tm_invert = ims_tm * scalers['std_train'] + scalers['mean_train']
 
-            r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
-            rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
-        else:
-            err_ims.append(0)
-            r2_score_ims.append(0)
-            rmse_ims.append(0)
+                ims_ytrue = ims_tm_ytrue(test_data=test_data)
 
-        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                        Config.ADDED_RESULT_NAME),
-                pred_tm_invert)
-        np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                           Config.ADDED_RESULT_NAME),
-                measured_matrix)
+                err_ims.append(error_ratio(y_pred=ims_tm_invert,
+                                           y_true=ims_ytrue,
+                                           measured_matrix=measured_matrix_ims))
 
-        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
-                                                          err_ims[i], rmse_ims[i],
-                                                          r2_score_ims[i]))
+                r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
+                rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+            else:
+                err_ims.append(0)
+                r2_score_ims.append(0)
+                rmse_ims.append(0)
 
+            np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                            Config.ADDED_RESULT_NAME),
+                    pred_tm_invert)
+            np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
+                                                                               Config.ADDED_RESULT_NAME),
+                    measured_matrix)
 
+            print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+            print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                              err_ims[i], rmse_ims[i],
+                                                              r2_score_ims[i]))
 
-    results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)
-    results_summary['err'] = err
-    results_summary['r2'] = r2_score
-    results_summary['rmse'] = rmse
-    results_summary['err_ims'] = err_ims
-    results_summary['r2_ims'] = r2_score_ims
-    results_summary['rmse_ims'] = rmse_ims
+        results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)
+        results_summary['err'] = err
+        results_summary['r2'] = r2_score
+        results_summary['rmse'] = rmse
+        results_summary['err_ims'] = err_ims
+        results_summary['r2_ims'] = r2_score_ims
+        results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
-                                                                          alg_name, tag, Config.ADDED_RESULT_NAME),
-                           index=False)
+        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
+                                                                              alg_name, tag, Config.ADDED_RESULT_NAME),
+                               index=False)
+
+        metrics = {
+            'err': results_summary['err'],
+            'rmse': results_summary['rmse'],
+            'r2': results_summary['r2'],
+            'err_ims': results_summary['err_ims'],
+            'rmse_ims': results_summary['rmse_ims'],
+            'r2_ims': results_summary['rmse_ims'],
+        }
+
+        experiment.log_metrics(metrics)
+        experiment.log_parameters(params)
 
     return
-

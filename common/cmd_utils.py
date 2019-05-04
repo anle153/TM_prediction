@@ -155,11 +155,12 @@ def print_info(args):
         print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
     else:
         print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
-    print('|--- Mode:\t{}'.format(args.run_mode))
-    print('|--- Alg:\t{}'.format(alg_name))
-    print('|--- Tag:\t{}'.format(tag))
-    print('|--- Data:\t{}'.format(data_name))
+    print('|--- MODE:\t{}'.format(args.run_mode))
+    print('|--- ALG:\t{}'.format(alg_name))
+    print('|--- TAG:\t{}'.format(tag))
+    print('|--- DATA:\t{}'.format(data_name))
     print('|--- GPU:\t{}'.format(gpu))
+    print('|--- MIN_MAX_SCALER:\t{}'.format(Config.MIN_MAX_SCALER))
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         print_fwbw_conv_lstm_info(args.run_mode)

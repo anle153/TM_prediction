@@ -524,8 +524,6 @@ def test_fwbw_conv_lstm(data, experiment, args):
 
     params = Config.set_comet_params_fwbw_conv_lstm()
 
-    alg_name = args.alg
-    tag = args.tag
     data_name = args.data_name
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE

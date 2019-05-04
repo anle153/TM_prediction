@@ -130,6 +130,8 @@ def set_comet_params_fwbw_conv_lstm():
         params['layer{}_dropout'.format(i + 1)] = FWBW_CONV_LSTM_DROPOUTS[i]
         params['layer{}_rnn_dropout'.format(i + 1)] = FWBW_CONV_LSTM_RNN_DROPOUTS[i]
 
+    return params
+
 
 def set_comet_params_conv_lstm():
     params = {
@@ -146,3 +148,5 @@ def set_comet_params_conv_lstm():
         params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]
         params['layer{}_dropout'.format(i + 1)] = CONV_LSTM_DROPOUTS[i]
         params['layer{}_rnn_dropout'.format(i + 1)] = CONV_LSTM_RNN_DROPOUTS[i]
+
+    return params

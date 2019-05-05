@@ -18,7 +18,7 @@ def create_abilene_data_3d(path):
     np.save(Config.DATA_PATH + 'Abilene.npy', tm_3d)
 
 
-def create_abilene_data_2d(path):
+def create_abilene_data_2d(path, save_csv=False):
     tm_2d = np.zeros(shape=(2016 * 24, 144))
     for i in range(24):
         print('Read file X{:02d}'.format(i + 1))
@@ -27,6 +27,8 @@ def create_abilene_data_2d(path):
         tm_2d[i * 2016: (i + 1) * 2016, :] = tm
 
     np.save(Config.DATA_PATH + 'Abilene2d.npy', tm_2d)
+    if save_csv:
+        np.savetxt(Config.DATA_PATH + 'Abilene2d.csv', tm_2d)
 
 
 def create_abilene_by_day(path):
@@ -65,7 +67,7 @@ def get_row(xmlRow):
     return TM_row
 
 
-def create_Geant2d(datapath=GEANT_XML_PATH):
+def create_Geant2d(datapath=GEANT_XML_PATH, save_csv=False):
     TM = np.empty((0, MATRIX_DIM * MATRIX_DIM))
 
     if os.path.exists(datapath):
@@ -88,6 +90,8 @@ def create_Geant2d(datapath=GEANT_XML_PATH):
                 TM = np.concatenate([TM, aRow], axis=0)
 
     np.save(Config.DATA_PATH + 'Geant2d.npy', TM)
+    if save_csv:
+        np.savetxt(Config.DATA_PATH + 'Geant2d.csv', TM)
 
     return
 
@@ -133,3 +137,5 @@ def data_analysis(data, args):
         day_size = Config.GEANT_DAY_SIZE
 
     ndays = data.shape[0] / day_size
+
+    print('|-- DATA NAME: {}'.format(data_name))

@@ -46,7 +46,6 @@ def create_abilene_by_day(path):
     np.save(Config.DATA_PATH + 'Abilene_weekday.npy', abilene_weekday)
     np.save(Config.DATA_PATH + 'Abilene_weekend.npy', abilene_weekend)
 
-
 ########################################################################################################################
 #                             Loading GEANT Traffic trace into Traffic Matrix from XML files                           #
 

@@ -3,14 +3,13 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from scipy.stats import boxcox
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import PowerTransformer, StandardScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
-from common.DataHelper import invert_boxcox
-from common.DataPreprocessing import prepare_train_valid_test_3d, create_offline_convlstm_data_fix_ratio
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -342,35 +341,34 @@ def train_fwbw_conv_lstm(data, experiment, args):
         assert Config.FWBW_CONV_LSTM_WIDE == 23
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    scalers = {
-        'min_train': 0,
-        'max_train': 0,
-        'mean_train': 0,
-        'std_train': 0,
-        'lamda': 0
-    }
-
-    if Config.MIN_MAX_SCALER:
-        scalers['min_train'] = np.min(train_data)
-        scalers['max_train'] = np.max(train_data)
-        train_data_normalized = (train_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
-        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
-    elif Config.BOXCOX:
-        train_data_boxcox, scalers['lamda'] = boxcox(train_data)
-        valid_data_boxcox = boxcox(valid_data, lmbda=scalers['lamda'])
-
-        scalers['mean_train'] = np.mean(train_data_boxcox)
-        scalers['std_train'] = np.std(train_data_boxcox)
-        train_data_normalized = (train_data_boxcox - scalers['mean_train']) / scalers['std_train']
-        valid_data_normalized = (valid_data_boxcox - scalers['mean_train']) / scalers['std_train']
+    train_data = np.reshape(np.copy(train_data2d), newshape=(train_data2d.shape[0],
+                                                             Config.FWBW_CONV_LSTM_WIDE,
+                                                             Config.FWBW_CONV_LSTM_HIGH))
+    valid_data = np.reshape(np.copy(valid_data2d), newshape=(valid_data2d.shape[0],
+                                                             Config.FWBW_CONV_LSTM_WIDE,
+                                                             Config.FWBW_CONV_LSTM_HIGH))
+    if Config.POWER_TRANSFORM:
+        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
+        pt.fit(train_data2d)
+        train_data_normalized2d = pt.transform(train_data2d)
+        valid_data_normalized2d = pt.transform(valid_data2d)
+        scalers = pt
     else:
-        scalers['mean_train'] = np.mean(train_data)
-        scalers['std_train'] = np.std(train_data)
-        train_data_normalized = (train_data - scalers['mean_train']) / scalers['std_train']
-        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
+        ss = StandardScaler(copy=True)
+        ss.fit(train_data2d)
+        train_data_normalized2d = ss.transform(train_data2d)
+        valid_data_normalized2d = ss.transform(valid_data2d)
+        scalers = ss
+
+    train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
+                                                                                   Config.FWBW_CONV_LSTM_WIDE,
+                                                                                   Config.FWBW_CONV_LSTM_HIGH))
+    valid_data_normalized = np.reshape(np.copy(valid_data_normalized2d), newshape=(valid_data_normalized2d.shape[0],
+                                                                                   Config.FWBW_CONV_LSTM_WIDE,
+                                                                                   Config.FWBW_CONV_LSTM_HIGH))
 
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
@@ -506,12 +504,8 @@ def train_fwbw_conv_lstm(data, experiment, args):
         experiment.log_parameters(params)
 
     # --------------------------------------------------------------------------------------------------------------
-
-    # print('---------------------------------FW_NET SUMMARY---------------------------------')
-    # print(fw_net.model.summary())
-    # print('---------------------------------BW_NET SUMMARY---------------------------------')
-    # print(bw_net.model.summary())
-
+    # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args,
+    #          save_results=False)
     run_test(experiment, valid_data, valid_data_normalized, train_data[-Config.FWBW_CONV_LSTM_STEP:],
              fw_net, bw_net, params, scalers, args, save_results=True)
 
@@ -544,28 +538,42 @@ def test_fwbw_conv_lstm(data, experiment, args):
         data = data[0:Config.NUM_DAYS * day_size]
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
-    if 'Abilene' in data_name:
-        print('|--- Remove last 3 days in test data.')
-        test_data = test_data[0:-day_size * 3]
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    scalers = {
-        'min_train': 0,
-        'max_train': 0,
-        'mean_train': 0,
-        'std_train': 0,
-    }
-    if Config.MIN_MAX_SCALER:
-        scalers['min_train'] = np.min(train_data)
-        scalers['max_train'] = np.max(train_data)
-        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
-        test_data_normalized = (test_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+    train_data = np.reshape(np.copy(train_data2d), newshape=(train_data2d.shape[0],
+                                                             Config.FWBW_CONV_LSTM_WIDE,
+                                                             Config.FWBW_CONV_LSTM_HIGH))
+    valid_data = np.reshape(np.copy(valid_data2d), newshape=(valid_data2d.shape[0],
+                                                             Config.FWBW_CONV_LSTM_WIDE,
+                                                             Config.FWBW_CONV_LSTM_HIGH))
+    test_data = np.reshape(np.copy(test_data2d), newshape=(test_data2d.shape[0],
+                                                           Config.FWBW_CONV_LSTM_WIDE,
+                                                           Config.FWBW_CONV_LSTM_HIGH))
+    if Config.POWER_TRANSFORM:
+        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
+        pt.fit(train_data2d)
+        train_data_normalized2d = pt.transform(train_data2d)
+        valid_data_normalized2d = pt.transform(valid_data2d)
+        test_data_normalized2d = pt.transform(test_data2d)
+        scalers = pt
     else:
-        scalers['mean_train'] = np.mean(train_data)
-        scalers['std_train'] = np.std(train_data)
-        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
-        test_data_normalized = (test_data - scalers['mean_train']) / scalers['std_train']
+        ss = StandardScaler(copy=True)
+        ss.fit(train_data2d)
+        train_data_normalized2d = ss.transform(train_data2d)
+        valid_data_normalized2d = ss.transform(valid_data2d)
+        test_data_normalized2d = ss.transform(test_data2d)
+        scalers = ss
+
+    train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
+                                                                                   Config.FWBW_CONV_LSTM_WIDE,
+                                                                                   Config.FWBW_CONV_LSTM_HIGH))
+    valid_data_normalized = np.reshape(np.copy(valid_data_normalized2d), newshape=(valid_data_normalized2d.shape[0],
+                                                                                   Config.FWBW_CONV_LSTM_WIDE,
+                                                                                   Config.FWBW_CONV_LSTM_HIGH))
+    test_data_normalized = np.reshape(np.copy(test_data_normalized2d), newshape=(test_data_normalized2d.shape[0],
+                                                                                 Config.FWBW_CONV_LSTM_WIDE,
+                                                                                 Config.FWBW_CONV_LSTM_HIGH))
 
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
@@ -598,15 +606,10 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
             np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
                     test_data)
 
-        if Config.MIN_MAX_SCALER:
-            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name)):
+        if Config.POWER_TRANSFORM:
+            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_powertrans.npy'.format(data_name)):
                 print(())
-                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name),
-                        test_data_normalized)
-        elif Config.BOXCOX:
-            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_boxcox.npy'.format(data_name)):
-                print(())
-                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_boxcox.npy'.format(data_name),
+                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_powertrans.npy'.format(data_name),
                         test_data_normalized)
         else:
             if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name)):
@@ -631,11 +634,10 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
             pred_tm = tm_labels[:, :, :, 0]
             measured_matrix = tm_labels[:, :, :, 1]
 
-            if Config.MIN_MAX_SCALER:
-                pred_tm_invert = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
-            elif Config.BOXCOX:
-                pred_tm_boxcox = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
-                pred_tm_invert = [invert_boxcox(x, scalers['lamda']) for x in pred_tm_boxcox]
+            pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
+
+            if Config.POWER_TRANSFORM:
+                pred_tm_invert = scalers.inverse_transform(pred_tm2d, copy=True)
             else:
                 pred_tm_invert = pred_tm * scalers['std_train'] + scalers['mean_train']
 
@@ -645,11 +647,8 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
 
             if Config.FWBW_IMS:
                 # Calculate error for multistep-ahead-prediction
-                if Config.MIN_MAX_SCALER:
+                if Config.POWER_TRANSFORM:
                     ims_tm_invert = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
-                elif Config.BOXCOX:
-                    ims_tm_boxcox = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
-                    ims_tm_invert = [invert_boxcox(x, scalers['lamda']) for x in ims_tm_boxcox]
                 else:
                     ims_tm_invert = ims_tm * scalers['std_train'] + scalers['mean_train']
 

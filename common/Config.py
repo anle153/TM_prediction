@@ -11,6 +11,7 @@ ALL_DATA = True
 NUM_DAYS = 160
 
 MIN_MAX_SCALER = False
+BOXCOX = True
 
 # ----------------------------------------------
 

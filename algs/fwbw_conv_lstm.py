@@ -3,11 +3,13 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from scipy.stats import boxcox
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
+from common.DataHelper import invert_boxcox
 from common.DataPreprocessing import prepare_train_valid_test_3d, create_offline_convlstm_data_fix_ratio
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
@@ -348,6 +350,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
         'max_train': 0,
         'mean_train': 0,
         'std_train': 0,
+        'lamda': 0
     }
 
     if Config.MIN_MAX_SCALER:
@@ -355,6 +358,14 @@ def train_fwbw_conv_lstm(data, experiment, args):
         scalers['max_train'] = np.max(train_data)
         train_data_normalized = (train_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
         valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+    elif Config.BOXCOX:
+        train_data_boxcox, scalers['lamda'] = boxcox(train_data)
+        valid_data_boxcox = boxcox(valid_data, lmbda=scalers['lamda'])
+
+        scalers['mean_train'] = np.mean(train_data_boxcox)
+        scalers['std_train'] = np.std(train_data_boxcox)
+        train_data_normalized = (train_data_boxcox - scalers['mean_train']) / scalers['std_train']
+        valid_data_normalized = (valid_data_boxcox - scalers['mean_train']) / scalers['std_train']
     else:
         scalers['mean_train'] = np.mean(train_data)
         scalers['std_train'] = np.std(train_data)
@@ -592,6 +603,11 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                 print(())
                 np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name),
                         test_data_normalized)
+        elif Config.BOXCOX:
+            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_boxcox.npy'.format(data_name)):
+                print(())
+                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_boxcox.npy'.format(data_name),
+                        test_data_normalized)
         else:
             if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name)):
                 print(())
@@ -617,6 +633,9 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
 
             if Config.MIN_MAX_SCALER:
                 pred_tm_invert = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
+            elif Config.BOXCOX:
+                pred_tm_boxcox = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
+                pred_tm_invert = [invert_boxcox(x, scalers['lamda']) for x in pred_tm_boxcox]
             else:
                 pred_tm_invert = pred_tm * scalers['std_train'] + scalers['mean_train']
 
@@ -628,6 +647,9 @@ def run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_
                 # Calculate error for multistep-ahead-prediction
                 if Config.MIN_MAX_SCALER:
                     ims_tm_invert = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
+                elif Config.BOXCOX:
+                    ims_tm_boxcox = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
+                    ims_tm_invert = [invert_boxcox(x, scalers['lamda']) for x in ims_tm_boxcox]
                 else:
                     ims_tm_invert = ims_tm * scalers['std_train'] + scalers['mean_train']
 

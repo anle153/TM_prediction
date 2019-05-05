@@ -162,7 +162,12 @@ def print_info(args):
     print('|--- TAG:\t{}'.format(tag))
     print('|--- DATA:\t{}'.format(data_name))
     print('|--- GPU:\t{}'.format(gpu))
-    print('|--- MIN_MAX_SCALER:\t{}'.format(Config.MIN_MAX_SCALER))
+    if Config.MIN_MAX_SCALER:
+        print('|--- MIN_MAX_SCALER:\t{}'.format(Config.MIN_MAX_SCALER))
+    elif Config.BOXCOX:
+        print('|--- BOXCOX:\t{}'.format(Config.BOXCOX))
+    else:
+        print('|--- STANDARD_SCALE:\tTrue')
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         print_fwbw_conv_lstm_info(args.run_mode)

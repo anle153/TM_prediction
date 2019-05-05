@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as et
+from math import log, exp
 
 from FlowClassification.SpatialClustering import *
 from common import Config
@@ -123,6 +124,14 @@ def create_Geant3d(datapath=GEANT_XML_PATH):
     np.save(Config.DATA_PATH + 'Geant.npy', TM_3d)
 
     return
+
+
+def invert_boxcox(value, lam):
+    # log case
+    if lam == 0:
+        return exp(value)
+    # all other cases
+    return exp(log(lam * value + 1) / lam)
 
 
 def data_analysis(data, args):

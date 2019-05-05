@@ -162,10 +162,8 @@ def print_info(args):
     print('|--- TAG:\t{}'.format(tag))
     print('|--- DATA:\t{}'.format(data_name))
     print('|--- GPU:\t{}'.format(gpu))
-    if Config.MIN_MAX_SCALER:
-        print('|--- MIN_MAX_SCALER:\t{}'.format(Config.MIN_MAX_SCALER))
-    elif Config.BOXCOX:
-        print('|--- BOXCOX:\t{}'.format(Config.BOXCOX))
+    if Config.POWER_TRANSFORM:
+        print('|--- POWER_TRANSFORM:\t{}'.format(Config.POWER_TRANSFORM))
     else:
         print('|--- STANDARD_SCALE:\tTrue')
 

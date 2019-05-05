@@ -3,8 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import PowerTransformer, StandardScaler
+from sklearn.preprocessing import PowerTransformer, StandardScaler, MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
@@ -344,18 +343,24 @@ def train_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    if Config.SCALER == 'power-transform':
+    if Config.SCALER == Config.SCALERS[0]:
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)
         train_data_normalized2d = pt.transform(train_data2d)
         valid_data_normalized2d = pt.transform(valid_data2d)
         scalers = pt
-    elif Config.SCALER == 'standard-scaler':
+    elif Config.SCALER == Config.SCALERS[1]:
         ss = StandardScaler(copy=True)
         ss.fit(train_data2d)
         train_data_normalized2d = ss.transform(train_data2d)
         valid_data_normalized2d = ss.transform(valid_data2d)
         scalers = ss
+    elif Config.SCALER == Config.SCALERS[2]:
+        mm = MinMaxScaler(copy=True)
+        mm.fit(train_data2d)
+        train_data_normalized2d = mm.transform(train_data2d)
+        valid_data_normalized2d = mm.transform(valid_data2d)
+        scalers = mm
     else:
         raise Exception('Unknown scaler!')
 
@@ -536,18 +541,24 @@ def test_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    if Config.SCALER == 'power-transform':
+    if Config.SCALER == Config.SCALERS[0]:
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)
         valid_data_normalized2d = pt.transform(valid_data2d)
         test_data_normalized2d = pt.transform(test_data2d)
         scalers = pt
-    elif Config.SCALER == 'standard-scaler':
+    elif Config.SCALER == Config.SCALERS[1]:
         ss = StandardScaler(copy=True)
         ss.fit(train_data2d)
         valid_data_normalized2d = ss.transform(valid_data2d)
         test_data_normalized2d = ss.transform(test_data2d)
         scalers = ss
+    elif Config.SCALER == Config.SCALERS[2]:
+        mm = MinMaxScaler(copy=True)
+        mm.fit(train_data2d)
+        valid_data_normalized2d = mm.transform(valid_data2d)
+        test_data_normalized2d = mm.transform(test_data2d)
+        scalers = mm
     else:
         raise Exception('Unknown scaler!')
 

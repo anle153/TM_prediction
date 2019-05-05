@@ -1,4 +1,5 @@
 # --------------- Data Config -----------------
+
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
 RESULTS_PATH = './results/'
@@ -10,7 +11,8 @@ GEANT_DAY_SIZE = 96
 ALL_DATA = True
 NUM_DAYS = 160
 
-POWER_TRANSFORM = True
+SCALERS = ['power-transform', 'minmax-scaler', 'standard-scaler']
+SCALER = SCALERS[0]
 # ----------------------------------------------
 
 # ----------------- LSTM Config ---------------

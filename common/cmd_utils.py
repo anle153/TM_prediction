@@ -162,10 +162,14 @@ def print_info(args):
     print('|--- TAG:\t{}'.format(tag))
     print('|--- DATA:\t{}'.format(data_name))
     print('|--- GPU:\t{}'.format(gpu))
-    if Config.POWER_TRANSFORM:
-        print('|--- POWER_TRANSFORM:\t{}'.format(Config.POWER_TRANSFORM))
+    if Config.SCALER == Config.SCALERS[0]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[0]))
+    elif Config.SCALER == Config.SCALERS[1]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[1]))
+    elif Config.SCALER == Config.SCALERS[2]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[2]))
     else:
-        print('|--- STANDARD_SCALE:\tTrue')
+        raise Exception('Unknown scaler!')
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         print_fwbw_conv_lstm_info(args.run_mode)

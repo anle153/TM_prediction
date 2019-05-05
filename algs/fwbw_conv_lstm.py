@@ -296,7 +296,7 @@ def build_model(args, input_shape):
                       alg_name=alg_name,
                       tag=tag,
                       check_point=True,
-                      saving_path=Config.MODEL_SAVE + '{}-{}-{}/fw/'.format(data_name, alg_name, tag))
+                      saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/fw/'.format(data_name, alg_name, tag, Config.SCALER))
 
     # CNN_BRNN backward model
     bw_net = ConvLSTM(input_shape=input_shape,
@@ -309,7 +309,7 @@ def build_model(args, input_shape):
                       alg_name=alg_name,
                       tag=tag,
                       check_point=True,
-                      saving_path=Config.MODEL_SAVE + '{}-{}-{}/bw/'.format(data_name, alg_name, tag))
+                      saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/bw/'.format(data_name, alg_name, tag, Config.SCALER))
 
     return fw_net, bw_net
 
@@ -344,24 +344,20 @@ def train_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    train_data = np.reshape(np.copy(train_data2d), newshape=(train_data2d.shape[0],
-                                                             Config.FWBW_CONV_LSTM_WIDE,
-                                                             Config.FWBW_CONV_LSTM_HIGH))
-    valid_data = np.reshape(np.copy(valid_data2d), newshape=(valid_data2d.shape[0],
-                                                             Config.FWBW_CONV_LSTM_WIDE,
-                                                             Config.FWBW_CONV_LSTM_HIGH))
-    if Config.POWER_TRANSFORM:
+    if Config.SCALER == 'power-transform':
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)
         train_data_normalized2d = pt.transform(train_data2d)
         valid_data_normalized2d = pt.transform(valid_data2d)
         scalers = pt
-    else:
+    elif Config.SCALER == 'standard-scaler':
         ss = StandardScaler(copy=True)
         ss.fit(train_data2d)
         train_data_normalized2d = ss.transform(train_data2d)
         valid_data_normalized2d = ss.transform(valid_data2d)
         scalers = ss
+    else:
+        raise Exception('Unknown scaler!')
 
     train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
                                                                                    Config.FWBW_CONV_LSTM_WIDE,
@@ -540,18 +536,20 @@ def test_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    if Config.POWER_TRANSFORM:
+    if Config.SCALER == 'power-transform':
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)
         valid_data_normalized2d = pt.transform(valid_data2d)
         test_data_normalized2d = pt.transform(test_data2d)
         scalers = pt
-    else:
+    elif Config.SCALER == 'standard-scaler':
         ss = StandardScaler(copy=True)
         ss.fit(train_data2d)
         valid_data_normalized2d = ss.transform(valid_data2d)
         test_data_normalized2d = ss.transform(test_data2d)
         scalers = ss
+    else:
+        raise Exception('Unknown scaler!')
 
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
@@ -582,20 +580,14 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
         np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
                 test_data2d)
 
-    if Config.POWER_TRANSFORM:
-        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_powertrans.npy'.format(data_name)):
-            print(())
-            np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_powertrans.npy'.format(data_name),
-                    test_data_normalized2d)
-    else:
-        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name)):
-            print(())
-            np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name),
-                    test_data_normalized2d)
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
+        print(())
+        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
+                test_data_normalized2d)
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
-                                                                      alg_name, tag, Config.ADDED_RESULT_NAME)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.ADDED_RESULT_NAME))
+                                                                      alg_name, tag, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     with experiment.test():
         for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
@@ -653,13 +645,13 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
                                                               err_ims[i], rmse_ims[i],
                                                               r2_score_ims[i]))
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-                                                                           Config.ADDED_RESULT_NAME, i),
+                                                                           Config.SCALER, i),
                     pred_tm_invert2d)
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-                                                                              Config.ADDED_RESULT_NAME, i),
+                                                                              Config.SCALER, i),
                     measured_matrix2d)
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-                                                                                  Config.ADDED_RESULT_NAME, i),
+                                                                                  Config.SCALER, i),
                     pred_tm2d)
 
         results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
@@ -670,8 +662,8 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
         results_summary['r2_ims'] = r2_score_ims
         results_summary['rmse_ims'] = rmse_ims
 
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
-                                                                                      alg_name, tag, Config.ADDED_RESULT_NAME),
+        results_summary.to_csv(Config.RESULTS_PATH +
+                               '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
                                index=False)
 
         metrics = {

@@ -162,6 +162,12 @@ def train_conv_lstm(data, experiment, args):
         train_data_normalized2d = mm.transform(train_data2d)
         valid_data_normalized2d = mm.transform(valid_data2d)
         scalers = mm
+    elif Config.SCALER == Config.SCALERS[3]:
+        bc = PowerTransformer(copy=True, standardize=True, method='box-cox')
+        bc.fit(train_data2d)
+        train_data_normalized2d = bc.transform(train_data2d)
+        valid_data_normalized2d = bc.transform(valid_data2d)
+        scalers = bc
     else:
         raise Exception('Unknown scaler!')
 

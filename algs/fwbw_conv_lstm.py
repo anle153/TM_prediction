@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import PowerTransformer, StandardScaler, MinMaxScaler
+from sklearn.preprocessing import PowerTransformer, StandardScaler, MinMaxScaler, RobustScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
@@ -370,6 +370,12 @@ def train_fwbw_conv_lstm(data, experiment, args):
         train_data_normalized2d = bc.transform(train_data2d)
         valid_data_normalized2d = bc.transform(valid_data2d)
         scalers = bc
+    elif Config.SCALER == Config.SCALERS[4]:
+        rb = RobustScaler()
+        rb.fit(train_data2d)
+        train_data_normalized2d = rb.transform(train_data2d)
+        valid_data_normalized2d = rb.transform(valid_data2d)
+        scalers = rb
     else:
         raise Exception('Unknown scaler!')
 
@@ -554,6 +560,10 @@ def test_fwbw_conv_lstm(data, experiment, args):
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
+    train_data2d[train_data2d == 0] = 0.1
+    valid_data2d[valid_data2d == 0] = 0.1
+    test_data2d[test_data2d == 0] = 0.1
+
     if Config.SCALER == Config.SCALERS[0]:
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)
@@ -572,6 +582,12 @@ def test_fwbw_conv_lstm(data, experiment, args):
         valid_data_normalized2d = mm.transform(valid_data2d)
         test_data_normalized2d = mm.transform(test_data2d)
         scalers = mm
+    elif Config.SCALER == Config.SCALERS[4]:
+        rb = RobustScaler()
+        rb.fit(train_data2d)
+        valid_data_normalized2d = rb.transform(valid_data2d)
+        test_data_normalized2d = rb.transform(test_data2d)
+        scalers = rb
     else:
         raise Exception('Unknown scaler!')
 

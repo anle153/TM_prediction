@@ -170,6 +170,8 @@ def print_info(args):
         print('|--- SCALER:\t{}'.format(Config.SCALERS[2]))
     elif Config.SCALER == Config.SCALERS[3]:
         print('|--- SCALER:\t{}'.format(Config.SCALERS[3]))
+    elif Config.SCALER == Config.SCALERS[4]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[4]))
     else:
         raise Exception('Unknown scaler!')
 

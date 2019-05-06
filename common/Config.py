@@ -12,7 +12,7 @@ ALL_DATA = True
 NUM_DAYS = 160
 
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'boxcox']
-SCALER = SCALERS[0]
+SCALER = SCALERS[3]
 # ----------------------------------------------
 
 # ----------------- LSTM Config ---------------

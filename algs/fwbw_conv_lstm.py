@@ -636,6 +636,11 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
 
             pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
+            if np.any(np.isinf(pred_tm_invert2d)):
+                raise ValueError('Value is infinity!')
+            elif np.any(np.isnan(pred_tm_invert2d)):
+                raise ValueError('Value is NaN!')
+
             err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
             r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
             rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))

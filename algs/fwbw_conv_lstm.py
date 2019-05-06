@@ -561,7 +561,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
                 test_data2d)
 
     if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-        print(())
         np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
                 test_data_normalized2d)
 

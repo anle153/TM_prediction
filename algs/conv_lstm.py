@@ -3,12 +3,11 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import PowerTransformer, StandardScaler, MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -142,34 +141,9 @@ def train_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    train_data2d[train_data2d == 0] = 1
-
-    if Config.SCALER == Config.SCALERS[0]:
-        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
-        pt.fit(train_data2d)
-        train_data_normalized2d = pt.transform(train_data2d)
-        valid_data_normalized2d = pt.transform(valid_data2d)
-        scalers = pt
-    elif Config.SCALER == Config.SCALERS[1]:
-        ss = StandardScaler(copy=True)
-        ss.fit(train_data2d)
-        train_data_normalized2d = ss.transform(train_data2d)
-        valid_data_normalized2d = ss.transform(valid_data2d)
-        scalers = ss
-    elif Config.SCALER == Config.SCALERS[2]:
-        mm = MinMaxScaler(copy=True)
-        mm.fit(train_data2d)
-        train_data_normalized2d = mm.transform(train_data2d)
-        valid_data_normalized2d = mm.transform(valid_data2d)
-        scalers = mm
-    elif Config.SCALER == Config.SCALERS[3]:
-        bc = PowerTransformer(copy=True, standardize=True, method='box-cox')
-        bc.fit(train_data2d)
-        train_data_normalized2d = bc.transform(train_data2d)
-        valid_data_normalized2d = bc.transform(valid_data2d)
-        scalers = bc
-    else:
-        raise Exception('Unknown scaler!')
+    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
+                                                                                 valid_data2d,
+                                                                                 test_data2d)
 
     train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
                                                                                    Config.FWBW_CONV_LSTM_WIDE,
@@ -288,26 +262,9 @@ def test_conv_lstm(data, experiment, args):
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
-    if Config.SCALER == Config.SCALERS[0]:
-        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
-        pt.fit(train_data2d)
-        valid_data_normalized2d = pt.transform(valid_data2d)
-        test_data_normalized2d = pt.transform(test_data2d)
-        scalers = pt
-    elif Config.SCALER == Config.SCALERS[1]:
-        ss = StandardScaler(copy=True)
-        ss.fit(train_data2d)
-        valid_data_normalized2d = ss.transform(valid_data2d)
-        test_data_normalized2d = ss.transform(test_data2d)
-        scalers = ss
-    elif Config.SCALER == Config.SCALERS[2]:
-        mm = MinMaxScaler(copy=True)
-        mm.fit(train_data2d)
-        valid_data_normalized2d = mm.transform(valid_data2d)
-        test_data_normalized2d = mm.transform(test_data2d)
-        scalers = mm
-    else:
-        raise Exception('Unknown scaler!')
+    _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
+                                                                                valid_data2d,
+                                                                                test_data2d)
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
@@ -338,7 +295,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_
                 test_data2d)
 
     if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-        print(())
         np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
                 test_data_normalized2d)
 
@@ -371,6 +327,7 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
                                                                                   Config.SCALER, i),
                     pred_tm2d)
+
             pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
             err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
@@ -415,8 +372,8 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_
         results_summary['r2_ims'] = r2_score_ims
         results_summary['rmse_ims'] = rmse_ims
 
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
-                                                                              alg_name, tag, Config.ADDED_RESULT_NAME),
+        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
+                                                                                      alg_name, tag, Config.SCALER),
                                index=False)
 
         metrics = {

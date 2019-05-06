@@ -140,7 +140,7 @@ def set_comet_params_conv_lstm():
         'epochs': CONV_LSTM_N_EPOCH,
         'batch_size': CONV_LSTM_BATCH_SIZE,
         'mon_ratio': CONV_LSTM_MON_RAIO,
-        'lstm_step': CONV_LSTM_STEP,
+        'lstm_step': CONV_LSTM_STEP
     }
 
     for i in range(FWBW_CONV_LSTM_LAYERS):
@@ -149,5 +149,19 @@ def set_comet_params_conv_lstm():
         params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]
         params['layer{}_dropout'.format(i + 1)] = CONV_LSTM_DROPOUTS[i]
         params['layer{}_rnn_dropout'.format(i + 1)] = CONV_LSTM_RNN_DROPOUTS[i]
+
+    return params
+
+
+def set_comet_params_lstm_nn():
+    params = {
+        'deep_lstm': LSTM_DEEP,
+        'epochs': LSTM_N_EPOCH,
+        'batch_size': LSTM_BATCH_SIZE,
+        'mon_ratio': LSTM_MON_RAIO,
+        'lstm_step': LSTM_STEP,
+        'drop_out': LSTM_DROPOUT,
+        'hidden_unit': LSTM_HIDDEN_UNIT
+    }
 
     return params

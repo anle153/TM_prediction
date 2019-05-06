@@ -11,7 +11,7 @@ GEANT_DAY_SIZE = 96
 ALL_DATA = True
 NUM_DAYS = 160
 
-SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'boxcox']
+SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox']
 SCALER = SCALERS[3]
 # ----------------------------------------------
 

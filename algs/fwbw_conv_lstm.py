@@ -624,8 +624,11 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
             measured_matrix2d = np.reshape(np.copy(measured_matrix),
                                            newshape=(measured_matrix.shape[0],
                                                      measured_matrix.shape[1] * measured_matrix.shape[2]))
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+                                                                                  Config.SCALER, i),
+                    pred_tm2d)
 
-            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d, copy=True)
+            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
             err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
             r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
@@ -661,9 +664,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
                                                                               Config.SCALER, i),
                     measured_matrix2d)
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-                                                                                  Config.SCALER, i),
-                    pred_tm2d)
 
         results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
         results_summary['err'] = err

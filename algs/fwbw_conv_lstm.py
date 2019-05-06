@@ -3,12 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import PowerTransformer, StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio, data_scalling
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -343,41 +343,9 @@ def train_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    train_data2d[train_data2d == 0] = 0.1
-    valid_data2d[valid_data2d == 0] = 0.1
-
-    if Config.SCALER == Config.SCALERS[0]:
-        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
-        pt.fit(train_data2d)
-        train_data_normalized2d = pt.transform(train_data2d)
-        valid_data_normalized2d = pt.transform(valid_data2d)
-        scalers = pt
-    elif Config.SCALER == Config.SCALERS[1]:
-        ss = StandardScaler(copy=True)
-        ss.fit(train_data2d)
-        train_data_normalized2d = ss.transform(train_data2d)
-        valid_data_normalized2d = ss.transform(valid_data2d)
-        scalers = ss
-    elif Config.SCALER == Config.SCALERS[2]:
-        mm = MinMaxScaler(copy=True)
-        mm.fit(train_data2d)
-        train_data_normalized2d = mm.transform(train_data2d)
-        valid_data_normalized2d = mm.transform(valid_data2d)
-        scalers = mm
-    elif Config.SCALER == Config.SCALERS[3]:
-        bc = PowerTransformer(copy=True, standardize=True, method='box-cox')
-        bc.fit(train_data2d)
-        train_data_normalized2d = bc.transform(train_data2d)
-        valid_data_normalized2d = bc.transform(valid_data2d)
-        scalers = bc
-    elif Config.SCALER == Config.SCALERS[4]:
-        rb = RobustScaler()
-        rb.fit(train_data2d)
-        train_data_normalized2d = rb.transform(train_data2d)
-        valid_data_normalized2d = rb.transform(valid_data2d)
-        scalers = rb
-    else:
-        raise Exception('Unknown scaler!')
+    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
+                                                                                 valid_data2d,
+                                                                                 test_data2d)
 
     train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
                                                                                    Config.FWBW_CONV_LSTM_WIDE,
@@ -560,37 +528,9 @@ def test_fwbw_conv_lstm(data, experiment, args):
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
-    train_data2d[train_data2d == 0] = 0.1
-    valid_data2d[valid_data2d == 0] = 0.1
-    test_data2d[test_data2d == 0] = 0.1
-
-    if Config.SCALER == Config.SCALERS[0]:
-        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
-        pt.fit(train_data2d)
-        valid_data_normalized2d = pt.transform(valid_data2d)
-        test_data_normalized2d = pt.transform(test_data2d)
-        scalers = pt
-    elif Config.SCALER == Config.SCALERS[1]:
-        ss = StandardScaler(copy=True)
-        ss.fit(train_data2d)
-        valid_data_normalized2d = ss.transform(valid_data2d)
-        test_data_normalized2d = ss.transform(test_data2d)
-        scalers = ss
-    elif Config.SCALER == Config.SCALERS[2]:
-        mm = MinMaxScaler(copy=True)
-        mm.fit(train_data2d)
-        valid_data_normalized2d = mm.transform(valid_data2d)
-        test_data_normalized2d = mm.transform(test_data2d)
-        scalers = mm
-    elif Config.SCALER == Config.SCALERS[4]:
-        rb = RobustScaler()
-        rb.fit(train_data2d)
-        valid_data_normalized2d = rb.transform(valid_data2d)
-        test_data_normalized2d = rb.transform(test_data2d)
-        scalers = rb
-    else:
-        raise Exception('Unknown scaler!')
-
+    _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
+                                                                                valid_data2d,
+                                                                                test_data2d)
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 

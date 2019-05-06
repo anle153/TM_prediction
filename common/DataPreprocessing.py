@@ -1,8 +1,11 @@
-from multiprocessing import Process, Pipe
-
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
 
 from FlowClassification.SpatialClustering import *
+from common import Config
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
+
+from FlowClassification.SpatialClustering import *
+from common import Config
 
 
 def prepare_train_test_3d(data, day_size):
@@ -261,3 +264,44 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
 
     return dataX, dataY
 
+
+def data_scalling(train_data2d, valid_data2d, test_data2d):
+    if Config.SCALER == Config.SCALERS[0]:
+        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
+        pt.fit(train_data2d)
+        train_data_normalized2d = pt.transform(train_data2d)
+        valid_data_normalized2d = pt.transform(valid_data2d)
+        test_data_normalized2d = pt.transform(test_data2d)
+        scalers = pt
+    elif Config.SCALER == Config.SCALERS[1]:
+        ss = StandardScaler(copy=True)
+        ss.fit(train_data2d)
+        train_data_normalized2d = ss.transform(train_data2d)
+        valid_data_normalized2d = ss.transform(valid_data2d)
+        test_data_normalized2d = ss.transform(test_data2d)
+        scalers = ss
+    elif Config.SCALER == Config.SCALERS[2]:
+        mm = MinMaxScaler(copy=True)
+        mm.fit(train_data2d)
+        train_data_normalized2d = mm.transform(train_data2d)
+        valid_data_normalized2d = mm.transform(valid_data2d)
+        test_data_normalized2d = mm.transform(test_data2d)
+        scalers = mm
+    elif Config.SCALER == Config.SCALERS[3]:
+        bc = PowerTransformer(copy=True, standardize=True, method='box-cox')
+        bc.fit(train_data2d)
+        train_data_normalized2d = bc.transform(train_data2d)
+        valid_data_normalized2d = bc.transform(valid_data2d)
+        test_data_normalized2d = bc.transform(test_data2d)
+        scalers = bc
+    elif Config.SCALER == Config.SCALERS[4]:
+        rb = RobustScaler()
+        rb.fit(train_data2d)
+        train_data_normalized2d = rb.transform(train_data2d)
+        valid_data_normalized2d = rb.transform(valid_data2d)
+        test_data_normalized2d = rb.transform(test_data2d)
+        scalers = rb
+    else:
+        raise Exception('Unknown scaler!')
+
+    return train_data_normalized2d, valid_data_normalized2d, test_data_normalized2d, scalers

@@ -64,8 +64,14 @@ def train_arima(args, data):
         training_set_series.append(flow_frame)
 
     import os
-    if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
-        os.makedirs(Config.MODEL_SAVE + 'arima/')
+    if not os.path.exists(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
+                                                                    alg_name,
+                                                                    tag,
+                                                                    Config.SCALER)):
+        os.makedirs(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
+                                                              alg_name,
+                                                              tag,
+                                                              Config.SCALER))
 
     for flow_id in tqdm(range(test_data_normalized.shape[1])):
         training_set_series[flow_id].dropna(inplace=True)
@@ -76,7 +82,11 @@ def train_arima(args, data):
         # Fit all historical data to auto_arima
         model = build_auto_arima(history)
 
-        saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(flow_id, data_name, alg_name), 'wb')
+        saved_model = open(Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name,
+                                                                             alg_name,
+                                                                             tag,
+                                                                             Config.SCALER,
+                                                                             flow_id), 'wb')
         pickle.dump(model, saved_model, 2)
 
 
@@ -95,7 +105,7 @@ def test_arima(data, args):
     train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
     if 'Abilene' in data_name:
         print('|--- Remove last 3 days in test data.')
-        test_data = test_data2d[0:-day_size * 3]
+        test_data2d = test_data2d[0:-day_size * 3]
 
     train_data_normalized2d, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
                                                                                 [],
@@ -115,8 +125,14 @@ def test_arima(data, args):
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
     import os
-    if not os.path.exists(Config.MODEL_SAVE + 'arima/'):
-        os.makedirs(Config.MODEL_SAVE + 'arima/')
+    if not os.path.exists(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
+                                                                    alg_name,
+                                                                    tag,
+                                                                    Config.SCALER)):
+        os.makedirs(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
+                                                              alg_name,
+                                                              tag,
+                                                              Config.SCALER))
 
     if Config.ARIMA_IMS:
         ims_test_set2d = ims_tm_test_data(test_data=test_data2d)
@@ -126,12 +142,24 @@ def test_arima(data, args):
     ims_pred_tm2d = np.zeros(
         (test_data_normalized2d.shape[0] - Config.ARIMA_IMS_STEP + 1, test_data_normalized2d.shape[1]))
 
-    if not os.path.isfile(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(0, data_name, alg_name)):
+    if not os.path.isfile(Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name,
+                                                                            alg_name,
+                                                                            tag,
+                                                                            Config.SCALER,
+                                                                            0)):
         train_arima(args, data)
 
-    if not os.path.isfile(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + '[test-data]{}.npy'.format(data_name),
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
                 test_data2d)
+
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
+        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
+                test_data_normalized2d)
+
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
+                                                                      alg_name, tag, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     for running_time in range(Config.ARIMA_TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))
@@ -153,7 +181,10 @@ def test_arima(data, args):
             flow_ims_pred = np.zeros(shape=(test_data_normalized2d.shape[0] - Config.ARIMA_IMS_STEP + 1))
 
             # Load trained arima model
-            saved_model = open(Config.MODEL_SAVE + 'arima/{}-{}-{}'.format(flow_id, data_name, alg_name), 'rb')
+            saved_model = open(Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name,
+                                                                                 alg_name,
+                                                                                 tag,
+                                                                                 Config.SCALER, flow_id), 'rb')
             model = pickle.load(saved_model)
 
             for ts in range(test_data_normalized2d.shape[0]):
@@ -236,6 +267,6 @@ def test_arima(data, args):
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}.csv'.format(data_name,
-                                                                          alg_name, tag, Config.ADDED_RESULT_NAME),
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
                            index=False)

@@ -541,6 +541,10 @@ def test_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
+    if 'Abilene' in data_name:
+        print('|--- Remove last 3 days in test data.')
+        test_data2d = test_data2d[0:-day_size * 3]
+
     if Config.SCALER == Config.SCALERS[0]:
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)

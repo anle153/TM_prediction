@@ -3,11 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from sklearn.preprocessing import PowerTransformer, StandardScaler, MinMaxScaler
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_3d, create_offline_convlstm_data_fix_ratio
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio
 from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -138,26 +139,38 @@ def train_conv_lstm(data, experiment, args):
         day_size = Config.GEANT_DAY_SIZE
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    scalers = {
-        'min_train': 0,
-        'max_train': 0,
-        'mean_train': 0,
-        'std_train': 0,
-    }
+    train_data2d[train_data2d == 0] = 1
 
-    if Config.MIN_MAX_SCALER:
-        scalers['min_train'] = np.min(train_data)
-        scalers['max_train'] = np.max(train_data)
-        train_data_normalized = (train_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
-        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+    if Config.SCALER == Config.SCALERS[0]:
+        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
+        pt.fit(train_data2d)
+        train_data_normalized2d = pt.transform(train_data2d)
+        valid_data_normalized2d = pt.transform(valid_data2d)
+        scalers = pt
+    elif Config.SCALER == Config.SCALERS[1]:
+        ss = StandardScaler(copy=True)
+        ss.fit(train_data2d)
+        train_data_normalized2d = ss.transform(train_data2d)
+        valid_data_normalized2d = ss.transform(valid_data2d)
+        scalers = ss
+    elif Config.SCALER == Config.SCALERS[2]:
+        mm = MinMaxScaler(copy=True)
+        mm.fit(train_data2d)
+        train_data_normalized2d = mm.transform(train_data2d)
+        valid_data_normalized2d = mm.transform(valid_data2d)
+        scalers = mm
     else:
-        scalers['mean_train'] = np.mean(train_data)
-        scalers['std_train'] = np.std(train_data)
-        train_data_normalized = (train_data - scalers['mean_train']) / scalers['std_train']
-        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
+        raise Exception('Unknown scaler!')
+
+    train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
+                                                                                   Config.FWBW_CONV_LSTM_WIDE,
+                                                                                   Config.FWBW_CONV_LSTM_HIGH))
+    valid_data_normalized = np.reshape(np.copy(valid_data_normalized2d), newshape=(valid_data_normalized2d.shape[0],
+                                                                                   Config.FWBW_CONV_LSTM_WIDE,
+                                                                                   Config.FWBW_CONV_LSTM_HIGH))
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
@@ -229,18 +242,18 @@ def train_conv_lstm(data, experiment, args):
 
         experiment.log_parameters(params)
 
-    run_test(experiment, valid_data, valid_data_normalized, train_data[-Config.CONV_LSTM_STEP:],
-             conv_lstm_net, params, scalers, args,
-             save_results=False)
+    # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args)
+    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data2d[-Config.FWBW_CONV_LSTM_STEP:],
+             conv_lstm_net, params, scalers, args)
     return
 
 
-def ims_tm_ytrue(test_data):
+def ims_tm_test_data(test_data):
     ims_test_set = np.zeros(
-        shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
+        shape=(test_data.shape[0] - Config.LSTM_IMS_STEP + 1, test_data.shape[1]))
 
-    for i in range(Config.CONV_LSTM_IMS_STEP - 1, test_data.shape[0], 1):
-        ims_test_set[i - Config.CONV_LSTM_IMS_STEP + 1] = test_data[i]
+    for i in range(Config.LSTM_IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.LSTM_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
@@ -262,42 +275,45 @@ def test_conv_lstm(data, experiment, args):
         data = data[0:Config.NUM_DAYS * day_size]
 
     print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_valid_test_3d(data=data, day_size=day_size)
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
+    print('|--- Normalizing the train set.')
+
     if 'Abilene' in data_name:
         print('|--- Remove last 3 days in test data.')
-        test_data = test_data[0:-day_size * 3]
+        test_data2d = test_data2d[0:-day_size * 3]
 
-    print('|--- Normalizing the train set.')
-    scalers = {
-        'min_train': 0,
-        'max_train': 0,
-        'mean_train': 0,
-        'std_train': 0,
-    }
-    if Config.MIN_MAX_SCALER:
-        scalers['min_train'] = np.min(train_data)
-        scalers['max_train'] = np.max(train_data)
-        valid_data_normalized = (valid_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
-        test_data_normalized = (test_data - scalers['min_train']) / (scalers['max_train'] - scalers['min_train'])
+    if Config.SCALER == Config.SCALERS[0]:
+        pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
+        pt.fit(train_data2d)
+        valid_data_normalized2d = pt.transform(valid_data2d)
+        test_data_normalized2d = pt.transform(test_data2d)
+        scalers = pt
+    elif Config.SCALER == Config.SCALERS[1]:
+        ss = StandardScaler(copy=True)
+        ss.fit(train_data2d)
+        valid_data_normalized2d = ss.transform(valid_data2d)
+        test_data_normalized2d = ss.transform(test_data2d)
+        scalers = ss
+    elif Config.SCALER == Config.SCALERS[2]:
+        mm = MinMaxScaler(copy=True)
+        mm.fit(train_data2d)
+        valid_data_normalized2d = mm.transform(valid_data2d)
+        test_data_normalized2d = mm.transform(test_data2d)
+        scalers = mm
     else:
-        scalers['mean_train'] = np.mean(train_data)
-        scalers['std_train'] = np.std(train_data)
-        valid_data_normalized = (valid_data - scalers['mean_train']) / scalers['std_train']
-        test_data_normalized = (test_data - scalers['mean_train']) / scalers['std_train']
+        raise Exception('Unknown scaler!')
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
     conv_lstm_net = load_trained_models(args, input_shape, Config.CONV_LSTM_BEST_CHECKPOINT)
-    run_test(experiment, test_data, test_data_normalized, valid_data_normalized[-Config.FWBW_CONV_LSTM_STEP:],
+    run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
              conv_lstm_net, params, scalers, args)
-
 
     return
 
 
-def run_test(experiment, test_data, test_data_normalized, init_data, conv_lstm_net, params, scalers, args,
-             save_results=False):
+def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_lstm_net, params, scalers, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -308,32 +324,31 @@ def run_test(experiment, test_data, test_data_normalized, init_data, conv_lstm_n
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
-    measured_matrix_ims = np.zeros(
-        (test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
+    measured_matrix_ims2d = np.zeros((test_data2d.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1,
+                                      Config.FWBW_CONV_LSTM_WIDE * Config.FWBW_CONV_LSTM_HIGH))
 
-    if save_results:
-        if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
-            np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
-                    test_data)
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
+                test_data2d)
 
-        if Config.MIN_MAX_SCALER:
-            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name)):
-                print(())
-                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name),
-                        test_data_normalized)
-        else:
-            if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name)):
-                print(())
-                np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name),
-                        test_data_normalized)
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
+        print(())
+        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
+                test_data_normalized2d)
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
-                                                                      alg_name, tag, Config.ADDED_RESULT_NAME)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.ADDED_RESULT_NAME))
+                                                                      alg_name, tag, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     with experiment.test():
         for i in range(Config.CONV_LSTM_TESTING_TIME):
             print('|--- Run time {}'.format(i))
+            init_data = np.reshape(init_data2d, newshape=(init_data2d.shape[0],
+                                                          Config.FWBW_CONV_LSTM_WIDE,
+                                                          Config.FWBW_CONV_LSTM_HIGH))
+            test_data_normalized = np.reshape(test_data_normalized2d, newshape=(test_data_normalized2d.shape[0],
+                                                                                Config.FWBW_CONV_LSTM_WIDE,
+                                                                                Config.FWBW_CONV_LSTM_HIGH))
 
             tm_labels, ims_tm = predict_conv_lstm(
                 initial_data=init_data,
@@ -343,44 +358,43 @@ def run_test(experiment, test_data, test_data_normalized, init_data, conv_lstm_n
             pred_tm = tm_labels[:, :, :, 0]
             measured_matrix = tm_labels[:, :, :, 1]
 
-            np.save(Config.RESULTS_PATH + '[pred_scaled-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                                   Config.ADDED_RESULT_NAME),
-                    pred_tm)
+            pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
+            measured_matrix2d = np.reshape(np.copy(measured_matrix),
+                                           newshape=(measured_matrix.shape[0],
+                                                     measured_matrix.shape[1] * measured_matrix.shape[2]))
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+                                                                                  Config.SCALER, i),
+                    pred_tm2d)
+            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
-            if Config.MIN_MAX_SCALER:
-                pred_tm_invert = pred_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
-            else:
-                pred_tm_invert = pred_tm * scalers['std_train'] + scalers['mean_train']
-
-            err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert, measured_matrix=measured_matrix))
-            r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert))
-            rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert))
+            err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+            r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
+            rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
             if Config.CONV_LSTM_IMS:
-                if Config.MIN_MAX_SCALER:
-                    ims_tm_invert = ims_tm * (scalers['max_train'] - scalers['min_train']) + scalers['min_train']
-                else:
-                    ims_tm_invert = ims_tm * scalers['std_train'] + scalers['mean_train']
+                ims_tm2d = np.reshape(np.copy(ims_tm), newshape=(ims_tm.shape[0], ims_tm.shape[1] * ims_tm.shape[2]))
 
-                ims_ytrue = ims_tm_ytrue(test_data=test_data)
+                ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
-                err_ims.append(error_ratio(y_pred=ims_tm_invert,
-                                           y_true=ims_ytrue,
-                                           measured_matrix=measured_matrix_ims))
+                ims_ytrue2d = ims_tm_test_data(test_data=test_data2d)
 
-                r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue, y_pred=ims_tm_invert))
-                rmse_ims.append(calculate_rmse(y_true=ims_ytrue, y_pred=ims_tm_invert))
+                err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+                                           y_true=ims_ytrue2d,
+                                           measured_matrix=measured_matrix_ims2d))
+
+                r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue2d, y_pred=ims_tm_invert2d))
+                rmse_ims.append(calculate_rmse(y_true=ims_ytrue2d / 1000000, y_pred=ims_tm_invert2d / 1000000))
             else:
                 err_ims.append(0)
                 r2_score_ims.append(0)
                 rmse_ims.append(0)
 
-            np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                            Config.ADDED_RESULT_NAME),
-                    pred_tm_invert)
-            np.save(Config.RESULTS_PATH + '[measure-{}]{}-{}-{}-{}.npy'.format(i, data_name, alg_name, tag,
-                                                                               Config.ADDED_RESULT_NAME),
-                    measured_matrix)
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+                                                                           Config.SCALER, i),
+                    pred_tm_invert2d)
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+                                                                              Config.SCALER, i),
+                    measured_matrix2d)
 
             print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
             print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],

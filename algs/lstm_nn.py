@@ -106,7 +106,7 @@ def build_model(args, input_shape):
                hidden=Config.LSTM_HIDDEN_UNIT,
                drop_out=Config.LSTM_DROPOUT,
                alg_name=alg_name, tag=tag, check_point=True,
-               saving_path=Config.MODEL_SAVE + '{}-{}-{}/'.format(data_name, alg_name, tag))
+               saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     if Config.LSTM_DEEP:
         net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)

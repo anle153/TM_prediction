@@ -343,7 +343,8 @@ def train_fwbw_conv_lstm(data, experiment, args):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    train_data2d[train_data2d == 0] = 1
+    train_data2d[train_data2d == 0] = 0.1
+    valid_data2d[valid_data2d == 0] = 0.1
 
     if Config.SCALER == Config.SCALERS[0]:
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')

@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as et
-from math import log, exp
 
 from FlowClassification.SpatialClustering import *
 from common import Config
@@ -125,19 +124,16 @@ def create_Geant3d(datapath=GEANT_XML_PATH):
     return
 
 
-def invert_boxcox(value, lam):
-    # log case
-    if lam == 0:
-        return exp(value)
-    # all other cases
-    return exp(log(lam * value + 1) / lam)
-
+########################################################################################################################
+#                                                    Data Analysis                                                     #
 
 def data_analysis(data, args):
     alg_name = args.alg
     data_name = args.data_name
     tag = args.tag
     gpu = args.gpu
+
+    data2d = np.load(Config.DATA_PATH + '.npy'.format(data_name))
 
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
@@ -146,4 +142,12 @@ def data_analysis(data, args):
 
     ndays = data.shape[0] / day_size
 
+    # Calculate mean-std data by days
+
+    day_means, day_std = [], []
+
+    for day in range(ndays):
+        day_means.append(np.mean(day_means))
+
+    print('|-- DATA NAME: {}'.format(data_name))
     print('|-- DATA NAME: {}'.format(data_name))

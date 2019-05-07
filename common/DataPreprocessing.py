@@ -2,20 +2,16 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, Po
 
 from FlowClassification.SpatialClustering import *
 from common import Config
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
-
-from FlowClassification.SpatialClustering import *
-from common import Config
 
 
 def prepare_train_test_3d(data, day_size):
     n_timeslots = data.shape[0]
     n_days = n_timeslots / day_size
 
-    train_size = int(n_days * 0.8 * day_size)
+    train_size = int(n_days * 0.8)
 
-    train_set = data[0:train_size, :, :]
-    test_set = data[train_size:, :, :]
+    train_set = data[0:train_size * day_size, :, :]
+    test_set = data[train_size * day_size:, :, :]
 
     return train_set, test_set
 
@@ -39,10 +35,10 @@ def prepare_train_test_2d(data, day_size):
     n_timeslots = data.shape[0]
     n_days = n_timeslots / day_size
 
-    train_size = int(n_days * 0.8 * day_size)
+    train_size = int(n_days * 0.8)
 
-    train_set = data[0:train_size, :]
-    test_set = data[train_size:, :]
+    train_set = data[0:train_size * day_size, :]
+    test_set = data[train_size * day_size:, :]
 
     return train_set, test_set
 
@@ -51,13 +47,13 @@ def prepare_train_valid_test_2d(data, day_size):
     n_timeslots = data.shape[0]
     n_days = n_timeslots / day_size
 
-    train_size = int(n_days * 0.6 * day_size)
+    train_size = int(n_days * 0.6)
 
-    valid_size = int(n_days * 0.2 * day_size)
+    valid_size = int(n_days * 0.2)
 
-    train_set = data[0:train_size, :]
-    valid_set = data[train_size:(train_size + valid_size), :]
-    test_set = data[(train_size + valid_size):, :]
+    train_set = data[0:train_size * day_size, :]
+    valid_set = data[train_size * day_size:(train_size * day_size + valid_size * day_size), :]
+    test_set = data[(train_size * day_size + valid_size * day_size):, :]
 
     return train_set, valid_set, test_set
 
@@ -263,6 +259,10 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
             i += 1
 
     return dataX, dataY
+
+
+########################################################################################################################
+#                                                Data scalling                                                         #
 
 
 def data_scalling(train_data2d, valid_data2d, test_data2d):

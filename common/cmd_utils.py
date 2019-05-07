@@ -55,17 +55,23 @@ def print_fwbw_conv_lstm_info(run_mode):
     print('|--- STRIDES:\t{}'.format(Config.FWBW_CONV_LSTM_STRIDES))
     print('|--- DROPOUTS:\t{}'.format(Config.FWBW_CONV_LSTM_DROPOUTS))
     print('|--- RNN_DROPOUTS:\t{}'.format(Config.FWBW_CONV_LSTM_RNN_DROPOUTS))
+    print('|--- WIDE:\t{}'.format(Config.FWBW_CONV_LSTM_WIDE))
+    print('|--- HIGH:\t{}'.format(Config.FWBW_CONV_LSTM_HIGH))
+    print('|--- CHANNEL:\t{}'.format(Config.FWBW_CONV_LSTM_CHANNEL))
+    print('            -----------            ')
+
+    print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONV_LSTM_RANDOM_ACTION))
 
     if 'train' in run_mode:
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_CONV_LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.FWBW_CONV_LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_STEP))
-        print('|--- IMS_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_IMS_STEP))
+        if Config.FWBW_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_CONV_LSTM_TESTING_TIME))
         print('|--- FW_BEST_CHECKPOINT:\t{}'.format(Config.FW_BEST_CHECKPOINT))
         print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
-        print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONV_LSTM_RANDOM_ACTION))
         if not Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             print('|--- HYPERPARAMS:\t{}'.format(Config.FWBW_CONV_LSTM_HYPERPARAMS))
 
@@ -85,7 +91,8 @@ def print_conv_lstm_info(run_mode):
         print('|--- N_EPOCH:\t{}'.format(Config.CONV_LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.CONV_LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.CONV_LSTM_STEP))
-        print('|--- IMS_STEP:\t{}'.format(Config.CONV_LSTM_IMS_STEP))
+        if Config.CONV_LSTM_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.CONV_LSTM_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.CONV_LSTM_TESTING_TIME))
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.CONV_LSTM_BEST_CHECKPOINT))
@@ -105,7 +112,8 @@ def print_lstm_info(run_mode):
         print('|--- N_EPOCH:\t{}'.format(Config.LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.LSTM_STEP))
-        print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
+        if Config.LSTM_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.LSTM_TESTING_TIME))
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
@@ -116,7 +124,8 @@ def print_arima_info(run_mode):
     print('            -----------            ')
 
     if 'train' in run_mode:
-        print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
+        if Config.ARIMA_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.ARIMA_TESTING_TIME))
         print('|--- ARIMA_UPDATE:\t{}'.format(Config.ARIMA_UPDATE))
@@ -130,7 +139,8 @@ def print_holt_winter_info(run_mode):
     print('|--- HOLT_WINTER_TREND:\t{}'.format(Config.HOLT_WINTER_TREND))
 
     if 'train' in run_mode:
-        print('|--- IMS_STEP:\t{}'.format(Config.HOLT_WINTER_IMS_STEP))
+        if Config.HOLT_WINTER_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.HOLT_WINTER_IMS_STEP))
     else:
         print('|--- TESTING_TIME:\t{}'.format(Config.HOLT_WINTER_TESTING_TIME))
         print('|--- HOLT_WINTER_UPDATE:\t{}'.format(Config.HOLT_WINTER_UPDATE))
@@ -147,11 +157,23 @@ def print_info(args):
         print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
     else:
         print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
-    print('|--- Mode:\t{}'.format(args.run_mode))
-    print('|--- Alg:\t{}'.format(alg_name))
-    print('|--- Tag:\t{}'.format(tag))
-    print('|--- Data:\t{}'.format(data_name))
+    print('|--- MODE:\t{}'.format(args.run_mode))
+    print('|--- ALG:\t{}'.format(alg_name))
+    print('|--- TAG:\t{}'.format(tag))
+    print('|--- DATA:\t{}'.format(data_name))
     print('|--- GPU:\t{}'.format(gpu))
+    if Config.SCALER == Config.SCALERS[0]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[0]))
+    elif Config.SCALER == Config.SCALERS[1]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[1]))
+    elif Config.SCALER == Config.SCALERS[2]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[2]))
+    elif Config.SCALER == Config.SCALERS[3]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[3]))
+    elif Config.SCALER == Config.SCALERS[4]:
+        print('|--- SCALER:\t{}'.format(Config.SCALERS[4]))
+    else:
+        raise Exception('Unknown scaler!')
 
     if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
         print_fwbw_conv_lstm_info(args.run_mode)

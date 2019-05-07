@@ -1,180 +1,97 @@
-from common.DataHelper import *
+import os
+
+import numpy as np
+from matplotlib import pyplot as plt
+
+from common import Config
+from common.error_utils import calculate_r2_score, error_ratio, calculate_rmse
 
 
-def results_processing(results_path='../Results/Abilene24s/'):
-    errors = np.empty((0, 6))
+def plot_pred_results(data_name, alg_name, tag, nflows):
+    data_raw = np.load(Config.DATA_PATH + '{}.npy'.format(data_name))
 
-    sampling_ratio = 0.3
-    look_back = 26
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
 
-    arima_prefix = '[arima][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio, look_back)
-    arima_direct_prefix = '[arima_direct_prediction][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio, look_back)
-    rnn_prefix = '[forward_backward_rnn_labeled_features][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
-    rnn_cl_prefix = '[forward_backward_rnn_labeled_features][sampling_rate_%.2f][look_back_%.2f][Consecutive_Loss_4]' % (
-        sampling_ratio, look_back)
+    # train_set, valid_set, test_set = prepare_train_valid_test_3d(data_raw, day_size=day_size)
 
-    rnn_normal_cl_prefix = '[normal_rnn_consecutive_loss][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
+    ground_true = np.load(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name))
+    if Config.MIN_MAX_SCALER:
+        ground_true_scaled = np.load(Config.RESULTS_PATH + 'ground_true_scaled_{}_minmax.npy'.format(data_name))
+    else:
+        ground_true_scaled = np.load(Config.RESULTS_PATH + 'ground_true_scaled_{}.npy'.format(data_name))
 
-    arima_consecutive_loss_prefix = '[arima_consecutive_loss_4][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
+    if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
+        run_time = Config.FWBW_CONV_LSTM_TESTING_TIME
+    elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
+        run_time = Config.CONV_LSTM_TESTING_TIME
+    elif 'lstm-nn' in alg_name:
+        run_time = Config.LSTM_TESTING_TIME
+    elif 'arima' in alg_name:
+        run_time = Config.ARIMA_TESTING_TIME
+    elif 'holt-winter' in alg_name:
+        run_time = Config.HOLT_WINTER_TESTING_TIME
+    else:
+        raise ValueError('Unkown alg!')
 
-    rnn_normal = '[normal_rnn][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
+    day_x = 1
+    day_y = 0
 
-    measurement_file_name = 'MeasurementMatrix.csv'
-    observation_file_name = 'Observation.csv'
-    prediction_file_name = 'Prediction.csv'
+    for i in range(run_time):
 
-    measured_matrix = np.genfromtxt(results_path + rnn_cl_prefix + measurement_file_name, delimiter=',')
-    observation = np.genfromtxt(results_path + rnn_cl_prefix + observation_file_name, delimiter=',')
-    prediction = np.genfromtxt(results_path + rnn_cl_prefix + prediction_file_name, delimiter=',')
+        plotted_path_raw = Config.RESULTS_PATH + \
+                           '{}-{}-{}-{}/plot_raw/run_{}/'.format(data_name,
+                                                                 alg_name,
+                                                                 tag,
+                                                                 Config.ADDED_RESULT_NAME, i)
 
-    errors_by_day = calculate_error_ratio_by_day(y_true=observation, y_pred=prediction,
-                                                 measured_matrix=measured_matrix,
-                                                 sampling_itvl=5)
-    mean_abs_error_by_day = mean_absolute_errors_by_day(y_true=observation, y_pred=prediction, sampling_itvl=5)
+        plotted_path_scaled = Config.RESULTS_PATH + \
+                              '{}-{}-{}-{}/plot_scaled/run_{}/'.format(data_name,
+                                                                       alg_name,
+                                                                       tag,
+                                                                       Config.ADDED_RESULT_NAME, i)
+        if not os.path.exists(plotted_path_raw):
+            os.makedirs(plotted_path_raw)
+        if not os.path.exists(plotted_path_scaled):
+            os.makedirs(plotted_path_scaled)
 
-    rmse_by_day = root_means_squared_error_by_day(y_true=observation, y_pred=prediction, sampling_itvl=5)
+        pred = np.load(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+                                                                              Config.ADDED_RESULT_NAME, i))
+        pred_scaled = np.load(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+                                                                                            Config.ADDED_RESULT_NAME,
+                                                                                            i))
+        measure_matrix = np.load(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+                                                                                           Config.ADDED_RESULT_NAME, i))
 
-    y3 = observation.flatten()
-    y4 = prediction.flatten()
-    a_nmse = normalized_mean_squared_error(y_true=y3, y_hat=y4)
-    a_nmae = normalized_mean_absolute_error(y_true=y3, y_hat=y4)
+        plot_flow(plotted_path_raw, ground_true, 'Actual', pred, 'Pred', day_x, day_y, day_size, nflows)
+        plot_flow(plotted_path_scaled, ground_true_scaled, 'Actual', pred_scaled, 'Pred', day_x, day_y, day_size,
+                  nflows)
 
-    mae = mean_abs_error(y_true=observation, y_pred=prediction)
-    rmse = np.sqrt(mean_squared_error(y_true=observation.flatten() / 1000.0, y_pred=prediction.flatten() / 1000.0))
-
-    pred_confident = r2_score(y3, y4)
-
-    err_rat = error_ratio(y_true=observation, y_pred=prediction, measured_matrix=measured_matrix)
-
-    error = np.expand_dims(np.array(
-        [a_nmae, a_nmse, pred_confident, err_rat, mae, rmse]), axis=0)
-
-    errors = np.concatenate([errors, error], axis=0)
-
-    np.savetxt(results_path + rnn_cl_prefix + 'Errors.csv', errors, delimiter=',')
-    np.savetxt(results_path + rnn_cl_prefix + 'Errors_ratio_by_day.csv', errors_by_day, delimiter=',')
-    np.savetxt(results_path + rnn_cl_prefix + 'Rmse_by_day.csv', rmse_by_day, delimiter=',')
-    np.savetxt(results_path + rnn_cl_prefix + 'Mean_abs_error_by_day.csv', mean_abs_error_by_day, delimiter=',')
-
-    return
-
-
-def combine_result(results_path='../Results/Abilene24s/'):
-    errors = np.empty((0, 6))
-
-    sampling_ratio = 0.3
-    look_back = 2
-
-    arima_prefix = '[arima][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio, look_back)
-    arima_direct_prefix = '[arima_direct_prediction][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio, look_back)
-    rnn_prefix = '[forward_backward_rnn_labeled_features][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
-    measurement_file_name = 'MeasurementMatrix.csv'
-    observation_file_name = 'Observation.csv'
-    prediction_file_name = 'Prediction.csv'
+        print('|--- Error Ratio: {}'.format(error_ratio(y_true=ground_true,
+                                                        y_pred=pred,
+                                                        measured_matrix=measure_matrix)))
+        print('|--- RMSE: {}'.format(calculate_rmse(y_true=ground_true,
+                                                    y_pred=pred)))
+        print('|--- R2: {}'.format(calculate_r2_score(y_true=ground_true,
+                                                      y_pred=pred)))
 
 
-def get_flow_by_day(results_path='../Results/Abilene24s/'):
-    errors = np.empty((0, 6))
+def plot_flow(save_path, series1, label1, series2, label2, day_x, day_y, day_size, nflows):
+    for flow_x in range(nflows):
+        for flow_y in range(nflows):
+            plt.plot(range((series1.shape[0] - day_size * day_x), (series1.shape[0] - day_size * day_y)),
+                     series1[(series1.shape[0] - day_size * day_x):(series1.shape[0] - day_size * day_y),
+                     flow_x, flow_y], label=label1)
+            plt.plot(range((series2.shape[0] - day_size * day_x), (series2.shape[0] - day_size * day_y)),
+                     series2[(series2.shape[0] - day_size * day_x):(series2.shape[0] - day_size * day_y), flow_x,
+                     flow_y],
+                     label=label2)
+            plt.xlabel('Timestep')
+            plt.ylabel('Traffic Load')
 
-    sampling_ratio = 0.3
-    look_back = 26
+            plt.legend()
 
-    arima_prefix = '[arima][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio, look_back)
-    arima_direct_prefix = '[arima_direct_prediction][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio, look_back)
-    rnn_prefix = '[forward_backward_rnn_labeled_features][sampling_rate_%.2f][look_back_%.2f]' % (sampling_ratio,
-                                                                                                  look_back)
-    rnn_normal_prefix = '[normal_rnn][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
-
-    rnn_normal_direct_predic_prefix = '[forward_backward_rnn_labeled_features][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
-
-    measurement_file_name = 'MeasurementMatrix.csv'
-    observation_file_name = 'Observation.csv'
-    prediction_file_name = 'Prediction.csv'
-
-    measured_matrix = np.genfromtxt(results_path + rnn_prefix + measurement_file_name, delimiter=',')
-    observation = np.genfromtxt(results_path + rnn_prefix + observation_file_name, delimiter=',')
-    prediction = np.genfromtxt(results_path + rnn_prefix + prediction_file_name, delimiter=',')
-
-    day_size = 24 * (60 / 5)
-
-    for day in range(int(prediction.shape[0] / day_size)):
-        if day == 2:
-            path_flow_by_day = results_path + rnn_prefix + '/' + 'Day_%i/' % day
-            if not os.path.exists(path_flow_by_day):
-                os.makedirs(path_flow_by_day)
-
-            for flowID in range(observation.shape[1]):
-                upperbound = (day + 1) * day_size if (day + 1) * day_size < observation.shape[0] else observation.shape[
-                    0]
-                y1 = observation[day * day_size:upperbound, flowID]
-                y2 = prediction[day * day_size:upperbound, flowID]
-                sampling = measured_matrix[day * day_size:upperbound, flowID]
-                arg_sampling = np.argwhere(sampling == True)
-
-                # plt.title('Flow %i prediction result' % (flowID))
-                # plt.plot(y1, label='Original Data')
-                # plt.plot(y2, label='Prediction Data')
-                # plt.legend()
-                # plt.xlabel('Time')
-                # plt.ylabel('Mbps')
-                # # Mark the measured data in the predicted data as red start
-                # plt.plot(arg_sampling, y2[arg_sampling], 'r*')
-                # plt.savefig(path_flow_by_day + '%i.png' % flowID)
-                # plt.close()
-
-                y1 = np.expand_dims(y1, axis=1)
-                y2 = np.expand_dims(y2, axis=1)
-                sampling = np.expand_dims(sampling, axis=1)
-                flow = np.concatenate([y1, y2, sampling], axis=1)
-                np.savetxt(path_flow_by_day + 'flow_%i.csv' % flowID, flow, delimiter=',')
-
-                measured_traffics = np.reshape(y2[arg_sampling], (y2[arg_sampling].shape[0], y2[arg_sampling].shape[1]))
-
-                measured_points = np.concatenate([arg_sampling, measured_traffics], axis=1)
-                np.savetxt(path_flow_by_day + 'flow_%i_measured_points.csv' % flowID, measured_points, delimiter=',')
-
-
-def get_flow_by_day_direct_predict(results_path='../Results/Abilene24s/'):
-    sampling_ratio = 0.3
-    look_back = 26
-
-    rnn_normal_direct_predic_prefix = '[normal_rnn_direct_prediction][sampling_rate_%.2f][look_back_%.2f]' % (
-        sampling_ratio, look_back)
-
-    observation_file_name = 'Observation.csv'
-    prediction_file_name = 'Prediction.csv'
-
-    observation = np.genfromtxt(results_path + rnn_normal_direct_predic_prefix + observation_file_name, delimiter=',')
-    prediction = np.genfromtxt(results_path + rnn_normal_direct_predic_prefix + prediction_file_name, delimiter=',')
-
-    day_size = 24 * (60 / 5)
-
-    for day in range(int(prediction.shape[0] / day_size)):
-        if day == 2:
-            path_flow_by_day = results_path + rnn_normal_direct_predic_prefix + '/' + 'Day_%i/' % day
-            if not os.path.exists(path_flow_by_day):
-                os.makedirs(path_flow_by_day)
-
-            for flowID in range(observation.shape[1]):
-                upperbound = (day + 1) * day_size if (day + 1) * day_size < observation.shape[0] else observation.shape[
-                    0]
-                y1 = observation[day * day_size:upperbound, flowID]
-                y2 = prediction[day * day_size:upperbound, flowID]
-
-                y1 = np.expand_dims(y1, axis=1)
-                y2 = np.expand_dims(y2, axis=1)
-                flow = np.concatenate([y1, y2], axis=1)
-                np.savetxt(path_flow_by_day + 'flow_%i.csv' % flowID, flow, delimiter=',')
-
-
-if __name__ == '__main__':
-    results_path = '../Results/'
-    dataset_name = 'Abilene24s/'
-    results_processing(results_path=results_path + dataset_name)
+            plt.savefig(save_path + 'Flow-{}-{}.png'.format(flow_x, flow_y))
+            plt.close()

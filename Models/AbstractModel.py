@@ -31,7 +31,7 @@ class AbstractModel(object):
 
         self.callbacks_list = []
 
-        self.checkpoints_path = self.saving_path + 'checkpoints/{}-{}/'.format(self.alg_name, self.tag)
+        self.checkpoints_path = self.saving_path + 'checkpoints/'
 
         if check_point:
             if not os.path.isdir(self.checkpoints_path):
@@ -76,10 +76,10 @@ class AbstractModel(object):
     def load_trained_model(self, path, weight_file):
 
         if not os.path.isfile(path + weight_file):
-            print('----> [RNN-load_weights_model] --- File %s not found ---' % (path + weight_file))
+            print('   --> [RNN-load_weights_model] --- File %s not found ---' % (path + weight_file))
             return False
         else:
-            print('----> [RNN-load_weights_model] --- Load weights from ' + path + weight_file)
+            print('   --> [RNN-load_weights_model] --- Load weights from ' + path + weight_file)
             self.model.load_weights(path + weight_file)
             return True
 

@@ -86,6 +86,9 @@ def test_holt_winter(data, args):
         data = data[0:day_size * Config.NUM_DAYS, :]
 
     train_data, test_data = prepare_train_test_2d(data=data, day_size=day_size)
+    if 'Abilene' in data_name:
+        print('|--- Remove last 3 days in test data.')
+        test_data = test_data[0:-day_size * 3]
 
     # mean_train = np.mean(train_data)
     # std_train = np.std(train_data)
@@ -217,6 +220,11 @@ def test_holt_winter(data, args):
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time], rmse[running_time], r2_score[running_time],
                                                           err_ims[running_time], rmse_ims[running_time],
                                                           r2_score_ims[running_time]))
+
+        np.save(Config.RESULTS_PATH + '[pred-{}]{}-{}-{}-{}.npy'.format(running_time, data_name, alg_name, tag,
+                                                                        Config.ADDED_RESULT_NAME),
+                pred_tm)
+
 
     results_summary['No.'] = range(Config.HOLT_WINTER_TESTING_TIME)
     results_summary['err'] = err

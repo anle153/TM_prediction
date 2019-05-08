@@ -5,16 +5,12 @@ from xgboost import XGBRegressor
 
 
 class XGB(object):
-    def __init__(self, data_name, saving_path, alg_name, tag, scaler):
+    def __init__(self, data_name, saving_path, alg_name, tag):
 
         self.data_name = data_name
         self.alg_name = alg_name
         self.tag = tag
-        self.saving_path = saving_path + '{}-{}-{}-{}/'.format(self.data_name,
-                                                               self.alg_name,
-                                                               self.tag,
-                                                               self.scaler)
-        self.scaler = scaler
+        self.saving_path = saving_path
 
         self.model = XGBRegressor()
 

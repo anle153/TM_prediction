@@ -4,7 +4,7 @@ import pickle
 from xgboost import XGBRegressor
 
 
-class xgb(object):
+class XGB(object):
     def __init__(self, data_name, saving_path, alg_name, tag, scaler):
 
         self.data_name = data_name

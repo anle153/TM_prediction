@@ -108,6 +108,8 @@ def train_xgboost(data, args):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
+    data[data == 0] = 0.1
+
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')

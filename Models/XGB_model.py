@@ -5,14 +5,15 @@ from xgboost import XGBRegressor
 
 
 class XGB(object):
-    def __init__(self, data_name, saving_path, alg_name, tag):
+    def __init__(self, data_name, saving_path, alg_name, tag, objective='reg:squarederror'):
 
         self.data_name = data_name
         self.alg_name = alg_name
         self.tag = tag
         self.saving_path = saving_path
+        self.objective = objective
 
-        self.model = XGBRegressor()
+        self.model = XGBRegressor(objective=self.objective)
 
     def save_model(self):
         if not os.path.exists(self.saving_path):

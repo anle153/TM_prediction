@@ -146,6 +146,18 @@ def print_holt_winter_info(run_mode):
         print('|--- HOLT_WINTER_UPDATE:\t{}'.format(Config.HOLT_WINTER_UPDATE))
 
 
+def print_xgb_info(run_mode):
+    print('|--- MON_RATIO:\t{}'.format(Config.XGB_MON_RATIO))
+    print('            -----------            ')
+    print('|--- FEATURES:\t{}'.format(Config.XGB_STEP))
+
+    if 'train' in run_mode:
+        if Config.XGB_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.XGB_IMS_STEP))
+    else:
+        print('|--- TESTING_TIME:\t{}'.format(Config.XGB_TESTING_TIME))
+
+
 def print_info(args):
     alg_name = args.alg
     data_name = args.data_name
@@ -185,6 +197,8 @@ def print_info(args):
         print_arima_info(args.run_mode)
     elif 'holt-winter' in alg_name:
         print_holt_winter_info(args.run_mode)
+    elif 'xgb' in alg_name:
+        print_xgb_info(args.run_mode)
     else:
         raise ValueError('Unkown alg!')
     print('|--- RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))

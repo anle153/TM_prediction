@@ -261,6 +261,36 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
     return dataX, dataY
 
 
+def create_offline_xgb_data(data, ntimesteps, mon_ratio, eps):
+    _tf = np.array([True, False])
+    measured_matrix = np.random.choice(_tf,
+                                       size=data.shape,
+                                       p=(mon_ratio, 1 - mon_ratio))
+    _labels = measured_matrix.astype(int)
+    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps))
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(_data.shape[0] - ntimesteps - 1):
+            _x = _data[idx: (idx + ntimesteps), flow]
+            _label = _labels[idx: (idx + ntimesteps), flow]
+
+            dataX[i, :] = _x
+
+            _y = _data[(idx + ntimesteps + 1), flow]
+
+            dataY[i] = _y
+
+            i += 1
+
+    return dataX, dataY
+
+
 ########################################################################################################################
 #                                                Data scalling                                                         #
 

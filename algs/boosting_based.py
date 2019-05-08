@@ -24,9 +24,7 @@ def prepare_input_online_prediction(data):
     dataX = np.zeros(shape=(data.shape[1], Config.XGB_STEP))
     for flow_id in range(data.shape[1]):
         x = data[-Config.XGB_STEP:, flow_id]
-
-        sample = np.array([x]).T
-        dataX[flow_id] = sample
+        dataX[flow_id] = x
 
     return dataX
 

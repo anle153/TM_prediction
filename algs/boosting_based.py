@@ -117,13 +117,20 @@ def train_xgboost(data, args):
                                                                                  valid_data2d,
                                                                                  test_data2d)
     saving_path = Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER)
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
     xgb_model = XGBRegressor(n_jobs=Config.XGB_NJOBS)
 
     trainX, trainY = create_offline_xgb_data(train_data_normalized2d, Config.XGB_STEP, Config.XGB_MON_RATIO, 0.5)
 
     print('|--- Training model.')
 
-    xgb_model.fit(trainX, trainY)
+    if os.path.isfile(saving_path + 'xgb.models'):
+        xgb_model.load_model(saving_path + 'xgb.models')
+    else:
+        xgb_model.fit(trainX, trainY)
+        xgb_model.save_model(saving_path + 'xgb.models')
 
     run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.XGB_STEP:],
              xgb_model, scalers, args)

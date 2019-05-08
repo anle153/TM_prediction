@@ -1,12 +1,30 @@
+import os
+import pickle
+
 from xgboost import XGBRegressor
 
-from Models.AbstractModel import AbstractModel
 
+class xgb(object):
+    def __init__(self, data_name, saving_path, alg_name, tag, scaler):
 
-class xgb(AbstractModel):
-    def __init__(self, saving_path, input_shape, hidden, drop_out,
-                 alg_name=None, tag=None, early_stopping=False, check_point=False):
-        super().__init__(alg_name=alg_name, tag=tag, early_stopping=early_stopping, check_point=check_point,
-                         saving_path=saving_path)
+        self.data_name = data_name
+        self.alg_name = alg_name
+        self.tag = tag
+        self.saving_path = saving_path + '{}-{}-{}-{}/'.format(self.data_name,
+                                                               self.alg_name,
+                                                               self.tag,
+                                                               self.scaler)
+        self.scaler = scaler
 
         self.model = XGBRegressor()
+
+    def save_model(self):
+        if not os.path.exists(self.saving_path):
+            os.makedirs(self.saving_path)
+
+        saved_model = open(self.saving_path + 'xgb.models', 'wb')
+        pickle.dump(self.model, saved_model, 2)
+
+    def load_model(self):
+        if not os.path.isfile(self.saving_path + 'xgb.models'):
+            raise Exception('Saved model not found!')

@@ -44,5 +44,5 @@ def train_xgboost(data, args):
     preds_inv = scalers.inverse_transform(preds)
     # preds_inv = preds_inv.flatten()
 
-    _r2 = r2_score(y_pred=preds_inv, y_true=valid_data2d[Config.XGB_STEP:])
+    _r2 = r2_score(y_pred=preds_inv.flatten(), y_true=valid_data2d[Config.XGB_STEP:].flatten())
     print("R2_score: %f" % _r2)

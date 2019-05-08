@@ -114,12 +114,13 @@ CONV_LSTM_MON_RAIO = 0.3
 CONV_LSTM_IMS = False
 
 # ----------- XGB Config ----------------------
-XGB_STEP = 26
+XGB_STEP = 288
 XGB_MON_RATIO = 0.3
 XGB_IMS = False
 XGB_IMS_STEP = 12
 XGB_TESTING_TIME = 1
-XGB_NJOBS = 32
+XGB_NJOBS = 16
+XGB_FEATURES = 28
 
 
 ########################################################################################################################

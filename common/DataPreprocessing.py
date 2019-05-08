@@ -1,3 +1,7 @@
+from multiprocessing import Process, Pipe, cpu_count
+
+import pandas as pd
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, PowerTransformer
 
 from FlowClassification.SpatialClustering import *
@@ -261,13 +265,72 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
     return dataX, dataY
 
 
-def create_offline_xgb_data(data, ntimesteps, mon_ratio, eps):
+def add_trend_feature(arr, abs_values=False):
+    idx = np.array(range(len(arr)))
+    if abs_values:
+        arr = np.abs(arr)
+    lr = LinearRegression()
+    lr.fit(idx.reshape(-1, 1), arr)
+    return lr.coef_[0]
+
+
+def calc_change_rate(x):
+    change = (np.diff(x) / x[:-1]).values
+    change = change[np.nonzero(change)[0]]
+    change = change[~np.isnan(change)]
+    change = change[change != -np.inf]
+    change = change[change != np.inf]
+    return np.mean(change)
+
+
+def create_xgb_features(x):
+    x_step = []
+
+    x_step.append(x.mean())
+    x_step.append(x.std())
+    x_step.append(x.max())
+    x_step.append(x.min())
+
+    x_step.append(np.mean(np.diff(x)))
+    x_step.append(calc_change_rate(x))
+    x_step.append(np.abs(x).max())
+    x_step.append(np.abs(x).min())
+
+    x_step.append(x.max() / np.abs(x.min()))
+    x_step.append(x.max() - np.abs(x.min()))
+    x_step.append(len(x[np.abs(x) > 100]))
+    x_step.append(x.sum())
+
+    x_step.append(np.quantile(x, 0.95))
+    x_step.append(np.quantile(x, 0.99))
+    x_step.append(np.quantile(x, 0.05))
+    x_step.append(np.quantile(x, 0.01))
+
+    x_step.append(np.quantile(np.abs(x), 0.95))
+    x_step.append(np.quantile(np.abs(x), 0.99))
+    x_step.append(np.quantile(np.abs(x), 0.05))
+    x_step.append(np.quantile(np.abs(x), 0.01))
+
+    x_step.append(add_trend_feature(x))
+    x_step.append(add_trend_feature(x, abs_values=True))
+    x_step.append(np.abs(x).mean())
+    x_step.append(np.abs(x).std())
+
+    x_step.append(x.mad())
+    x_step.append(x.kurtosis())
+    x_step.append(x.skew())
+    x_step.append(x.median())
+
+    return x_step
+
+
+def create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps, connection, proc_id):
     _tf = np.array([True, False])
     measured_matrix = np.random.choice(_tf,
                                        size=data.shape,
                                        p=(mon_ratio, 1 - mon_ratio))
     _labels = measured_matrix.astype(int)
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps))
+    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
     dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
 
     _data = np.copy(data)
@@ -278,15 +341,61 @@ def create_offline_xgb_data(data, ntimesteps, mon_ratio, eps):
     for flow in range(_data.shape[1]):
         for idx in range(_data.shape[0] - ntimesteps - 1):
             _x = _data[idx: (idx + ntimesteps), flow]
-            _label = _labels[idx: (idx + ntimesteps), flow]
-
-            dataX[i, :] = _x
+            _x = pd.Series(_x)
+            dataX[i, :] = np.array(create_xgb_features(_x))
 
             _y = _data[(idx + ntimesteps + 1), flow]
 
             dataY[i] = _y
 
             i += 1
+
+    print("[PROC_ID: %d] Sending result" % proc_id)
+    connection.send([dataX, dataY])
+    connection.close()
+    print("[PROC_ID] RESULT SENT")
+
+
+def parallel_create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps):
+    nproc = cpu_count()
+    quota = int(data.shape[1] / nproc)
+
+    p = [0] * nproc
+
+    connections = []
+
+    for proc_id in range(nproc):
+        connections.append(Pipe())
+
+    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
+
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
+    ret_xy = []
+
+    for proc_id in range(nproc):
+        data_quota = data[:, proc_id * quota:(proc_id + 1) * quota] if proc_id < (nproc - 1) else data[:,
+                                                                                                  proc_id * quota:]
+        p[proc_id] = Process(target=create_offline_xgb_data,
+                             args=(data_quota,
+                                   ntimesteps,
+                                   features,
+                                   mon_ratio,
+                                   eps,
+                                   connections[proc_id][1],
+                                   proc_id))
+        p[proc_id].start()
+
+    for proc_id in range(nproc):
+        ret_xy.append(connections[proc_id][0].recv())
+        p[proc_id].join()
+
+    for proc_id in range(nproc):
+        _start = proc_id * quota * (data.shape[0] - ntimesteps)
+        _end = (proc_id + 1) * quota * (data.shape[0] - ntimesteps) if proc_id < (nproc - 1) \
+            else (data.shape[0] - ntimesteps) * data.shape[1]
+
+        dataX[_start: _end] = ret_xy[proc_id][0]
+        dataY[_start: _end] = ret_xy[proc_id][1]
 
     return dataX, dataY
 

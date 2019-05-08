@@ -25,7 +25,7 @@ def train_xgboost(data, args):
                                                                                  valid_data2d,
                                                                                  test_data2d)
     saving_path = Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER)
-    xgb_model = XGBRegressor(n_jobs=4)
+    xgb_model = XGBRegressor(n_jobs=Config.XGB_NJOBS)
 
     trainX, trainY = create_offline_xgb_data(train_data_normalized2d, Config.XGB_STEP, Config.XGB_MON_RATIO, 0.5)
 

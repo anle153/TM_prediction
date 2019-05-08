@@ -13,6 +13,12 @@ def plot_training_history(alg_name, tag, saving_path, model_history):
     plt.savefig(saving_path + '[MAE]{}-{}.png'.format(alg_name, tag))
     plt.close()
 
+    plt.plot(model_history.history['mean_squared_error'], label='mse')
+    plt.plot(model_history.history['val_mean_squared_error'], label='val_mse')
+    plt.savefig(saving_path + '[MSE]{}-{}.png'.format(alg_name, tag))
+    plt.legend()
+    plt.close()
+
 
 class AbstractModel(object):
 
@@ -25,12 +31,13 @@ class AbstractModel(object):
 
         self.callbacks_list = []
 
+        self.checkpoints_path = self.saving_path + 'checkpoints/'
+
         if check_point:
-            if not os.path.isdir(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag)):
-                os.makedirs(self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name, self.tag))
+            if not os.path.isdir(self.checkpoints_path):
+                os.makedirs(self.checkpoints_path)
             self.checkpoints = ModelCheckpoint(
-                self.saving_path + '/checkpoints/{}-{}/'.format(self.alg_name,
-                                                                self.tag) + "weights-{epoch:02d}-{val_acc:.2f}.hdf5",
+                self.checkpoints_path + "weights-{epoch:02d}.hdf5",
                 monitor='val_loss', verbose=1,
                 save_best_only=False,
                 save_weights_only=True,
@@ -69,79 +76,45 @@ class AbstractModel(object):
     def load_trained_model(self, path, weight_file):
 
         if not os.path.isfile(path + weight_file):
-            print('----> [RNN-load_weights_model] --- File %s not found ---' % (path + weight_file))
+            print('   --> [RNN-load_weights_model] --- File %s not found ---' % (path + weight_file))
             return False
         else:
-            print('----> [RNN-load_weights_model] --- Load weights from ' + path + weight_file)
+            print('   --> [RNN-load_weights_model] --- Load weights from ' + path + weight_file)
             self.model.load_weights(path + weight_file)
             return True
 
-    def load_model_from_check_point(self, _from_epoch=0, weights_file_type='h5'):
+    def load_model_from_check_point(self, _from_epoch=None):
 
-        if weights_file_type == 'h5':
-            if os.path.exists(self.saving_path + '/checkpoints/'):
+        if os.path.exists(self.checkpoints_path):
+            list_files = fnmatch.filter(os.listdir(self.checkpoints_path), '*.hdf5')
 
-                list_weights_files = fnmatch.filter(os.listdir(self.saving_path + '/checkpoints/'), '*.h5')
+            if len(list_files) == 0:
+                print(
+                    '|--- Found no weights file at %s---' % self.checkpoints_path)
+                return -1
 
-                if len(list_weights_files) == 0:
-                    print('|--- Found no weights file at %s---' % self.saving_path + '/checkpoints/')
-                    return -1
+            list_files = sorted(list_files, key=lambda x: int(x.split('.')[0].split('-')[1]))
 
-                list_weights_files = sorted(list_weights_files, key=lambda x: int(x.split('-')[1]))
-                weights_file_name = ''
-                model_file_name = ''
-                epoch = -1
-                if _from_epoch:
-                    for _weights_file_name in list_weights_files:
-                        epoch = int(_weights_file_name.split('-')[1])
-                        if _from_epoch == epoch:
-                            weights_file_name = _weights_file_name
-                            model_file_name = 'model-' + str(epoch) + '-.json'
-                            break
-                else:
-                    # Get the last check point
-                    weights_file_name = list_weights_files[-1]
-                    epoch = int(weights_file_name.split('-')[1])
-                    model_file_name = 'model-' + str(epoch) + '-.json'
-
-                if self.load(model_weight_file=weights_file_name, model_json_file=model_file_name):
-                    return epoch
-                else:
-                    return -1
+            weights_file_name = ''
+            epoch = -1
+            if _from_epoch:
+                for _weights_file_name in list_files:
+                    epoch = int(_weights_file_name.split('.')[0].split('-')[1])
+                    if _from_epoch == epoch:
+                        weights_file_name = _weights_file_name
+                        break
             else:
-                print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
+                # Get the last check point
+                weights_file_name = list_files[-1]
+                epoch = int(weights_file_name.split('.')[0].split('-')[1])
+
+            if self.load_trained_model(path=self.checkpoints_path, weight_file=weights_file_name):
+                return epoch
+            else:
                 return -1
         else:
-            if os.path.exists(self.saving_path + '/checkpoints/'):
-                list_files = fnmatch.filter(os.listdir(self.saving_path + '/checkpoints/'), '*.hdf5')
-
-                if len(list_files) == 0:
-                    print(
-                        '|--- Found no weights file at %s---' % self.saving_path + '/checkpoints/')
-                    return -1
-
-                list_files = sorted(list_files, key=lambda x: int(x.split('-')[1]))
-
-                weights_file_name = ''
-                epoch = -1
-                if _from_epoch:
-                    for _weights_file_name in list_files:
-                        epoch = int(_weights_file_name.split('-')[1])
-                        if _from_epoch == epoch:
-                            weights_file_name = _weights_file_name
-                            break
-                else:
-                    # Get the last check point
-                    weights_file_name = list_files[-1]
-                    epoch = int(weights_file_name.split('-')[1])
-
-                if self.load_trained_model(path=self.saving_path + '/checkpoints/', weight_file=weights_file_name):
-                    return epoch
-                else:
-                    return -1
-            else:
-                print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
-                return -1
+            print('----> [RNN-load_model_from_check_point] --- Models saving path dose not exist')
+            return -1
 
     def plot_training_history(self, model_history):
         plot_training_history(alg_name=self.alg_name,

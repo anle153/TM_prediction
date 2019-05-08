@@ -54,3 +54,6 @@ class ConvLSTM(AbstractModel):
         self.model.add(Conv3D(filters=1, kernel_size=(3, 3, 3),
                               activation='relu',
                               padding='same', data_format='channels_last'))
+
+        self.model.compile(loss='mean_squared_error', optimizer='adam',
+                           metrics=['mse', 'mae'])

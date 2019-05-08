@@ -1,10 +1,14 @@
+import os
+
+import numpy as np
 import pandas as pd
 import tensorflow as tf
+from tqdm import tqdm
 
 from Models.RNN_LSTM import lstm
 from common import Config
-from common.DataPreprocessing import *
-from common.error_utils import error_ratio, calculate_r2_score, rmse_tm_prediction
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_lstm_nn_data, data_scalling
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -24,54 +28,41 @@ def prepare_input_online_prediction(data, labels):
     return dataX
 
 
-def ims_tm_prediction(ret_tm, rnn_model,
-                      ims_tm,
-                      labels):
-    multi_steps_tm = np.copy(ret_tm[-Config.LSTM_STEP:, :])
+def ims_tm_prediction(init_data, model, init_labels):
+    multi_steps_tm = np.zeros(shape=(init_data.shape[0] + Config.LSTM_IMS_STEP, init_data.shape[1]))
+    multi_steps_tm[0:Config.LSTM_STEP, :] = init_data
 
-    measured_matrix = np.copy(labels)
+    labels = np.zeros(shape=(init_labels.shape[0] + Config.LSTM_IMS_STEP, init_labels.shape[1]))
+    labels[0:Config.LSTM_STEP, :] = init_labels
 
-    for ts_ahead in range(Config.IMS_STEP):
+    for ts_ahead in range(Config.LSTM_IMS_STEP):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm,
-                                                    labels=measured_matrix)
-        predictX = rnn_model.predict(rnn_input)
-        pred = np.expand_dims(predictX[:, -1, 0], axis=0)
+                                                    labels=labels)
+        predictX = model.predict(rnn_input)
+        multi_steps_tm[ts_ahead] = predictX[:, -1, 0].T
 
-        sampling = np.zeros(shape=(1, pred.shape[1]))
-        measured_matrix = np.concatenate([measured_matrix, sampling], axis=0)
-
-        multi_steps_tm = np.concatenate([multi_steps_tm, pred], axis=0)
-
-    multi_steps_tm = multi_steps_tm[Config.LSTM_STEP:, :]
-    multi_steps_tm = np.expand_dims(multi_steps_tm, axis=0)
-
-    iterated_multi_steps_tm = np.concatenate([ims_tm, multi_steps_tm], axis=0)
-
-    return iterated_multi_steps_tm
+    return multi_steps_tm[-1, :]
 
 
-def predict_lstm_nn(test_data, model):
-    # Initialize the first input for RNN to predict the TM at time slot look_back
-    ret_tm = np.copy(test_data[0:Config.LSTM_STEP, :])
-    # Results TM
-    # The TF array for random choosing the measured flows
-    tf = np.array([True, False])
-    measured_matrix = np.ones(shape=(ret_tm.shape[0], ret_tm.shape[1]))
+def predict_lstm_nn(init_data, test_data, model):
+    tf_a = np.array([True, False])
+    labels = np.ones(shape=init_data.shape)
 
-    ims_tm = np.empty(shape=(0, Config.IMS_STEP, ret_tm.shape[1]))
+    tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+
+    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.LSTM_IMS_STEP + 1, test_data.shape[1]))
 
     # Predict the TM from time slot look_back
-    for ts in range(0, test_data.shape[0] - Config.LSTM_STEP, 1):
+    for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
 
-        if ts < test_data.shape[0] - Config.LSTM_STEP - Config.IMS_STEP:
-            ims_tm_prediction(ret_tm=ret_tm,
-                              rnn_model=model,
-                              ims_tm=ims_tm,
-                              labels=measured_matrix)
+        if Config.LSTM_IMS and (ts <= test_data.shape[0] - Config.LSTM_IMS_STEP):
+            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP:, :],
+                                           model=model,
+                                           init_labels=labels[ts:ts + Config.LSTM_STEP:, :])
 
         # Create 3D input for rnn
-        rnn_input = prepare_input_online_prediction(data=ret_tm, labels=measured_matrix)
+        rnn_input = prepare_input_online_prediction(data=tm_pred, labels=labels)
 
         # Get the TM prediction of next time slot
         predictX = model.predict(rnn_input)
@@ -82,30 +73,31 @@ def predict_lstm_nn(test_data, model):
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
         # boolean array(1 x n_flows):for choosing value from predicted data
-        sampling = np.expand_dims(np.random.choice(tf,
+        sampling = np.expand_dims(np.random.choice(tf_a,
                                                    size=(test_data.shape[1]),
-                                                   p=[Config.MON_RAIO, 1 - Config.MON_RAIO]), axis=0)
-        measured_matrix = np.concatenate([measured_matrix, sampling], axis=0)
+                                                   p=[Config.LSTM_MON_RAIO, 1 - Config.LSTM_MON_RAIO]), axis=0)
+        labels = np.concatenate([labels, sampling], axis=0)
         # invert of sampling: for choosing value from the original data
         inv_sampling = np.invert(sampling)
 
         pred_input = pred.T * inv_sampling
 
-        ground_true = np.copy(test_data[ts + Config.LSTM_STEP, :])
+        ground_true = test_data[ts, :]
 
         measured_input = np.expand_dims(ground_true, axis=0) * sampling
 
         # Merge value from pred_input and measured_input
         new_input = pred_input + measured_input
-        # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
+        # new_input = np.reshape(new_input, (new_input.shap e[0], new_input.shape[1], 1))
 
         # Concatenating new_input into current rnn_input
-        ret_tm = np.concatenate([ret_tm, new_input], axis=0)
+        tm_pred[ts + Config.LSTM_STEP] = new_input
 
-    return ret_tm, measured_matrix, ims_tm
+    return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP:, :], ims_tm
 
 
 def build_model(args, input_shape):
+    print('|--- Build models.')
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -114,151 +106,228 @@ def build_model(args, input_shape):
                hidden=Config.LSTM_HIDDEN_UNIT,
                drop_out=Config.LSTM_DROPOUT,
                alg_name=alg_name, tag=tag, check_point=True,
-               saving_path=Config.MODEL_SAVE + '{}-{}-{}/fw/'.format(data_name, alg_name, tag))
+               saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
-    if 'deep-lstm-nn' in alg_name:
-        net.seq2seq_deep_model_construction(n_layers=3)
+    if Config.LSTM_DEEP:
+        net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
     else:
         net.seq2seq_model_construction()
 
     return net
 
 
-def train_lstm_nn(data, args):
+def train_lstm_nn(data, experiment, args):
+    print('|-- Run model training.')
     gpu = args.gpu
 
-    if gpu is None:
-        gpu = 0
+    params = Config.set_comet_params_lstm_nn()
+
+    data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
+    print('|--- Normalizing the train set.')
+    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
+                                                                                 valid_data2d,
+                                                                                 test_data2d)
+
+    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-
-        print('|--- Splitting train-test set.')
-        train_data, valid_data, test_data = prepare_train_test_set(data=data)
-        print('|--- Normalizing the train set.')
-        mean_train = np.mean(train_data)
-        std_train = np.std(train_data)
-        train_data = (train_data - mean_train) / std_train
-        valid_data = (valid_data - mean_train) / std_train
-        test_data = (test_data - mean_train) / std_train
-
-        input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
-
         lstm_net = build_model(args, input_shape)
 
-        if os.path.isfile(path=lstm_net.saving_path + 'model.json'):
-            lstm_net.load_model_from_check_point(_from_epoch=Config.BEST_CHECKPOINT, weights_file_type='hdf5')
+    # -------------------------------- Create offline training and validating dataset ------------------------------
+    print('|--- Create offline train set for lstm-nn!')
+    trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+    print('|--- Create offline valid set for lstm-nn!')
+    validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+    # --------------------------------------------------------------------------------------------------------------
 
+    if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
+        lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
+
+    else:
+        print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
+        from_epoch = lstm_net.load_model_from_check_point()
+
+        if from_epoch > 0:
+            training_history = lstm_net.model.fit(x=trainX,
+                                                  y=trainY,
+                                                  batch_size=Config.LSTM_BATCH_SIZE,
+                                                  epochs=Config.LSTM_N_EPOCH,
+                                                  callbacks=lstm_net.callbacks_list,
+                                                  validation_data=(validX, validY),
+                                                  shuffle=True,
+                                                  initial_epoch=from_epoch)
         else:
-            print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
-            from_epoch = lstm_net.load_model_from_check_point(weights_file_type='hdf5')
 
-            if from_epoch > 0:
+            training_history = lstm_net.model.fit(x=trainX,
+                                                  y=trainY,
+                                                  batch_size=Config.LSTM_BATCH_SIZE,
+                                                  epochs=Config.LSTM_N_EPOCH,
+                                                  callbacks=lstm_net.callbacks_list,
+                                                  validation_data=(validX, validY),
+                                                  shuffle=True)
 
-                training_history = lstm_net.model.fit_generator(
-                    generator_lstm_nn_train_data(data=train_data,
-                                                 input_shape=input_shape,
-                                                 mon_ratio=Config.MON_RAIO,
-                                                 eps=0.5,
-                                                 batch_size=Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    initial_epoch=from_epoch,
-                    validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
-                                                                 Config.BATCH_SIZE),
-                    validation_steps=int(Config.NUM_ITER * 0.2),
-                    callbacks=lstm_net.callbacks_list,
-                    use_multiprocessing=True, workers=2, max_queue_size=1024
-                )
-            else:
+        if training_history is not None:
+            lstm_net.plot_training_history(training_history)
+            experiment.log_parameters(params)
 
-                training_history = lstm_net.model.fit_generator(
-                    generator_lstm_nn_train_data(data=train_data,
-                                                 input_shape=input_shape,
-                                                 mon_ratio=Config.MON_RAIO,
-                                                 eps=0.5,
-                                                 batch_size=Config.BATCH_SIZE),
-                    epochs=Config.N_EPOCH,
-                    steps_per_epoch=Config.NUM_ITER,
-                    validation_data=generator_lstm_nn_train_data(valid_data, input_shape, Config.MON_RAIO, 0.5,
-                                                                 Config.BATCH_SIZE),
-                    validation_steps=int(Config.NUM_ITER * 0.2),
-                    callbacks=lstm_net.callbacks_list,
-                    use_multiprocessing=True, workers=2, max_queue_size=1024
-                )
-
-            if training_history is not None:
-                lstm_net.plot_training_history(training_history)
-        print('---------------------------------LSTM_NET SUMMARY---------------------------------')
-        print(lstm_net.model.summary())
+    print('---------------------------------LSTM_NET SUMMARY---------------------------------')
+    print(lstm_net.model.summary())
 
     return
 
 
-def calculate_iterated_multi_step_tm_prediction_errors(test_set):
-    ims_test_set = np.empty(shape=(0, Config.IMS_STEP, test_set.shape[1]))
+def ims_tm_test_data(test_data):
+    ims_test_set = np.zeros(
+        shape=(test_data.shape[0] - Config.LSTM_IMS_STEP + 1, test_data.shape[1]))
 
-    for ts in range(test_set.shape[0] - Config.LSTM_STEP - Config.IMS_STEP):
-        multi_step_test_set = np.copy(test_set[(ts + Config.LSTM_STEP): (ts + Config.LSTM_STEP + Config.IMS_STEP), :])
-        multi_step_test_set = np.expand_dims(multi_step_test_set, axis=0)
-        ims_test_set = np.concatenate([ims_test_set, multi_step_test_set], axis=0)
+    for i in range(Config.LSTM_IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.LSTM_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
 
-def test_lstm_nn(data, args):
+def load_trained_model(args, input_shape, best_ckp):
+    print('|--- Load trained model')
+    lstm_net = build_model(args, input_shape)
+    lstm_net.model.load_weights(lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
+    return lstm_net
+
+
+def test_lstm_nn(data, experiment, args):
+    print('|-- Run model testing.')
+    gpu = args.gpu
+
+    params = Config.set_comet_params_lstm_nn()
+
+    data_name = args.data_name
+    if 'Abilene' in data_name:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    if not Config.ALL_DATA:
+        data = data[0:Config.NUM_DAYS * day_size]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
+    if 'Abilene' in data_name:
+        print('|--- Remove last 3 days in test data.')
+        test_data2d = test_data2d[0:-day_size * 3]
+
+    print('|--- Normalizing the train set.')
+    _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
+                                                                                valid_data2d,
+                                                                                test_data2d)
+
+    print("|--- Create LSTM model.")
+    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
+
+    with tf.device('/device:GPU:{}'.format(gpu)):
+
+        lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
+
+    run_test(experiment, test_data2d, test_data_normalized2d, valid_data2d[-Config.LSTM_STEP:],
+             lstm_net, params, scalers, args)
+    return
+
+
+def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_net, params, scalers, args):
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
 
-    print('|--- Splitting train-test set.')
-    train_data, valid_data, test_data = prepare_train_test_set_3d(data=data)
-    print('|--- Normalizing the train set.')
-    mean_train = np.mean(train_data)
-    std_train = np.std(train_data)
-    test_data_normalized = (test_data - mean_train) / std_train
-
-    print("|--- Create FWBW_CONVLSTM model.")
-    input_shape = (Config.LSTM_STEP,
-                   Config.CNN_WIDE, Config.CNN_HIGH, Config.CNN_CHANNEL)
-
-    lstm_net = build_model(args, input_shape)
-
-    results_summary = pd.read_csv(Config.RESULTS_PATH + 'sample_results.csv')
+    results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
+                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
 
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
-    for i in range(Config.TESTING_TIME):
-        pred_tm, measured_matrix, ims_tm = predict_lstm_nn(test_data=test_data_normalized,
-                                                           model=lstm_net.model)
+    ims_test_set = ims_tm_test_data(test_data=test_data2d)
+    measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
-        pred_tm = pred_tm * std_train + mean_train
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+        np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
+                test_data2d)
 
-        err.append(error_ratio(y_true=test_data_normalized, y_pred=np.copy(pred_tm), measured_matrix=measured_matrix))
-        r2_score.append(calculate_r2_score(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
-        rmse.append(rmse_tm_prediction(y_true=test_data_normalized, y_pred=np.copy(pred_tm)))
+    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
+        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
+                test_data_normalized2d)
 
-        ims_tm = ims_tm * std_train + mean_train
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
+                                                                      alg_name, tag, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
-        ims_test_set = calculate_iterated_multi_step_tm_prediction_errors(test_set=test_data)
+    with experiment.test():
 
-        measured_matrix = np.zeros(shape=ims_test_set.shape)
-        err_ims.append(error_ratio(y_pred=ims_tm,
-                                   y_true=ims_test_set,
-                                   measured_matrix=measured_matrix))
+        for i in range(Config.LSTM_TESTING_TIME):
+            print('|--- Running time: {}'.format(i))
+            pred_tm2d, measured_matrix2d, ims_tm2d = predict_lstm_nn(init_data=init_data2d,
+                                                                     test_data=test_data_normalized2d,
+                                                                     model=lstm_net.model)
 
-        r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm))
-        rmse_ims.append(rmse_tm_prediction(y_true=ims_test_set, y_pred=ims_tm))
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+                                                                                  Config.SCALER, i),
+                    pred_tm2d)
 
-    results_summary['running_time'] = range(Config.TESTING_TIME)
-    results_summary['err'] = err
-    results_summary['r2_score'] = r2_score
-    results_summary['rmse'] = rmse
-    results_summary['err_ims'] = err_ims
-    results_summary['r2_score_ims'] = r2_score_ims
-    results_summary['rmse_ims'] = rmse_ims
+            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
-    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}.csv'.format(data_name, alg_name, tag),
-                           index=False)
+            err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+            r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
+            rmse.append(calculate_rmse(y_true=test_data2d, y_pred=pred_tm_invert2d))
 
-    return
+            if Config.LSTM_IMS:
+                ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
+
+                err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+                                           y_true=ims_test_set,
+                                           measured_matrix=measured_matrix_ims))
+
+                r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+                rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+
+            else:
+                err_ims.append(0)
+                r2_score_ims.append(0)
+                rmse_ims.append(0)
+
+            print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+            print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                              err_ims[i], rmse_ims[i],
+                                                              r2_score_ims[i]))
+
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+                                                                           Config.SCALER, i),
+                    pred_tm_invert2d)
+            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+                                                                              Config.SCALER, i),
+                    measured_matrix2d)
+
+        results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
+        results_summary['err'] = err
+        results_summary['r2'] = r2_score
+        results_summary['rmse'] = rmse
+        results_summary['err_ims'] = err_ims
+        results_summary['r2_ims'] = r2_score_ims
+        results_summary['rmse_ims'] = rmse_ims
+
+        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
+                                                                                      alg_name, tag, Config.SCALER),
+                               index=False)
+        metrics = {
+            'err': results_summary['err'],
+            'rmse': results_summary['rmse'],
+            'r2': results_summary['r2'],
+            'err_ims': results_summary['err_ims'],
+            'rmse_ims': results_summary['rmse_ims'],
+            'r2_ims': results_summary['rmse_ims'],
+        }
+
+        experiment.log_metrics(metrics)
+        experiment.log_parameters(params)

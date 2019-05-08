@@ -6,7 +6,7 @@ from tqdm import tqdm
 from xgboost import XGBRegressor
 
 from common import Config
-from common.DataPreprocessing import data_scalling, prepare_train_valid_test_2d, create_offline_xgb_data
+from common.DataPreprocessing import data_scalling, prepare_train_valid_test_2d, parallel_create_offline_xgb_data
 from common.error_utils import calculate_rmse, calculate_r2_score, error_ratio
 
 
@@ -120,7 +120,11 @@ def train_xgboost(data, args):
 
     xgb_model = XGBRegressor(n_jobs=Config.XGB_NJOBS)
 
-    trainX, trainY = create_offline_xgb_data(train_data_normalized2d, Config.XGB_STEP, Config.XGB_MON_RATIO, 0.5)
+    trainX, trainY = parallel_create_offline_xgb_data(train_data_normalized2d,
+                                                      Config.XGB_STEP,
+                                                      Config.XGB_FEATURES,
+                                                      Config.XGB_MON_RATIO,
+                                                      0.5)
 
     print('|--- Training model.')
 

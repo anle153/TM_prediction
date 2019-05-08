@@ -477,7 +477,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
 
     # --------------------------------------------------------------------------------------------------------------
     # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args)
-    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data2d[-Config.FWBW_CONV_LSTM_STEP:],
+    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
              fw_net, bw_net, params, scalers, args)
 
     return

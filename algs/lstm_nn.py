@@ -141,23 +141,10 @@ def train_lstm_nn(data, experiment, args):
         lstm_net = build_model(args, input_shape)
 
     # -------------------------------- Create offline training and validating dataset ------------------------------
-    if not os.path.isfile(lstm_net.saving_path + 'trainX.npy'):
-        print('|--- Create offline train set for lstm-nn!')
-        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-        np.save(lstm_net.saving_path + 'trainX.npy', trainX)
-        np.save(lstm_net.saving_path + 'trainY.npy', trainY)
-    else:
-        trainX = np.load(lstm_net.saving_path + 'trainX.npy')
-        trainY = np.load(lstm_net.saving_path + 'trainY.npy')
-
-    if not os.path.isfile(lstm_net.saving_path + 'validX.npy'):
-        print('|--- Create offline valid set for lstm-nn!')
-        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-        np.save(lstm_net.saving_path + 'validX.npy', validX)
-        np.save(lstm_net.saving_path + 'validY.npy', validY)
-    else:
-        validX = np.load(lstm_net.saving_path + 'validX.npy')
-        validY = np.load(lstm_net.saving_path + 'validY.npy')
+    print('|--- Create offline train set for lstm-nn!')
+    trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+    print('|--- Create offline valid set for lstm-nn!')
+    validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
     # --------------------------------------------------------------------------------------------------------------
 
     if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):

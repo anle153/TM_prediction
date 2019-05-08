@@ -42,7 +42,7 @@ def train_xgboost(data, args):
     preds = np.reshape(preds, newshape=(valid_data2d.shape[0] - Config.XGB_STEP, valid_data2d.shape[1]))
 
     preds_inv = scalers.inverse_transform(preds)
-    preds_inv = preds_inv.flatten()
+    # preds_inv = preds_inv.flatten()
 
     _r2 = r2_score(y_pred=preds_inv, y_true=valid_data2d[Config.XGB_STEP:])
     print("R2_score: %f" % _r2)

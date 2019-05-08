@@ -57,9 +57,9 @@ def predict_lstm_nn(init_data, test_data, model):
         # This block is used for iterated multi-step traffic matrices prediction
 
         if Config.LSTM_IMS and (ts <= test_data.shape[0] - Config.LSTM_IMS_STEP):
-            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP:, :],
+            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP, :],
                                            model=model,
-                                           init_labels=labels[ts:ts + Config.LSTM_STEP:, :])
+                                           init_labels=labels[ts:ts + Config.LSTM_STEP, :])
 
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=tm_pred, labels=labels)
@@ -180,6 +180,9 @@ def train_lstm_nn(data, experiment, args):
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
 
+    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+             lstm_net, params, scalers, args)
+
     return
 
 
@@ -233,7 +236,7 @@ def test_lstm_nn(data, experiment, args):
 
         lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
 
-    run_test(experiment, test_data2d, test_data_normalized2d, valid_data2d[-Config.LSTM_STEP:],
+    run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.LSTM_STEP:],
              lstm_net, params, scalers, args)
     return
 

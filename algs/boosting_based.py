@@ -135,6 +135,7 @@ def train_xgboost(data, args):
 
 
 def run_test(test_data2d, test_data_normalized2d, init_data2d, xgb_model, scalers, args):
+    print('|--- Run test xgb!')
     alg_name = args.alg
     tag = args.tag
     data_name = args.data_name
@@ -158,57 +159,57 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, xgb_model, scaler
                                                                       alg_name, tag, Config.SCALER)):
         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
-        for i in range(Config.XGB_TESTING_TIME):
-            print('|--- Running time: {}'.format(i))
-            pred_tm2d, measured_matrix2d, ims_tm2d = predict_xgb(init_data=init_data2d,
-                                                                 test_data=test_data_normalized2d,
-                                                                 model=xgb_model)
+    for i in range(Config.XGB_TESTING_TIME):
+        print('|--- Running time: {}'.format(i))
+        pred_tm2d, measured_matrix2d, ims_tm2d = predict_xgb(init_data=init_data2d,
+                                                             test_data=test_data_normalized2d,
+                                                             model=xgb_model)
 
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-                                                                                  Config.SCALER, i),
-                    pred_tm2d)
-
-            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-
-            err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-            r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-            rmse.append(calculate_rmse(y_true=test_data2d, y_pred=pred_tm_invert2d))
-
-            if Config.XGB_IMS:
-                ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
-
-                err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                           y_true=ims_test_set,
-                                           measured_matrix=measured_matrix_ims))
-
-                r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
-                rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert2d))
-
-            else:
-                err_ims.append(0)
-                r2_score_ims.append(0)
-                rmse_ims.append(0)
-
-            print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-            print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
-                                                              err_ims[i], rmse_ims[i],
-                                                              r2_score_ims[i]))
-
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-                                                                           Config.SCALER, i),
-                    pred_tm_invert2d)
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
                                                                               Config.SCALER, i),
-                    measured_matrix2d)
+                pred_tm2d)
 
-        results_summary['No.'] = range(Config.XGB_TESTING_TIME)
-        results_summary['err'] = err
-        results_summary['r2'] = r2_score
-        results_summary['rmse'] = rmse
-        results_summary['err_ims'] = err_ims
-        results_summary['r2_ims'] = r2_score_ims
-        results_summary['rmse_ims'] = rmse_ims
+        pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
-                                                                                      alg_name, tag, Config.SCALER),
-                               index=False)
+        err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+        r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data2d, y_pred=pred_tm_invert2d))
+
+        if Config.XGB_IMS:
+            ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
+
+            err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+                                       y_true=ims_test_set,
+                                       measured_matrix=measured_matrix_ims))
+
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+
+        else:
+            err_ims.append(0)
+            r2_score_ims.append(0)
+            rmse_ims.append(0)
+
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
+                                                          r2_score_ims[i]))
+
+        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+                                                                       Config.SCALER, i),
+                pred_tm_invert2d)
+        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+                                                                          Config.SCALER, i),
+                measured_matrix2d)
+
+    results_summary['No.'] = range(Config.XGB_TESTING_TIME)
+    results_summary['err'] = err
+    results_summary['r2'] = r2_score
+    results_summary['rmse'] = rmse
+    results_summary['err_ims'] = err_ims
+    results_summary['r2_ims'] = r2_score_ims
+    results_summary['rmse_ims'] = rmse_ims
+
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
+                                                                                  alg_name, tag, Config.SCALER),
+                           index=False)

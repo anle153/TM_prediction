@@ -32,6 +32,9 @@ def train(args):
     elif 'holt-winter' in alg_name:
         from algs.holt_winter import train_holt_winter
         train_holt_winter(args=args, data=data)
+    elif 'xgb' in alg_name:
+        from algs.boosting_based import train_xgboost
+        train_xgboost(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
 

@@ -1,8 +1,9 @@
-import os
+import numpy as np
+from sklearn.metrics import r2_score
+from xgboost import XGBRegressor
 
-from Models.XGB_model import XGB
 from common import Config
-from common.DataPreprocessing import data_scalling, prepare_train_valid_test_2d, create_offline_lstm_nn_data
+from common.DataPreprocessing import data_scalling, prepare_train_valid_test_2d, create_offline_xgb_data
 
 
 def train_xgboost(data, args):
@@ -24,24 +25,24 @@ def train_xgboost(data, args):
                                                                                  valid_data2d,
                                                                                  test_data2d)
     saving_path = Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER)
-    xgb_model = XGB(data_name, saving_path, alg_name, tag)
+    xgb_model = XGBRegressor(n_jobs=4)
 
-    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
+    trainX, trainY = create_offline_xgb_data(train_data_normalized2d, Config.XGB_STEP, Config.XGB_MON_RATIO, 0.5)
 
-    if not os.path.isfile(xgb_model.saving_path + 'trainX.npy'):
-        print('|--- Create offline train set for lstm-nn!')
-        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-        np.save(lstm_net.saving_path + 'trainX.npy', trainX)
-        np.save(lstm_net.saving_path + 'trainY.npy', trainY)
-    else:
-        trainX = np.load(lstm_net.saving_path + 'trainX.npy')
-        trainY = np.load(lstm_net.saving_path + 'trainY.npy')
+    validX, validY = create_offline_xgb_data(valid_data_normalized2d, Config.XGB_STEP, Config.XGB_MON_RATIO, 0.5)
 
-    if not os.path.isfile(lstm_net.saving_path + 'validX.npy'):
-        print('|--- Create offline valid set for lstm-nn!')
-        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-        np.save(lstm_net.saving_path + 'validX.npy', validX)
-        np.save(lstm_net.saving_path + 'validY.npy', validY)
-    else:
-        validX = np.load(lstm_net.saving_path + 'validX.npy')
-        validY = np.load(lstm_net.saving_path + 'validY.npy')
+    validX2d, validY2d = create_offline_xgb_data(valid_data2d, Config.XGB_STEP, Config.XGB_MON_RATIO, 0.5)
+    print('|--- Training model.')
+
+    xgb_model.fit(trainX, trainY)
+    print('|--- Testing model.')
+
+    preds = xgb_model.predict(validX)
+
+    preds = np.reshape(preds, newshape=(valid_data2d.shape[0] - Config.XGB_STEP, valid_data2d.shape[1]))
+
+    preds_inv = scalers.inverse_transform(preds)
+    preds_inv = preds_inv.flatten()
+
+    _r2 = r2_score(y_pred=preds_inv, y_true=valid_data2d[Config.XGB_STEP:])
+    print("R2_score: %f" % _r2)

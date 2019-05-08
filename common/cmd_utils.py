@@ -150,6 +150,7 @@ def print_xgb_info(run_mode):
     print('|--- MON_RATIO:\t{}'.format(Config.XGB_MON_RATIO))
     print('            -----------            ')
     print('|--- FEATURES:\t{}'.format(Config.XGB_STEP))
+    print('|--- N_JOBS:\t{}'.format(Config.XGB_NJOBS))
 
     if 'train' in run_mode:
         if Config.XGB_IMS:

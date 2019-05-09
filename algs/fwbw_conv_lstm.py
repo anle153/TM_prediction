@@ -240,26 +240,26 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
 
         # Prediction results from backward network
-        predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
-
-        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
+        # predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
+        #
+        # predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
+        # predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
 
         # Flipping the backward prediction
-        predictX_backward = np.flip(predictX_backward, axis=0)
+        # predictX_backward = np.flip(predictX_backward, axis=0)
 
         # Correcting the imprecise input data
-        updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX, pred_backward=predictX_backward,
-                                    rnn_input_labels=rnn_input)
+        # updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX, pred_backward=predictX_backward,
+        #                             rnn_input_labels=rnn_input)
 
         predict_tm = predictX[-1, :, :]
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                         p=(Config.FWBW_CONV_LSTM_MON_RAIO, 1 - Config.FWBW_CONV_LSTM_MON_RAIO))
-        else:
-            sampling = set_measured_flow_3d(rnn_input_labels=rnn_input,
-                                            forward_pred=predictX,
-                                            backward_pred=predictX_backward)
+        # else:
+        #     sampling = set_measured_flow_3d(rnn_input_labels=rnn_input,
+        #                                     forward_pred=predictX,
+        #                                     backward_pred=predictX_backward)
 
         # Selecting next monitored flows randomly
         inv_sampling = np.invert(sampling)

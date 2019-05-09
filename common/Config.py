@@ -53,7 +53,7 @@ FWBW_CONV_LSTM_WIDE = 12
 FWBW_CONV_LSTM_HIGH = 12
 FWBW_CONV_LSTM_CHANNEL = 2
 
-FWBW_CONV_LSTM_MON_RAIO = 0.30
+FWBW_CONV_LSTM_MON_RAIO = 0.40
 
 FWBW_CONV_LSTM_IMS_STEP = 4
 FWBW_CONV_LSTM_STEP = 26
@@ -131,7 +131,7 @@ ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[1]
-ALG = ALGS[2]
+ALG = ALGS[0]
 GPU = 1
 
 # -----------------------------------------------------------------------------------------------------------------------

@@ -6,7 +6,8 @@ from tqdm import tqdm
 from xgboost import XGBRegressor
 
 from common import Config
-from common.DataPreprocessing import data_scalling, prepare_train_valid_test_2d, parallel_create_offline_xgb_data
+from common.DataPreprocessing import data_scalling, prepare_train_valid_test_2d, parallel_create_offline_xgb_data, \
+    create_xgb_features
 from common.error_utils import calculate_rmse, calculate_r2_score, error_ratio
 
 
@@ -24,7 +25,9 @@ def prepare_input_online_prediction(data):
     dataX = np.zeros(shape=(data.shape[1], Config.XGB_STEP))
     for flow_id in range(data.shape[1]):
         x = data[-Config.XGB_STEP:, flow_id]
-        dataX[flow_id] = x
+        x = pd.Series(x)
+
+        dataX[flow_id] = create_xgb_features(x)
 
     return dataX
 

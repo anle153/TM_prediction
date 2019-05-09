@@ -226,7 +226,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
                                            forward_model=forward_model,
                                            backward_model=backward_model)
 
-        rnn_input = tm_labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP), :, :, :]  # shape(timesteps, od, od , 2)
+        rnn_input = tm_labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]  # shape(timesteps, od, od , 2)
 
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 

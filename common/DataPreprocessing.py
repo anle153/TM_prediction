@@ -296,9 +296,9 @@ def create_xgb_features(x):
     x_step.append(np.abs(x).max())
     x_step.append(np.abs(x).min())
 
-    x_step.append(x.max() / np.abs(x.min()))
+    # x_step.append(x.max() / np.abs(x.min()))
     x_step.append(x.max() - np.abs(x.min()))
-    x_step.append(len(x[np.abs(x) > 100]))
+    # x_step.append(len(x[np.abs(x) > 100]))
     x_step.append(x.sum())
 
     x_step.append(np.quantile(x, 0.95))

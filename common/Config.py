@@ -29,7 +29,7 @@ LSTM_STEP = 26
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
-LSTM_MON_RAIO = 0.40
+LSTM_MON_RAIO = 0.20
 
 LSTM_BEST_CHECKPOINT = 5
 LSTM_TESTING_TIME = 1
@@ -131,7 +131,7 @@ ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[0]
+ALG = ALGS[2]
 GPU = 1
 
 # -----------------------------------------------------------------------------------------------------------------------

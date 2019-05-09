@@ -10,29 +10,27 @@ from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
 
 
 def train(args):
-    alg_name = args.alg
+    data = np.load(DATA_PATH + '{}.npy'.format(Config.ALG))
 
-    data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
-
-    if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
+    if Config.ALG == Config.ALGS[0]:
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
         experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         train_fwbw_conv_lstm(args=args, data=data, experiment=experiment)
-    elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
+    elif Config.ALG == Config.ALGS[1]:
         from algs.conv_lstm import train_conv_lstm
         experiment = Experiment(project_name='tmp-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         train_conv_lstm(args=args, data=data, experiment=experiment)
-    elif 'lstm-nn' in alg_name:
+    elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import train_lstm_nn
         experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
         train_lstm_nn(args=args, data=data, experiment=experiment)
-    elif 'arima' in alg_name:
+    elif Config.ALG == Config.ALGS[3]:
         from algs.arima import train_arima
         train_arima(args=args, data=data)
-    elif 'holt-winter' in alg_name:
+    elif Config.ALG == Config.ALGS[4]:
         from algs.holt_winter import train_holt_winter
         train_holt_winter(args=args, data=data)
-    elif 'xgb' in alg_name:
+    elif Config.ALG == Config.ALGS[5]:
         from algs.boosting_based import train_xgboost
         train_xgboost(args=args, data=data)
     else:
@@ -44,24 +42,27 @@ def test(args):
 
     data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
 
-    if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
+    if Config.ALG == Config.ALGS[0]:
         from algs.fwbw_conv_lstm import test_fwbw_conv_lstm
         experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         test_fwbw_conv_lstm(args=args, data=data, experiment=experiment)
-    elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
+    elif Config.ALG == Config.ALGS[1]:
         from algs.conv_lstm import test_conv_lstm
         experiment = Experiment(project_name='tmp-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         test_conv_lstm(args=args, data=data, experiment=experiment)
-    elif 'lstm-nn' in alg_name:
+    elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import test_lstm_nn
         experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
         test_lstm_nn(args=args, data=data, experiment=experiment)
-    elif 'arima' in alg_name:
+    elif Config.ALG == Config.ALGS[3]:
         from algs.arima import test_arima
         test_arima(args=args, data=data)
-    elif 'holt-winter' in alg_name:
+    elif Config.ALG == Config.ALGS[4]:
         from algs.holt_winter import test_holt_winter
         test_holt_winter(args=args, data=data)
+    # elif Config.ALG == Config.ALGS[5]:
+    #     from algs.boosting_based import run_test
+    #     test_holt_winter(args=args, data=data)
     else:
         raise ValueError('Unkown alg!')
 

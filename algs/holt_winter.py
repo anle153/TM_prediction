@@ -3,13 +3,12 @@ import pickle
 import matplotlib
 import numpy as np
 import pandas as pd
+from statsmodels.tsa.api import ExponentialSmoothing
+from tqdm import tqdm
 
 from common import Config
 from common.DataPreprocessing import prepare_train_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
-from tqdm import tqdm
-
-from statsmodels.tsa.api import ExponentialSmoothing
 
 matplotlib.use('Agg')
 
@@ -32,10 +31,10 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def train_holt_winter(args, data):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def train_holt_winter(data):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -72,10 +71,10 @@ def train_holt_winter(args, data):
         pickle.dump(model, saved_model, 2)
 
 
-def test_holt_winter(data, args):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def test_holt_winter(data):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
@@ -119,7 +118,7 @@ def test_holt_winter(data, args):
     ims_pred_tm = np.zeros((test_data.shape[0] - Config.HOLT_WINTER_IMS_STEP + 1, test_data.shape[1]))
 
     if not os.path.isfile(Config.MODEL_SAVE + 'holt_winter/{}-{}-{}'.format(0, data_name, alg_name)):
-        train_holt_winter(args, data)
+        train_holt_winter(data)
 
     for running_time in range(Config.HOLT_WINTER_TESTING_TIME):
         print('|--- Run time: {}'.format(running_time))

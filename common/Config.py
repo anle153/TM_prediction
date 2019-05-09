@@ -1,3 +1,4 @@
+
 # --------------- Data Config -----------------
 
 DATA_PATH = './Dataset/'
@@ -52,10 +53,10 @@ FWBW_CONV_LSTM_WIDE = 12
 FWBW_CONV_LSTM_HIGH = 12
 FWBW_CONV_LSTM_CHANNEL = 2
 
-FWBW_CONV_LSTM_MON_RAIO = 0.35
+FWBW_CONV_LSTM_MON_RAIO = 0.30
 
 FWBW_CONV_LSTM_IMS_STEP = 4
-FWBW_CONV_LSTM_STEP = 26
+FWBW_CONV_LSTM_STEP = 20
 
 FWBW_CONV_LSTM_TESTING_TIME = 1
 FW_BEST_CHECKPOINT = 99
@@ -112,6 +113,44 @@ CONV_LSTM_CHANNEL = 2
 CONV_LSTM_MON_RAIO = 0.3
 
 CONV_LSTM_IMS = False
+
+# ----------- XGB Config ----------------------
+XGB_STEP = 288
+XGB_MON_RATIO = 0.3
+XGB_IMS = False
+XGB_IMS_STEP = 12
+XGB_TESTING_TIME = 1
+XGB_NJOBS = 16
+XGB_FEATURES = 28
+
+# ----------- RUNNING Config ----------------------
+
+RUN_MODES = ['train', 'test', 'plot']
+ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
+
+DATA_NAME = 'Abilene2d'
+
+RUN_MODE = RUN_MODES[0]
+ALG = ALGS[5]
+GPU = 1
+
+# -----------------------------------------------------------------------------------------------------------------------
+if ALG == ALGS[0]:
+    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100), FWBW_CONV_LSTM_STEP)
+elif ALG == ALGS[1]:
+    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(CONV_LSTM_MON_RAIO * 100), CONV_LSTM_STEP)
+elif ALG == ALGS[2]:
+    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(LSTM_MON_RAIO * 100), LSTM_STEP)
+elif ALG == ALGS[3]:
+    TAG = 'mon_{:2d}_update_{:2d}'.format(int(ARIMA_MON_RATIO * 100), ARIMA_UPDATE)
+elif ALG == ALGS[4]:
+    TAG = 'mon_{:2d}_update_{:2d}'.format(int(HOLT_WINTER_MON_RATIO * 100), HOLT_WINTER_UPDATE)
+elif ALG == ALGS[5]:
+    TAG = 'mon_{:2d}_features_{:2d}_steps_{:2d}'.format(int(XGB_MON_RATIO * 100), XGB_FEATURES, XGB_STEP)
+else:
+    raise Exception('Unknown alg!')
+
+########################################################################################################################
 
 
 def set_comet_params_fwbw_conv_lstm():

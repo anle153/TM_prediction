@@ -96,11 +96,11 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
     return tm_labels[Config.CONV_LSTM_STEP:, :, :, :], ims_tm
 
 
-def build_model(args, input_shape):
+def build_model(input_shape):
     print('|--- Build models.')
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     conv_lstm_net = ConvLSTM(input_shape=input_shape,
                              cnn_layers=Config.CONV_LSTM_LAYERS,
@@ -118,21 +118,21 @@ def build_model(args, input_shape):
     return conv_lstm_net
 
 
-def load_trained_models(args, input_shape, best_ckp):
+def load_trained_models(input_shape, best_ckp):
     print('|--- Load trained model')
-    conv_lstm_net = build_model(args, input_shape)
+    conv_lstm_net = build_model(input_shape)
     conv_lstm_net.model.load_weights(conv_lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
 
     return conv_lstm_net
 
 
-def train_conv_lstm(data, experiment, args):
+def train_conv_lstm(data, experiment):
     print('|-- Run model training.')
-    gpu = args.gpu
+    gpu = Config.GPU
 
     params = Config.set_comet_params_conv_lstm()
 
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -157,30 +157,17 @@ def train_conv_lstm(data, experiment, args):
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        conv_lstm_net = build_model(args, input_shape)
+        conv_lstm_net = build_model(input_shape)
 
     # -------------------------------- Create offline training and validating dataset ------------------------------
-    if not os.path.isfile(conv_lstm_net.saving_path + 'trainX.npy'):
-        print('|--- Create offline train set for conv_lstm net!')
+    print('|--- Create offline train set for conv_lstm net!')
 
-        trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
-        np.save(conv_lstm_net.saving_path + 'trainX.npy', trainX)
-        np.save(conv_lstm_net.saving_path + 'trainY.npy', trainY)
-    else:
-        trainX = np.load(conv_lstm_net.saving_path + 'trainX.npy')
-        trainY = np.load(conv_lstm_net.saving_path + 'trainY.npy')
+    trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
+                                                            input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
+    print('|--- Create offline valid set for conv_lstm net!')
 
-    if not os.path.isfile(conv_lstm_net.saving_path + 'validX.npy'):
-        print('|--- Create offline valid set for conv_lstm net!')
-
-        validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
-        np.save(conv_lstm_net.saving_path + 'validX.npy', validX)
-        np.save(conv_lstm_net.saving_path + 'validY.npy', validY)
-    else:
-        validX = np.load(conv_lstm_net.saving_path + 'validX.npy')
-        validY = np.load(conv_lstm_net.saving_path + 'validY.npy')
+    validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
+                                                            input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
     # --------------------------------------------------------------------------------------------------------------
 
     with experiment.train():
@@ -223,9 +210,9 @@ def train_conv_lstm(data, experiment, args):
 
         experiment.log_parameters(params)
 
-    # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args)
-    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data2d[-Config.FWBW_CONV_LSTM_STEP:],
-             conv_lstm_net, params, scalers, args)
+    # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers)
+    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+             conv_lstm_net, params, scalers)
     return
 
 
@@ -239,10 +226,10 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def test_conv_lstm(data, experiment, args):
+def test_conv_lstm(data, experiment):
     print('|-- Run model testing.')
     params = Config.set_comet_params_conv_lstm()
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
         assert Config.CONV_LSTM_WIDE == 12
@@ -270,17 +257,17 @@ def test_conv_lstm(data, experiment, args):
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)
 
-    conv_lstm_net = load_trained_models(args, input_shape, Config.CONV_LSTM_BEST_CHECKPOINT)
+    conv_lstm_net = load_trained_models(input_shape, Config.CONV_LSTM_BEST_CHECKPOINT)
     run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             conv_lstm_net, params, scalers, args)
+             conv_lstm_net, params, scalers)
 
     return
 
 
-def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_lstm_net, params, scalers, args):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_lstm_net, params, scalers):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     results_summary = pd.DataFrame(index=range(Config.CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])

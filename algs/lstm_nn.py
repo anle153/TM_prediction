@@ -57,9 +57,9 @@ def predict_lstm_nn(init_data, test_data, model):
         # This block is used for iterated multi-step traffic matrices prediction
 
         if Config.LSTM_IMS and (ts <= test_data.shape[0] - Config.LSTM_IMS_STEP):
-            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP:, :],
+            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP, :],
                                            model=model,
-                                           init_labels=labels[ts:ts + Config.LSTM_STEP:, :])
+                                           init_labels=labels[ts:ts + Config.LSTM_STEP, :])
 
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=tm_pred, labels=labels)
@@ -96,11 +96,11 @@ def predict_lstm_nn(init_data, test_data, model):
     return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP:, :], ims_tm
 
 
-def build_model(args, input_shape):
+def build_model(input_shape):
     print('|--- Build models.')
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     net = lstm(input_shape=input_shape,
                hidden=Config.LSTM_HIDDEN_UNIT,
@@ -116,13 +116,13 @@ def build_model(args, input_shape):
     return net
 
 
-def train_lstm_nn(data, experiment, args):
+def train_lstm_nn(data, experiment):
     print('|-- Run model training.')
-    gpu = args.gpu
+    gpu = Config.GPU
 
     params = Config.set_comet_params_lstm_nn()
 
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -138,26 +138,13 @@ def train_lstm_nn(data, experiment, args):
     input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        lstm_net = build_model(args, input_shape)
+        lstm_net = build_model(input_shape)
 
     # -------------------------------- Create offline training and validating dataset ------------------------------
-    if not os.path.isfile(lstm_net.saving_path + 'trainX.npy'):
-        print('|--- Create offline train set for lstm-nn!')
-        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-        np.save(lstm_net.saving_path + 'trainX.npy', trainX)
-        np.save(lstm_net.saving_path + 'trainY.npy', trainY)
-    else:
-        trainX = np.load(lstm_net.saving_path + 'trainX.npy')
-        trainY = np.load(lstm_net.saving_path + 'trainY.npy')
-
-    if not os.path.isfile(lstm_net.saving_path + 'validX.npy'):
-        print('|--- Create offline valid set for lstm-nn!')
-        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-        np.save(lstm_net.saving_path + 'validX.npy', validX)
-        np.save(lstm_net.saving_path + 'validY.npy', validY)
-    else:
-        validX = np.load(lstm_net.saving_path + 'validX.npy')
-        validY = np.load(lstm_net.saving_path + 'validY.npy')
+    print('|--- Create offline train set for lstm-nn!')
+    trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+    print('|--- Create offline valid set for lstm-nn!')
+    validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
     # --------------------------------------------------------------------------------------------------------------
 
     if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
@@ -193,6 +180,9 @@ def train_lstm_nn(data, experiment, args):
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
 
+    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+             lstm_net, params, scalers)
+
     return
 
 
@@ -206,20 +196,20 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def load_trained_model(args, input_shape, best_ckp):
+def load_trained_model(input_shape, best_ckp):
     print('|--- Load trained model')
-    lstm_net = build_model(args, input_shape)
+    lstm_net = build_model(input_shape)
     lstm_net.model.load_weights(lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
     return lstm_net
 
 
-def test_lstm_nn(data, experiment, args):
+def test_lstm_nn(data, experiment):
     print('|-- Run model testing.')
-    gpu = args.gpu
+    gpu = Config.GPU
 
     params = Config.set_comet_params_lstm_nn()
 
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -244,17 +234,17 @@ def test_lstm_nn(data, experiment, args):
 
     with tf.device('/device:GPU:{}'.format(gpu)):
 
-        lstm_net = load_trained_model(args, input_shape, Config.LSTM_BEST_CHECKPOINT)
+        lstm_net = load_trained_model(input_shape, Config.LSTM_BEST_CHECKPOINT)
 
-    run_test(experiment, test_data2d, test_data_normalized2d, valid_data2d[-Config.LSTM_STEP:],
-             lstm_net, params, scalers, args)
+    run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.LSTM_STEP:],
+             lstm_net, params, scalers)
     return
 
 
-def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_net, params, scalers, args):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_net, params, scalers):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])

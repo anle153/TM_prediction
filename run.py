@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 from comet_ml import Experiment
 
@@ -101,4 +99,4 @@ def main():
 if __name__ == '__main__':
     # create_Geant2d(save_csv=True)
     # create_abilene_data_2d(path='/home/anle/AbileneTM-all/', save_csv=True)
-    main(sys.argv)
+    main()

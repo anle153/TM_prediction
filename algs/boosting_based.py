@@ -55,6 +55,8 @@ def predict_xgb(init_data, test_data, model):
 
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.XGB_IMS_STEP + 1, test_data.shape[1]))
 
+    tm_pred[0:init_data.shape[0]] = init_data
+
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction

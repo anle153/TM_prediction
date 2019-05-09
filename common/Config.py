@@ -56,7 +56,7 @@ FWBW_CONV_LSTM_CHANNEL = 2
 FWBW_CONV_LSTM_MON_RAIO = 0.30
 
 FWBW_CONV_LSTM_IMS_STEP = 4
-FWBW_CONV_LSTM_STEP = 20
+FWBW_CONV_LSTM_STEP = 30
 
 FWBW_CONV_LSTM_TESTING_TIME = 1
 FW_BEST_CHECKPOINT = 99
@@ -131,7 +131,7 @@ ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[5]
+ALG = ALGS[0]
 GPU = 1
 
 # -----------------------------------------------------------------------------------------------------------------------

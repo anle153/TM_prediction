@@ -6,90 +6,74 @@ from comet_ml import Experiment
 from common import Config
 from common.Config import DATA_PATH
 from common.DataHelper import create_abilene_data_2d, create_abilene_data_3d, create_Geant2d, create_Geant3d
-from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
+from common.cmd_utils import print_info
 
 
-def train(args):
+def train():
     data = np.load(DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
 
     if Config.ALG == Config.ALGS[0]:
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
         experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
-        train_fwbw_conv_lstm(args=args, data=data, experiment=experiment)
+        train_fwbw_conv_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[1]:
         from algs.conv_lstm import train_conv_lstm
         experiment = Experiment(project_name='tmp-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
-        train_conv_lstm(args=args, data=data, experiment=experiment)
+        train_conv_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import train_lstm_nn
         experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
-        train_lstm_nn(args=args, data=data, experiment=experiment)
+        train_lstm_nn(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[3]:
         from algs.arima import train_arima
-        train_arima(args=args, data=data)
+        train_arima(data=data)
     elif Config.ALG == Config.ALGS[4]:
         from algs.holt_winter import train_holt_winter
-        train_holt_winter(args=args, data=data)
+        train_holt_winter(data=data)
     elif Config.ALG == Config.ALGS[5]:
         from algs.boosting_based import train_xgboost
-        train_xgboost(args=args, data=data)
+        train_xgboost(data=data)
     else:
         raise ValueError('Unkown alg!')
 
 
-def test(args):
-    alg_name = args.alg
+def test():
+    alg_name = Config.ALG
 
-    data = np.load(DATA_PATH + '{}.npy'.format(args.data_name))
+    data = np.load(DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
 
     if Config.ALG == Config.ALGS[0]:
         from algs.fwbw_conv_lstm import test_fwbw_conv_lstm
         experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
-        test_fwbw_conv_lstm(args=args, data=data, experiment=experiment)
+        test_fwbw_conv_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[1]:
         from algs.conv_lstm import test_conv_lstm
         experiment = Experiment(project_name='tmp-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
-        test_conv_lstm(args=args, data=data, experiment=experiment)
+        test_conv_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import test_lstm_nn
         experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
-        test_lstm_nn(args=args, data=data, experiment=experiment)
+        test_lstm_nn(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[3]:
         from algs.arima import test_arima
-        test_arima(args=args, data=data)
+        test_arima(data=data)
     elif Config.ALG == Config.ALGS[4]:
         from algs.holt_winter import test_holt_winter
-        test_holt_winter(args=args, data=data)
+        test_holt_winter(data=data)
     # elif Config.ALG == Config.ALGS[5]:
     #     from algs.boosting_based import run_test
-    #     test_holt_winter(args=args, data=data)
+    #     test_holt_winter(data=data)
     else:
         raise ValueError('Unkown alg!')
 
 
-def parse_cmdline_kwargs(args):
-    def parse(v):
+def main():
+    print_info()
 
-        assert isinstance(v, str)
-        try:
-            return eval(v)
-        except (NameError, SyntaxError):
-            return v
-
-    return {k: parse(v) for k, v in parse_unknown_args(args).items()}
-
-
-def main(args):
-    arg_parser = common_arg_parser()
-    args, unknown_args = arg_parser.parse_known_args(args)
-    extra_args = parse_cmdline_kwargs(unknown_args)
-
-    print_info(args)
-
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
 
     import os
-    if not os.path.isfile(Config.DATA_PATH + '{}.npy'.format(args.data_name)):
+    if not os.path.isfile(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME)):
         if data_name == 'Abilene':
             create_abilene_data_3d('/home/anle/AbileneTM-all/')
         elif data_name == 'Abilene2d':
@@ -101,13 +85,15 @@ def main(args):
         else:
             raise ('Unknown dataset name!')
 
-    if 'train' in args.run_mode or 'training' in args.run_mode:
-        train(args)
-    elif 'test' in args.run_mode:
-        test(args)
-    else:
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+        train()
+    elif Config.RUN_MODE == Config.RUN_MODES[1]:
+        test()
+    elif Config.RUN_MODE == Config.RUN_MODES[2]:
         from common.ResultProcessing import plot_pred_results
-        plot_pred_results(args.data_name, args.alg, args.tag, 12)
+        plot_pred_results(Config.DATA_NAME, Config.ALG, Config.TAG, 12)
+    else:
+        raise Exception('Unknown RUN_MODE!')
 
     return
 

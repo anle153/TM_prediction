@@ -278,11 +278,11 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
     return tm_labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm
 
 
-def build_model(args, input_shape):
+def build_model(input_shape):
     print('|--- Build models.')
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     # CNN_BRNN forward model
     fw_net = ConvLSTM(input_shape=input_shape,
@@ -313,8 +313,8 @@ def build_model(args, input_shape):
     return fw_net, bw_net
 
 
-def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
-    fw_net, bw_net = build_model(args, input_shape)
+def load_trained_models(input_shape, fw_ckp, bw_ckp):
+    fw_net, bw_net = build_model(input_shape)
     print('|--- Load trained model from: {}'.format(fw_net.checkpoints_path))
     fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}.hdf5".format(fw_ckp))
     bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}.hdf5".format(bw_ckp))
@@ -322,14 +322,14 @@ def load_trained_models(args, input_shape, fw_ckp, bw_ckp):
     return fw_net, bw_net
 
 
-def train_fwbw_conv_lstm(data, experiment, args):
+def train_fwbw_conv_lstm(data, experiment):
     print('|-- Run model training.')
 
     params = Config.set_comet_params_fwbw_conv_lstm()
 
-    gpu = args.gpu
+    gpu = Config.GPU
 
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
         assert Config.FWBW_CONV_LSTM_HIGH == 12
@@ -358,7 +358,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fw_net, bw_net = build_model(args, input_shape)
+        fw_net, bw_net = build_model(input_shape)
 
     # -------------------------------- Create offline training and validating dataset ------------------------------
 
@@ -478,7 +478,7 @@ def train_fwbw_conv_lstm(data, experiment, args):
     # --------------------------------------------------------------------------------------------------------------
     # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args)
     run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fw_net, bw_net, params, scalers, args)
+             fw_net, bw_net, params, scalers)
 
     return
 
@@ -493,13 +493,13 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def test_fwbw_conv_lstm(data, experiment, args):
+def test_fwbw_conv_lstm(data, experiment):
     print('|-- Run model testing.')
-    gpu = args.gpu
+    gpu = Config.GPU
 
     params = Config.set_comet_params_fwbw_conv_lstm()
 
-    data_name = args.data_name
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -523,18 +523,18 @@ def test_fwbw_conv_lstm(data, experiment, args):
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fw_net, bw_net = load_trained_models(args, input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
+        fw_net, bw_net = load_trained_models(input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
 
     run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fw_net, bw_net, params, scalers, args)
+             fw_net, bw_net, params, scalers)
 
     return
 
 
-def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_net, bw_net, params, scalers, args):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_net, bw_net, params, scalers):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])

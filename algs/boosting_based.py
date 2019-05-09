@@ -96,12 +96,12 @@ def predict_xgb(init_data, test_data, model):
     return tm_pred[Config.XGB_STEP:, :], labels[Config.XGB_STEP:, :], ims_tm
 
 
-def train_xgboost(data, args):
+def train_xgboost(data):
     print('|-- Run xgboost model training.')
 
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
@@ -145,14 +145,14 @@ def train_xgboost(data, args):
         xgb_model.load_model(saving_path + 'xgb.models')
 
     run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.XGB_STEP:],
-             xgb_model, scalers, args)
+             xgb_model, scalers)
 
 
-def run_test(test_data2d, test_data_normalized2d, init_data2d, xgb_model, scalers, args):
+def run_test(test_data2d, test_data_normalized2d, init_data2d, xgb_model, scalers):
     print('|--- Run test xgb!')
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     results_summary = pd.DataFrame(index=range(Config.XGB_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])

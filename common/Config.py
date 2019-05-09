@@ -131,7 +131,7 @@ ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[0]
+ALG = ALGS[5]
 GPU = 1
 
 # -----------------------------------------------------------------------------------------------------------------------

@@ -22,7 +22,7 @@ def ims_tm_test_data(test_data):
 
 
 def prepare_input_online_prediction(data):
-    dataX = np.zeros(shape=(data.shape[1], Config.XGB_STEP))
+    dataX = np.zeros(shape=(data.shape[1], Config.XGB_FEATURES))
     for flow_id in range(data.shape[1]):
         x = data[-Config.XGB_STEP:, flow_id]
         x = pd.Series(x)

@@ -10,7 +10,7 @@ from common.cmd_utils import parse_unknown_args, common_arg_parser, print_info
 
 
 def train(args):
-    data = np.load(DATA_PATH + '{}.npy'.format(Config.ALG))
+    data = np.load(DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
 
     if Config.ALG == Config.ALGS[0]:
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm

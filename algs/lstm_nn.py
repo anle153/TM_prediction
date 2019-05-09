@@ -184,7 +184,7 @@ def train_lstm_nn(data, experiment):
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
 
-    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.LSTM_STEP:],
              lstm_net, params, scalers)
 
     return

@@ -27,7 +27,7 @@ def prepare_input_online_prediction(data):
         x = data[-Config.XGB_STEP:, flow_id]
         x = pd.Series(x)
 
-        dataX[flow_id] = create_xgb_features(x)
+        dataX[flow_id] = np.array(create_xgb_features(x))
 
     return dataX
 

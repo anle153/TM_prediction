@@ -122,26 +122,27 @@ def train_xgboost(data, args):
 
     xgb_model = XGBRegressor(n_jobs=Config.XGB_NJOBS)
 
-    if not os.path.isfile(saving_path + 'trainX.npy'):
+    if not os.path.isfile(saving_path + 'xgb.model'):
 
-        trainX, trainY = parallel_create_offline_xgb_data(train_data_normalized2d,
-                                                          Config.XGB_STEP,
-                                                          Config.XGB_FEATURES,
-                                                          Config.XGB_MON_RATIO,
-                                                          0.5)
-        np.save(saving_path + 'trainX.npy', trainX)
-        np.save(saving_path + 'trainY.npy', trainY)
-    else:
-        trainX = np.load(saving_path + 'trainX.npy')
-        trainY = np.load(saving_path + 'trainY.npy')
+        if not os.path.isfile(saving_path + 'trainX.npy'):
 
-    print('|--- Training model.')
+            trainX, trainY = parallel_create_offline_xgb_data(train_data_normalized2d,
+                                                              Config.XGB_STEP,
+                                                              Config.XGB_FEATURES,
+                                                              Config.XGB_MON_RATIO,
+                                                              0.5)
+            np.save(saving_path + 'trainX.npy', trainX)
+            np.save(saving_path + 'trainY.npy', trainY)
+        else:
+            trainX = np.load(saving_path + 'trainX.npy')
+            trainY = np.load(saving_path + 'trainY.npy')
 
-    if os.path.isfile(saving_path + 'xgb.models'):
-        xgb_model.load_model(saving_path + 'xgb.models')
-    else:
+        print('|--- Training model.')
+
         xgb_model.fit(trainX, trainY)
         xgb_model.save_model(saving_path + 'xgb.models')
+    else:
+        xgb_model.load_model(saving_path + 'xgb.models')
 
     run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.XGB_STEP:],
              xgb_model, scalers, args)

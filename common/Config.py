@@ -121,7 +121,7 @@ XGB_IMS = False
 XGB_IMS_STEP = 12
 XGB_TESTING_TIME = 1
 XGB_NJOBS = 16
-XGB_FEATURES = 28
+XGB_FEATURES = 26
 
 # ----------- RUNNING Config ----------------------
 

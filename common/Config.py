@@ -1,3 +1,12 @@
+RUN_MODES = ['train', 'test', 'plot']
+ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
+
+DATA_NAME = 'Abilene2d'
+
+RUN_MODE = RUN_MODES[0]
+ALG = ALGS[0]
+TAG = 'mon_30_lstm_26'
+GPU = 0
 # --------------- Data Config -----------------
 
 DATA_PATH = './Dataset/'

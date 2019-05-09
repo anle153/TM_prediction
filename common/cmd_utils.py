@@ -188,17 +188,17 @@ def print_info(args):
     else:
         raise Exception('Unknown scaler!')
 
-    if 'fwbw-conv-lstm' in alg_name or 'fwbw-convlstm' in alg_name:
+    if Config.ALG == Config.ALGS[0]:
         print_fwbw_conv_lstm_info(args.run_mode)
-    elif 'conv-lstm' in alg_name or 'convlstm' in alg_name:
+    elif Config.ALG == Config.ALGS[1]:
         print_conv_lstm_info(args.run_mode)
-    elif 'lstm-nn' in alg_name:
+    elif Config.ALG == Config.ALGS[2]:
         print_lstm_info(args.run_mode)
-    elif 'arima' in alg_name:
+    elif Config.ALG == Config.ALGS[3]:
         print_arima_info(args.run_mode)
-    elif 'holt-winter' in alg_name:
+    elif Config.ALG == Config.ALGS[4]:
         print_holt_winter_info(args.run_mode)
-    elif 'xgb' in alg_name:
+    elif Config.ALG == Config.ALGS[5]:
         print_xgb_info(args.run_mode)
     else:
         raise ValueError('Unkown alg!')

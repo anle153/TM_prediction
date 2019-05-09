@@ -122,11 +122,18 @@ def train_xgboost(data, args):
 
     xgb_model = XGBRegressor(n_jobs=Config.XGB_NJOBS)
 
-    trainX, trainY = parallel_create_offline_xgb_data(train_data_normalized2d,
-                                                      Config.XGB_STEP,
-                                                      Config.XGB_FEATURES,
-                                                      Config.XGB_MON_RATIO,
-                                                      0.5)
+    if not os.path.isfile(saving_path + 'trainX.npy'):
+
+        trainX, trainY = parallel_create_offline_xgb_data(train_data_normalized2d,
+                                                          Config.XGB_STEP,
+                                                          Config.XGB_FEATURES,
+                                                          Config.XGB_MON_RATIO,
+                                                          0.5)
+        np.save(saving_path + 'trainX.npy', trainX)
+        np.save(saving_path + 'trainY.npy', trainY)
+    else:
+        trainX = np.load(saving_path + 'trainX.npy')
+        trainY = np.load(saving_path + 'trainY.npy')
 
     print('|--- Training model.')
 

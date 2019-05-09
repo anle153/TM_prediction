@@ -36,8 +36,8 @@ def ims_tm_prediction(init_data, model, init_labels):
     labels[0:Config.LSTM_STEP, :] = init_labels
 
     for ts_ahead in range(Config.LSTM_IMS_STEP):
-        rnn_input = prepare_input_online_prediction(data=multi_steps_tm,
-                                                    labels=labels)
+        rnn_input = prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead + Config.LSTM_STEP],
+                                                    labels=labels[ts_ahead:ts_ahead + Config.LSTM_STEP])
         predictX = model.predict(rnn_input)
         multi_steps_tm[ts_ahead] = predictX[:, -1, 0].T
 
@@ -65,8 +65,8 @@ def predict_lstm_nn(init_data, test_data, model):
                                            init_labels=labels[ts:ts + Config.LSTM_STEP, :])
 
         # Create 3D input for rnn
-        rnn_input = prepare_input_online_prediction(data=tm_pred[ts, ts + Config.LSTM_STEP],
-                                                    labels=labels[ts, ts + Config.LSTM_STEP])
+        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.LSTM_STEP],
+                                                    labels=labels[ts: ts + Config.LSTM_STEP])
 
         # Get the TM prediction of next time slot
         predictX = model.predict(rnn_input)

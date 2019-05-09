@@ -41,10 +41,10 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def train_arima(args, data):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def train_arima(data):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
@@ -90,10 +90,10 @@ def train_arima(args, data):
         pickle.dump(model, saved_model, 2)
 
 
-def test_arima(data, args):
-    alg_name = args.alg
-    tag = args.tag
-    data_name = args.data_name
+def test_arima(data):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -134,9 +134,8 @@ def test_arima(data, args):
                                                               tag,
                                                               Config.SCALER))
 
-    if Config.ARIMA_IMS:
-        ims_test_set2d = ims_tm_test_data(test_data=test_data2d)
-        measured_matrix_ims = np.zeros(shape=ims_test_set2d.shape)
+    ims_test_set2d = ims_tm_test_data(test_data=test_data2d)
+    measured_matrix_ims = np.zeros(shape=ims_test_set2d.shape)
 
     pred_tm2d = np.zeros((test_data_normalized2d.shape[0], test_data_normalized2d.shape[1]))
     ims_pred_tm2d = np.zeros(
@@ -147,7 +146,7 @@ def test_arima(data, args):
                                                                             tag,
                                                                             Config.SCALER,
                                                                             0)):
-        train_arima(args, data)
+        train_arima(data)
 
     if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
         np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),

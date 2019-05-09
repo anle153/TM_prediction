@@ -122,7 +122,7 @@ def train_xgboost(data):
 
     xgb_model = XGBRegressor(n_jobs=Config.XGB_NJOBS)
 
-    if not os.path.isfile(saving_path + 'xgb.model'):
+    if not os.path.isfile(saving_path + 'xgb.models'):
 
         if not os.path.isfile(saving_path + 'trainX.npy'):
 

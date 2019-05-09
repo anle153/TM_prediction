@@ -134,6 +134,7 @@ def print_info():
         print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
     else:
         print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
+
     print('|--- MODE:\t{}'.format(Config.RUN_MODE))
     print('|--- ALG:\t{}'.format(Config.ALG))
     print('|--- TAG:\t{}'.format(Config.TAG))

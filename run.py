@@ -36,8 +36,6 @@ def train():
 
 
 def test():
-    alg_name = Config.ALG
-
     data = np.load(DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
 
     if Config.ALG == Config.ALGS[0]:

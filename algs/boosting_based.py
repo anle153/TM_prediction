@@ -24,7 +24,7 @@ def ims_tm_test_data(test_data):
 def prepare_input_online_prediction(data):
     dataX = np.zeros(shape=(data.shape[1], Config.XGB_FEATURES))
     for flow_id in range(data.shape[1]):
-        x = data[-Config.XGB_STEP:, flow_id]
+        x = data[:, flow_id]
         x = pd.Series(x)
 
         dataX[flow_id] = np.array(create_xgb_features(x))
@@ -40,7 +40,7 @@ def ims_tm_prediction(init_data, model, init_labels):
     labels[0:Config.XGB_STEP, :] = init_labels
 
     for ts_ahead in range(Config.XGB_IMS_STEP):
-        rnn_input = prepare_input_online_prediction(data=multi_steps_tm)
+        rnn_input = prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead + Config.XGB_STEP])
         predictX = model.predict(rnn_input)
         multi_steps_tm[ts_ahead] = predictX.T
 
@@ -55,7 +55,7 @@ def predict_xgb(init_data, test_data, model):
 
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.XGB_IMS_STEP + 1, test_data.shape[1]))
 
-    tm_pred[0:init_data.shape[0]] = init_data
+    tm_pred[0:init_data.shape[0], :] = init_data
 
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
@@ -67,7 +67,7 @@ def predict_xgb(init_data, test_data, model):
                                            init_labels=labels[ts:ts + Config.XGB_STEP, :])
 
         # Create 3D input for rnn
-        rnn_input = prepare_input_online_prediction(data=tm_pred)
+        rnn_input = prepare_input_online_prediction(data=tm_pred[ts:ts + Config.XGB_STEP])
 
         # Get the TM prediction of next time slot
         predictX = model.predict(rnn_input)

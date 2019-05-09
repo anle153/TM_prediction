@@ -19,8 +19,8 @@ def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
     dataX = np.zeros(shape=(data.shape[1], Config.LSTM_STEP, 2))
     for flow_id in range(data.shape[1]):
-        x = data[-Config.LSTM_STEP:, flow_id]
-        label = labels[-Config.LSTM_STEP:, flow_id]
+        x = data[:, flow_id]
+        label = labels[:, flow_id]
 
         sample = np.array([x, label]).T
         dataX[flow_id] = sample
@@ -46,13 +46,14 @@ def ims_tm_prediction(init_data, model, init_labels):
 
 def predict_lstm_nn(init_data, test_data, model):
     tf_a = np.array([True, False])
-    labels = np.ones(shape=init_data.shape)
+    labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.LSTM_IMS_STEP + 1, test_data.shape[1]))
 
     tm_pred[0:init_data.shape[0]] = init_data
+    labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
@@ -64,7 +65,8 @@ def predict_lstm_nn(init_data, test_data, model):
                                            init_labels=labels[ts:ts + Config.LSTM_STEP, :])
 
         # Create 3D input for rnn
-        rnn_input = prepare_input_online_prediction(data=tm_pred, labels=labels)
+        rnn_input = prepare_input_online_prediction(data=tm_pred[ts, ts + Config.LSTM_STEP],
+                                                    labels=labels[ts, ts + Config.LSTM_STEP])
 
         # Get the TM prediction of next time slot
         predictX = model.predict(rnn_input)
@@ -75,10 +77,10 @@ def predict_lstm_nn(init_data, test_data, model):
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
         # boolean array(1 x n_flows):for choosing value from predicted data
-        sampling = np.expand_dims(np.random.choice(tf_a,
-                                                   size=(test_data.shape[1]),
-                                                   p=[Config.LSTM_MON_RAIO, 1 - Config.LSTM_MON_RAIO]), axis=0)
-        labels = np.concatenate([labels, sampling], axis=0)
+        sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
+                                    p=[Config.LSTM_MON_RAIO, 1 - Config.LSTM_MON_RAIO])
+
+        labels[ts + Config.LSTM_STEP] = sampling
         # invert of sampling: for choosing value from the original data
         inv_sampling = np.invert(sampling)
 

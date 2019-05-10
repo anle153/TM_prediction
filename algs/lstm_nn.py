@@ -144,12 +144,6 @@ def train_lstm_nn(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         lstm_net = build_model(input_shape)
 
-    # -------------------------------- Create offline training and validating dataset ------------------------------
-    print('|--- Create offline train set for lstm-nn!')
-    trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-    print('|--- Create offline valid set for lstm-nn!')
-    validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-    # --------------------------------------------------------------------------------------------------------------
 
     if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
         lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
@@ -157,6 +151,12 @@ def train_lstm_nn(data, experiment):
     else:
         print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
         from_epoch = lstm_net.load_model_from_check_point()
+        # -------------------------------- Create offline training and validating dataset ------------------------------
+        print('|--- Create offline train set for lstm-nn!')
+        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+        print('|--- Create offline valid set for lstm-nn!')
+        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+        # --------------------------------------------------------------------------------------------------------------
 
         if from_epoch > 0:
             training_history = lstm_net.model.fit(x=trainX,

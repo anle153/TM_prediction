@@ -268,12 +268,12 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         # Flipping the backward prediction
         # predictX_backward = np.flip(predictX_backward, axis=0)
 
-        # if ts == 100:
-        #     plot_test_data('Before_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
-        #                    predictX[:-2],
-        #                    predictX_backward[2:],
-        #                    tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-        #
+        if ts == 100:
+            plot_test_data('Before_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
+                           predictX[:-2],
+                           [],
+                           tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+
         #     before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         # Correcting the imprecise input data

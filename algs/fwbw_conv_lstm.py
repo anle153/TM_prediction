@@ -27,8 +27,8 @@ def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
     for flow_x in range(raw_data.shape[1]):
         for flow_y in range(raw_data.shape[2]):
             plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
-            # plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
-            # plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
+            plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
+            plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
             plt.plot(current_data[:, flow_x, flow_y, 0], label='Current_pred')
 
             plt.legend()

@@ -231,13 +231,17 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
     init_labels = np.ones(shape=initial_data.shape)
 
-    tm_labels = np.zeros(
-        shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2], 2))
+    tm_labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2], 2))
     tm_labels[0:initial_data.shape[0], :, :, 0] = initial_data
     tm_labels[0:init_labels.shape[0], :, :, 1] = init_labels
 
     ims_tm = np.zeros(
         shape=(test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
+
+    raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
+
+    raw_data[0:initial_data.shape[0]] = initial_data
+    raw_data[initial_data.shape[0]:] = test_data
 
     for ts in tqdm(range(test_data.shape[0])):
 
@@ -269,7 +273,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         predictX_backward = np.flip(predictX_backward, axis=0)
 
         if ts == 10:
-            plot_test_data('Before_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
+            plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
                            predictX[:-2],
                            predictX_backward[2:],
                            tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
@@ -281,7 +285,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
                                                 pred_backward=predictX_backward,
                                                 rnn_input_labels=rnn_input, ts=ts)
         if ts == 10:
-            plot_test_data('After_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
+            plot_test_data('After_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
                            predictX[:-2],
                            predictX_backward[2:],
                            tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])

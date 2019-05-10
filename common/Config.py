@@ -1,19 +1,4 @@
 
-# --------------- Data Config -----------------
-
-DATA_PATH = './Dataset/'
-MODEL_SAVE = './trained_models/'
-RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'random'
-
-ABILENE_DAY_SIZE = 288
-GEANT_DAY_SIZE = 96
-
-ALL_DATA = True
-NUM_DAYS = 160
-
-SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler']
-SCALER = SCALERS[2]
 # ----------------------------------------------
 
 # ----------------- LSTM Config ---------------
@@ -127,12 +112,28 @@ XGB_FEATURES = 26
 
 RUN_MODES = ['train', 'test', 'plot']
 ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
+SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler']
 
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
-GPU = 1
+ALG = ALGS[2]
+GPU = 0
+SCALER = SCALERS[1]
+
+# --------------- Data Config -----------------
+
+DATA_PATH = './Dataset/'
+MODEL_SAVE = './trained_models/'
+RESULTS_PATH = './results/'
+ADDED_RESULT_NAME = 'random'
+
+ABILENE_DAY_SIZE = 288
+GEANT_DAY_SIZE = 96
+
+ALL_DATA = True
+NUM_DAYS = 160
+
 
 # -----------------------------------------------------------------------------------------------------------------------
 if ALG == ALGS[0]:

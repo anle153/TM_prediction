@@ -260,36 +260,36 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
 
         # Prediction results from backward network
-        # predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
-        #
-        # predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        # predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
+        predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
+
+        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
+        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
 
         # Flipping the backward prediction
-        # predictX_backward = np.flip(predictX_backward, axis=0)
+        predictX_backward = np.flip(predictX_backward, axis=0)
 
-        if ts == 100:
+        if ts == 10:
             plot_test_data('Before_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
                            predictX[:-2],
-                           [],
+                           predictX_backward[2:],
                            tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
-        #     before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+            before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         # Correcting the imprecise input data
-        # tm_labels = updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX,
-        #                                         pred_backward=predictX_backward,
-        #                                         rnn_input_labels=rnn_input, ts=ts)
-        # if ts == 100:
-        #     plot_test_data('After_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
-        #                    predictX[:-2],
-        #                    predictX_backward[2:],
-        #                    tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-        #
-        #     after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-        #
-        #     if np.array_equal(before_, after_):
-        #         print('Some things wrong!')
+        tm_labels = updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX,
+                                                pred_backward=predictX_backward,
+                                                rnn_input_labels=rnn_input, ts=ts)
+        if ts == 10:
+            plot_test_data('After_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
+                           predictX[:-2],
+                           predictX_backward[2:],
+                           tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+
+            after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+
+            if np.array_equal(before_, after_):
+                print('Some things wrong!')
 
         predict_tm = predictX[-1, :, :]
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:

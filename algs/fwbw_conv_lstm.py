@@ -146,7 +146,7 @@ def calculate_forward_backward_loss_3d(measured_block, pred_forward, pred_backwa
     return rl_forward, rl_backward
 
 
-def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_input_labels):
+def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_input_labels, ts):
     rnn_input = rnn_input_labels[:, :, :, 0]
     measured_block = rnn_input_labels[:, :, :, 1]
 
@@ -171,8 +171,9 @@ def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_inpu
 
     bidirect_rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
 
-    tm_labels[(-Config.FWBW_CONV_LSTM_STEP + 1):-1, :, :, 0] = \
-        tm_labels[(-Config.FWBW_CONV_LSTM_STEP + 1):-1, :, :, 0] * sampling_measured_matrix + bidirect_rnn_pred_value
+    tm_labels[(ts + 1):ts + Config.FWBW_CONV_LSTM_STEP - 1, :, :, 0] = \
+        tm_labels[(ts + 1):ts + Config.FWBW_CONV_LSTM_STEP - 1, :, :,
+        0] * sampling_measured_matrix + bidirect_rnn_pred_value
 
     return tm_labels
 
@@ -208,7 +209,7 @@ def ims_tm_prediction(init_data_labels, forward_model, backward_model):
 
         # Correcting the imprecise input data
         updating_historical_data_3d(tm_labels=multi_steps_tm, pred_forward=predictX, pred_backward=predictX_backward,
-                                    rnn_input_labels=rnn_input)
+                                    rnn_input_labels=rnn_input, ts=ts_ahead)
 
         predict_tm = predictX[-1, :, :]
 
@@ -249,7 +250,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
-        rnn_input_backward = np.flip(rnn_input, axis=0)
+        rnn_input_backward = np.flip(np.copy(rnn_input), axis=0)
         rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
 
         # Prediction results from forward network
@@ -278,7 +279,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         # Correcting the imprecise input data
         tm_labels = updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX,
                                                 pred_backward=predictX_backward,
-                                                rnn_input_labels=rnn_input)
+                                                rnn_input_labels=rnn_input, ts=ts)
         if ts == 100:
             plot_test_data('After_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
                            predictX[:-2],

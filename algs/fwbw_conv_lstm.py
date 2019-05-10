@@ -276,8 +276,9 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
             before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         # Correcting the imprecise input data
-        updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX, pred_backward=predictX_backward,
-                                    rnn_input_labels=rnn_input)
+        tm_labels = updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX,
+                                                pred_backward=predictX_backward,
+                                                rnn_input_labels=rnn_input)
         if ts == 100:
             plot_test_data('After_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
                            predictX[:-2],
@@ -287,7 +288,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
             after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
             if np.array_equal(before_, after_):
-                print('Some thing wrong!')
+                print('Some things wrong!')
 
         predict_tm = predictX[-1, :, :]
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:

@@ -100,11 +100,11 @@ CONV_LSTM_BEST_CHECKPOINT = 94
 CONV_LSTM_TESTING_TIME = 1
 
 CONV_LSTM_LAYERS = 2
-CONV_LSTM_FILTERS = [8, 8]
+CONV_LSTM_FILTERS = [16, 16]
 CONV_LSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
 CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
-CONV_LSTM_DROPOUTS = [0.0, 0.0]
-CONV_LSTM_RNN_DROPOUTS = [0.2, 0.2]
+CONV_LSTM_DROPOUTS = [0.5, 0.5]
+CONV_LSTM_RNN_DROPOUTS = [0.5, 0.5]
 
 CONV_LSTM_WIDE = 12
 CONV_LSTM_HIGH = 12
@@ -136,9 +136,15 @@ GPU = 1
 
 # -----------------------------------------------------------------------------------------------------------------------
 if ALG == ALGS[0]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100), FWBW_CONV_LSTM_STEP)
+    TAG = 'mon_{:2d}_lstm_{:2d}_layers_{:2d}_filters_{:2d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100),
+                                                                   FWBW_CONV_LSTM_STEP,
+                                                                   FWBW_CONV_LSTM_LAYERS,
+                                                                   FWBW_CONV_LSTM_FILTERS[0])
 elif ALG == ALGS[1]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(CONV_LSTM_MON_RAIO * 100), CONV_LSTM_STEP)
+    TAG = 'mon_{:2d}_lstm_{:2d}_layers_{:2d}_filters_{:2d}'.format(int(CONV_LSTM_MON_RAIO * 100),
+                                                                   CONV_LSTM_STEP,
+                                                                   CONV_LSTM_LAYERS,
+                                                                   CONV_LSTM_FILTERS[0])
 elif ALG == ALGS[2]:
     TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(LSTM_MON_RAIO * 100), LSTM_STEP)
 elif ALG == ALGS[3]:

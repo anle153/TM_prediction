@@ -342,7 +342,6 @@ def train_fwbw_conv_lstm(data, experiment):
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
-
     train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
                                                                                  valid_data2d,
                                                                                  test_data2d)
@@ -360,32 +359,6 @@ def train_fwbw_conv_lstm(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         fw_net, bw_net = build_model(input_shape)
 
-    # -------------------------------- Create offline training and validating dataset ------------------------------
-
-    if not os.path.isfile(fw_net.saving_path + 'trainX_fw.npy'):
-        print('|--- Create offline train set for forward net!')
-
-        trainX_fw, trainY_fw = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      0.5)
-        np.save(fw_net.saving_path + 'trainX_fw.npy', trainX_fw)
-        np.save(fw_net.saving_path + 'trainY_fw.npy', trainY_fw)
-    else:
-        trainX_fw = np.load(fw_net.saving_path + 'trainX_fw.npy')
-        trainY_fw = np.load(fw_net.saving_path + 'trainY_fw.npy')
-
-    if not os.path.isfile(fw_net.saving_path + 'validX_fw.npy'):
-        print('|--- Create offline valid set for forward net!')
-
-        validX_fw, validY_fw = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      0.5)
-        np.save(fw_net.saving_path + 'validX_fw.npy', validX_fw)
-        np.save(fw_net.saving_path + 'validY_fw.npy', validY_fw)
-    else:
-        validX_fw = np.load(fw_net.saving_path + 'validX_fw.npy')
-        validY_fw = np.load(fw_net.saving_path + 'validY_fw.npy')
-
     # --------------------------------------------------------------------------------------------------------------
 
     # --------------------------------------------Training fw model-------------------------------------------------
@@ -395,6 +368,18 @@ def train_fwbw_conv_lstm(data, experiment):
         fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT)
     else:
         print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
+        # -------------------------------- Create offline training and validating dataset ------------------------------
+
+        print('|--- Create offline train set for forward net!')
+
+        trainX_fw, trainY_fw = create_offline_convlstm_data_fix_ratio(train_data_normalized,
+                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                      0.5)
+        print('|--- Create offline valid set for forward net!')
+
+        validX_fw, validY_fw = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
+                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                      0.5)
 
         # Load model check point
         from_epoch = fw_net.load_model_from_check_point()
@@ -429,17 +414,6 @@ def train_fwbw_conv_lstm(data, experiment):
     train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
     valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
 
-    print('|--- Create offline train set for backward net!')
-
-    trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
-                                                                  input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                  0.5)
-
-    print('|--- Create offline valid set for backward net!')
-
-    validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
-                                                                  input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                  0.5)
     # --------------------------------------------------------------------------------------------------------------
 
     # --------------------------------------------Training bw model-------------------------------------------------
@@ -449,6 +423,18 @@ def train_fwbw_conv_lstm(data, experiment):
         bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
     else:
         print('|---Compile model. Saving path: %s' % bw_net.saving_path)
+        print('|--- Create offline train set for backward net!')
+
+        trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
+                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                      0.5)
+
+        print('|--- Create offline valid set for backward net!')
+
+        validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
+                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                      0.5)
+
         from_epoch_bw = bw_net.load_model_from_check_point()
         if from_epoch_bw > 0:
             training_bw_history = bw_net.model.fit(x=trainX_bw,

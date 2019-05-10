@@ -81,7 +81,7 @@ CONV_LSTM_BATCH_SIZE = 256
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 26
 
-CONV_LSTM_BEST_CHECKPOINT = 94
+CONV_LSTM_BEST_CHECKPOINT = 12
 CONV_LSTM_TESTING_TIME = 1
 
 CONV_LSTM_LAYERS = 2
@@ -117,7 +117,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[0]
+ALG = ALGS[1]
 GPU = 0
 SCALER = SCALERS[2]
 
@@ -137,7 +137,7 @@ NUM_DAYS = 160
 
 # -----------------------------------------------------------------------------------------------------------------------
 if ALG == ALGS[0]:
-    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{:02d}_batch_{:02d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100),
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{:02d}_batch_{:03d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100),
                                                                                     FWBW_CONV_LSTM_STEP,
                                                                                     FWBW_CONV_LSTM_LAYERS,
                                                                                     FWBW_CONV_LSTM_FILTERS[0],

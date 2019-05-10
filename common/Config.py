@@ -143,7 +143,7 @@ if ALG == ALGS[0]:
                                                                                     FWBW_CONV_LSTM_FILTERS[0],
                                                                                     FWBW_CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[1]:
-    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{:02d}_batch_{:02d}'.format(int(CONV_LSTM_MON_RAIO * 100),
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{:02d}_batch_{:03d}'.format(int(CONV_LSTM_MON_RAIO * 100),
                                                                                     CONV_LSTM_STEP,
                                                                                     CONV_LSTM_LAYERS,
                                                                                     CONV_LSTM_FILTERS[0],

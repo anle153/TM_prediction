@@ -17,6 +17,25 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
+def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
+    saving_path = Config.RESULTS_PATH + 'plot_check_fwbw/'
+
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
+    from matplotlib import pyplot as plt
+    for flow_x in range(raw_data.shape[0]):
+        for flow_y in range(raw_data.shape[1]):
+            plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
+            plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
+            plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
+            plt.plot(current_data[:, flow_x, flow_y, 0], label='Current_pred')
+
+            plt.legend()
+            plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
+            plt.close()
+
+
 def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matrix):
     eps = 10e-5
 
@@ -248,9 +267,20 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         # Flipping the backward prediction
         predictX_backward = np.flip(predictX_backward, axis=0)
 
+        if ts == 100:
+            plot_test_data('Before_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
+                           predictX[:-2],
+                           predictX_backward[2:],
+                           tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+
         # Correcting the imprecise input data
         updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX, pred_backward=predictX_backward,
                                     rnn_input_labels=rnn_input)
+        if ts == 100:
+            plot_test_data('After_update', test_data[ts - Config.FWBW_CONV_LSTM_STEP + 1: ts - 2],
+                           predictX[:-2],
+                           predictX_backward[2:],
+                           tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         predict_tm = predictX[-1, :, :]
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:

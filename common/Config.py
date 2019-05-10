@@ -137,17 +137,17 @@ NUM_DAYS = 160
 
 # -----------------------------------------------------------------------------------------------------------------------
 if ALG == ALGS[0]:
-    TAG = 'mon_{:2d}_lstm_{:2d}_layers_{:2d}_filters_{:2d}_batch_{:2d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100),
-                                                                               FWBW_CONV_LSTM_STEP,
-                                                                               FWBW_CONV_LSTM_LAYERS,
-                                                                               FWBW_CONV_LSTM_FILTERS[0],
-                                                                               FWBW_CONV_LSTM_BATCH_SIZE)
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{:02d}_batch_{:02d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100),
+                                                                                    FWBW_CONV_LSTM_STEP,
+                                                                                    FWBW_CONV_LSTM_LAYERS,
+                                                                                    FWBW_CONV_LSTM_FILTERS[0],
+                                                                                    FWBW_CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[1]:
-    TAG = 'mon_{:2d}_lstm_{:2d}_layers_{:2d}_filters_{:2d}_batch_{:2d}'.format(int(CONV_LSTM_MON_RAIO * 100),
-                                                                               CONV_LSTM_STEP,
-                                                                               CONV_LSTM_LAYERS,
-                                                                               CONV_LSTM_FILTERS[0],
-                                                                               CONV_LSTM_BATCH_SIZE)
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{:02d}_batch_{:02d}'.format(int(CONV_LSTM_MON_RAIO * 100),
+                                                                                    CONV_LSTM_STEP,
+                                                                                    CONV_LSTM_LAYERS,
+                                                                                    CONV_LSTM_FILTERS[0],
+                                                                                    CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[2]:
     TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(LSTM_MON_RAIO * 100), LSTM_STEP)
 elif ALG == ALGS[3]:

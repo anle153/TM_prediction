@@ -159,23 +159,23 @@ def train_conv_lstm(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         conv_lstm_net = build_model(input_shape)
 
-    # -------------------------------- Create offline training and validating dataset ------------------------------
-    print('|--- Create offline train set for conv_lstm net!')
-
-    trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                            input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
-    print('|--- Create offline valid set for conv_lstm net!')
-
-    validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                            input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
-    # --------------------------------------------------------------------------------------------------------------
-
     with experiment.train():
         if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
             print('|--- Model exist!')
             conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
         else:
             print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
+
+            # -------------------------------- Create offline training and validating dataset --------------------------
+            print('|--- Create offline train set for conv_lstm net!')
+
+            trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
+                                                                    input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
+            print('|--- Create offline valid set for conv_lstm net!')
+
+            validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
+                                                                    input_shape, Config.CONV_LSTM_MON_RAIO, 0.5)
+            # ----------------------------------------------------------------------------------------------------------
 
             # Load model check point
             from_epoch = conv_lstm_net.load_model_from_check_point()

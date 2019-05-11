@@ -117,7 +117,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[5]
+ALG = ALGS[2]
 GPU = 0
 SCALER = SCALERS[2]
 
@@ -149,7 +149,10 @@ elif ALG == ALGS[1]:
                                                                                     CONV_LSTM_FILTERS[0],
                                                                                     CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[2]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(LSTM_MON_RAIO * 100), LSTM_STEP)
+    TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),
+                                                                     LSTM_STEP,
+                                                                     LSTM_BATCH_SIZE,
+                                                                     LSTM_HIDDEN_UNIT)
 elif ALG == ALGS[3]:
     TAG = 'mon_{:2d}_update_{:2d}'.format(int(ARIMA_MON_RATIO * 100), ARIMA_UPDATE)
 elif ALG == ALGS[4]:

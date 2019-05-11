@@ -169,6 +169,11 @@ def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_inpu
     sampling_measured_matrix = sampling_measured_matrix[1:-1, :, :]
     inv_sampling_measured_matrix = np.invert(sampling_measured_matrix)
 
+    if ts == 20:
+        print('Alpha: {}'.format(alpha[:, 0, 3]))
+        print('Beta: {}'.format(beta[:, 0, 3]))
+        print('Gamma: {}'.format(gamma[:, 0, 3]))
+
     bidirect_rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
 
     tm_labels[(ts + 1):ts + Config.FWBW_CONV_LSTM_STEP - 1, :, :, 0] = \

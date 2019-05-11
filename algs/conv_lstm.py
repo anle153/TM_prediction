@@ -16,6 +16,24 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
+def plot_test_data(prefix, raw_data, pred, current_data):
+    saving_path = Config.RESULTS_PATH + 'plot_check_conv-lstm/'
+
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
+    from matplotlib import pyplot as plt
+    for flow_x in range(raw_data.shape[1]):
+        for flow_y in range(raw_data.shape[2]):
+            plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
+            plt.plot(pred[:, flow_x, flow_y], label='Pred')
+            plt.plot(current_data[:, flow_x, flow_y, 0], label='Current_pred')
+
+            plt.legend()
+            plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
+            plt.close()
+
+
 def ims_tm_prediction(init_data_labels, conv_lstm_model):
     multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.CONV_LSTM_IMS_STEP,
                                      init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
@@ -59,6 +77,10 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
     ims_tm = np.zeros(
         shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
+    raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
+
+    raw_data[0:initial_data.shape[0]] = initial_data
+    raw_data[initial_data.shape[0]:] = test_data
 
     for ts in tqdm(range(test_data.shape[0])):
 
@@ -77,13 +99,18 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predict_tm = predictX[-1, :, :]
 
+        if ts == 20:
+            plot_test_data('Plot', raw_data[ts + 1:ts + Config.CONV_LSTM_STEP - 1],
+                           predictX[:-2],
+                           tm_labels[ts + 1:ts + Config.CONV_LSTM_STEP - 1])
+
         # Selecting next monitored flows randomly
         sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                     p=(Config.CONV_LSTM_MON_RAIO, 1 - Config.CONV_LSTM_MON_RAIO))
         inv_sampling = np.invert(sampling)
 
         pred_tm = predict_tm * inv_sampling
-        corrected_data = test_data[ts, :, :]
+        corrected_data = test_data[ts]
         ground_truth = corrected_data * sampling
 
         # Calculating the true value for the TM

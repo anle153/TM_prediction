@@ -49,13 +49,14 @@ def ims_tm_prediction(init_data, model, init_labels):
 
 def predict_xgb(init_data, test_data, model):
     tf_a = np.array([True, False])
-    labels = np.ones(shape=init_data.shape)
+    labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.XGB_IMS_STEP + 1, test_data.shape[1]))
 
     tm_pred[0:init_data.shape[0], :] = init_data
+    labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
@@ -78,10 +79,8 @@ def predict_xgb(init_data, test_data, model):
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
         # boolean array(1 x n_flows):for choosing value from predicted data
-        sampling = np.expand_dims(np.random.choice(tf_a,
-                                                   size=(test_data.shape[1]),
-                                                   p=[Config.XGB_MON_RATIO, 1 - Config.XGB_MON_RATIO]), axis=0)
-        labels = np.concatenate([labels, sampling], axis=0)
+        sampling = np.random.choice(tf_a, size=(test_data.shape[1]), p=[Config.XGB_MON_RATIO, 1 - Config.XGB_MON_RATIO])
+        labels[ts + Config.LSTM_STEP] = sampling
         # invert of sampling: for choosing value from the original data
         inv_sampling = np.invert(sampling)
 

@@ -296,9 +296,9 @@ def create_xgb_features(x):
     x_step.append(np.abs(x).max())
     x_step.append(np.abs(x).min())
 
-    # x_step.append(x.max() / np.abs(x.min()))
+    x_step.append(x.max() / np.abs(x.min()))
     x_step.append(x.max() - np.abs(x.min()))
-    # x_step.append(len(x[np.abs(x) > 100]))
+    # x_step.append(len(x[np.abs(x) > 1000000]))
     x_step.append(x.sum())
 
     x_step.append(np.quantile(x, 0.95))
@@ -306,15 +306,15 @@ def create_xgb_features(x):
     x_step.append(np.quantile(x, 0.05))
     x_step.append(np.quantile(x, 0.01))
 
-    x_step.append(np.quantile(np.abs(x), 0.95))
-    x_step.append(np.quantile(np.abs(x), 0.99))
-    x_step.append(np.quantile(np.abs(x), 0.05))
-    x_step.append(np.quantile(np.abs(x), 0.01))
+    # x_step.append(np.quantile(np.abs(x), 0.95))
+    # x_step.append(np.quantile(np.abs(x), 0.99))
+    # x_step.append(np.quantile(np.abs(x), 0.05))
+    # x_step.append(np.quantile(np.abs(x), 0.01))
 
     x_step.append(add_trend_feature(x))
     x_step.append(add_trend_feature(x, abs_values=True))
-    x_step.append(np.abs(x).mean())
-    x_step.append(np.abs(x).std())
+    # x_step.append(np.abs(x).mean())
+    # x_step.append(np.abs(x).std())
 
     x_step.append(x.mad())
     x_step.append(x.kurtosis())

@@ -23,14 +23,13 @@ def plot_test_data(prefix, raw_data, pred, current_data):
 
     from matplotlib import pyplot as plt
     for flow_x in range(raw_data.shape[1]):
-        for flow_y in range(raw_data.shape[2]):
-            plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
-            plt.plot(pred[:, flow_x, flow_y], label='Pred_fw')
-            plt.plot(current_data[:, flow_x, flow_y], label='Current_pred')
+        plt.plot(raw_data[:, flow_x], label='Actual')
+        plt.plot(pred[:, flow_x], label='Pred_fw')
+        plt.plot(current_data[:, flow_x], label='Current_pred')
 
-            plt.legend()
-            plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
-            plt.close()
+        plt.legend()
+        plt.savefig(saving_path + '{}_flow_{:02d}.png'.format(prefix, flow_x))
+        plt.close()
 
 
 def prepare_input_online_prediction(data, labels):

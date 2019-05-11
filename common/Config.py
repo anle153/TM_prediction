@@ -194,7 +194,7 @@ def set_comet_params_conv_lstm():
         'lstm_step': CONV_LSTM_STEP
     }
 
-    for i in range(FWBW_CONV_LSTM_LAYERS):
+    for i in range(CONV_LSTM_LAYERS):
         params['layer{}_filter'.format(i + 1)] = CONV_LSTM_FILTERS[i]
         params['layer{}_kernel_size'.format(i + 1)] = CONV_LSTM_KERNEL_SIZE[i]
         params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]

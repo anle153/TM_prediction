@@ -15,6 +15,23 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
+def plot_test_data(prefix, raw_data, pred, current_data):
+    saving_path = Config.RESULTS_PATH + 'plot_check_lstm/'
+
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
+    from matplotlib import pyplot as plt
+    for flow_x in range(raw_data.shape[1]):
+        plt.plot(raw_data[:, flow_x], label='Actual')
+        plt.plot(pred[:, flow_x], label='Pred_fw')
+        plt.plot(current_data[:, flow_x], label='Current_pred')
+
+        plt.legend()
+        plt.savefig(saving_path + '{}_flow_{:02d}.png'.format(prefix, flow_x))
+        plt.close()
+
+
 def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
     dataX = np.zeros(shape=(data.shape[1], Config.LSTM_STEP, 2))
@@ -55,6 +72,11 @@ def predict_lstm_nn(init_data, test_data, model):
     tm_pred[0:init_data.shape[0]] = init_data
     labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
+    raw_data = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+
+    raw_data[0:init_data.shape[0]] = init_data
+    raw_data[init_data.shape[0]:] = test_data
+
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
@@ -72,6 +94,11 @@ def predict_lstm_nn(init_data, test_data, model):
         predictX = model.predict(rnn_input)
 
         pred = np.expand_dims(predictX[:, -1, 0], axis=1)
+
+        if ts == 20:
+            plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1],
+                           predictX[:, :, 0].T,
+                           tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1])
 
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)

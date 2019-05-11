@@ -76,7 +76,7 @@ HOLT_WINTER_IMS = False
 # ----------- CONV_LSTM Config ----------------------
 
 CONV_LSTM_N_EPOCH = 100
-CONV_LSTM_BATCH_SIZE = 64
+CONV_LSTM_BATCH_SIZE = 256
 
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 26
@@ -84,12 +84,12 @@ CONV_LSTM_STEP = 26
 CONV_LSTM_BEST_CHECKPOINT = 5
 CONV_LSTM_TESTING_TIME = 1
 
-CONV_LSTM_LAYERS = 2
-CONV_LSTM_FILTERS = [8, 8]
-CONV_LSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
-CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
-CONV_LSTM_DROPOUTS = [0.1, 0.1]
-CONV_LSTM_RNN_DROPOUTS = [0.2, 0.2]
+CONV_LSTM_LAYERS = 1
+CONV_LSTM_FILTERS = [16]
+CONV_LSTM_KERNEL_SIZE = [[3, 3]]
+CONV_LSTM_STRIDES = [[1, 1]]
+CONV_LSTM_DROPOUTS = [0.1]
+CONV_LSTM_RNN_DROPOUTS = [0.2]
 
 CONV_LSTM_WIDE = 12
 CONV_LSTM_HIGH = 12
@@ -106,7 +106,7 @@ XGB_IMS = False
 XGB_IMS_STEP = 12
 XGB_TESTING_TIME = 1
 XGB_NJOBS = 16
-XGB_FEATURES = 21
+XGB_FEATURES = 19
 
 # ----------- RUNNING Config ----------------------
 
@@ -118,7 +118,7 @@ DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
 ALG = ALGS[5]
-GPU = 0
+GPU = 1
 SCALER = SCALERS[2]
 
 # --------------- Data Config -----------------
@@ -149,7 +149,10 @@ elif ALG == ALGS[1]:
                                                                                     CONV_LSTM_FILTERS[0],
                                                                                     CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[2]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(LSTM_MON_RAIO * 100), LSTM_STEP)
+    TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),
+                                                                     LSTM_STEP,
+                                                                     LSTM_BATCH_SIZE,
+                                                                     LSTM_HIDDEN_UNIT)
 elif ALG == ALGS[3]:
     TAG = 'mon_{:2d}_update_{:2d}'.format(int(ARIMA_MON_RATIO * 100), ARIMA_UPDATE)
 elif ALG == ALGS[4]:
@@ -191,7 +194,7 @@ def set_comet_params_conv_lstm():
         'lstm_step': CONV_LSTM_STEP
     }
 
-    for i in range(FWBW_CONV_LSTM_LAYERS):
+    for i in range(CONV_LSTM_LAYERS):
         params['layer{}_filter'.format(i + 1)] = CONV_LSTM_FILTERS[i]
         params['layer{}_kernel_size'.format(i + 1)] = CONV_LSTM_KERNEL_SIZE[i]
         params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]

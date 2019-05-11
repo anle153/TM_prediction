@@ -296,8 +296,8 @@ def create_xgb_features(x):
     x_step.append(np.abs(x).max())
     x_step.append(np.abs(x).min())
 
-    x_step.append(x.max() / np.abs(x.min()))
-    x_step.append(x.max() - np.abs(x.min()))
+    # x_step.append(x.max() / np.abs(x.min()))
+    # x_step.append(x.max() - np.abs(x.min()))
     # x_step.append(len(x[np.abs(x) > 1000000]))
     x_step.append(x.sum())
 

@@ -100,13 +100,13 @@ CONV_LSTM_MON_RAIO = 0.3
 CONV_LSTM_IMS = False
 
 # ----------- XGB Config ----------------------
-XGB_STEP = 288
+XGB_STEP = 288 * 2
 XGB_MON_RATIO = 0.3
 XGB_IMS = False
 XGB_IMS_STEP = 12
 XGB_TESTING_TIME = 1
 XGB_NJOBS = 16
-XGB_FEATURES = 26
+XGB_FEATURES = 21
 
 # ----------- RUNNING Config ----------------------
 
@@ -117,7 +117,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
+ALG = ALGS[5]
 GPU = 0
 SCALER = SCALERS[2]
 

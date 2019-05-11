@@ -86,7 +86,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         pred_input = pred.T * inv_sampling
 
-        ground_true = test_data[ts, :]
+        ground_true = test_data[ts]
 
         measured_input = np.expand_dims(ground_true, axis=0) * sampling
 
@@ -143,7 +143,6 @@ def train_lstm_nn(data, experiment):
 
     with tf.device('/device:GPU:{}'.format(gpu)):
         lstm_net = build_model(input_shape)
-
 
     if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
         lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)

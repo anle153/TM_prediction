@@ -106,7 +106,7 @@ XGB_IMS = False
 XGB_IMS_STEP = 12
 XGB_TESTING_TIME = 1
 XGB_NJOBS = 16
-XGB_FEATURES = 21
+XGB_FEATURES = 19
 
 # ----------- RUNNING Config ----------------------
 
@@ -117,7 +117,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
+ALG = ALGS[5]
 GPU = 1
 SCALER = SCALERS[2]
 

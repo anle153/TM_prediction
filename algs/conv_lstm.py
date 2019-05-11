@@ -99,10 +99,10 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predict_tm = predictX[-1, :, :]
 
-        if ts == 20:
-            plot_test_data('Plot', raw_data[ts + 1:ts + Config.CONV_LSTM_STEP - 1],
-                           predictX[:-2],
-                           tm_labels[ts + 1:ts + Config.CONV_LSTM_STEP - 1])
+        # if ts == 20:
+        #     plot_test_data('Plot', raw_data[ts + 1:ts + Config.CONV_LSTM_STEP - 1],
+        #                    predictX[:-2],
+        #                    tm_labels[ts + 1:ts + Config.CONV_LSTM_STEP - 1])
 
         # Selecting next monitored flows randomly
         sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),

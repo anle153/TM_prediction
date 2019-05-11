@@ -97,7 +97,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         if ts == 20:
             plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1],
-                           predictX,
+                           predictX.T,
                            tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1])
 
         # Using part of current prediction as input to the next estimation

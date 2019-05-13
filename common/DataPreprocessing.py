@@ -178,7 +178,7 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
     _traffic_labels[:, :, :, :, 1] = _labels
 
     dataX = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide, high, channel))
-    dataY = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide, high, 1))
+    dataY = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide * high))
 
     for idx in range(_traffic_labels.shape[0] - ntimesteps):
         _x = _traffic_labels[idx: (idx + ntimesteps)]
@@ -186,7 +186,7 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
         dataX[idx] = _x
 
         _y = _data[(idx + 1):(idx + ntimesteps + 1)]
-        _y = np.expand_dims(_y, axis=3)
+        _y = np.reshape(newshape=(ntimesteps, wide * high))
 
         dataY[idx] = _y
 

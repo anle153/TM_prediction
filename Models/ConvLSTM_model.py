@@ -70,6 +70,6 @@ class ConvLSTM(AbstractModel):
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)
         second_Dense = TimeDistributed(Dense(256, ))(first_Dense)
-        outputs = TimeDistributed(Dense(self.wide, self.high))(second_Dense)
+        outputs = TimeDistributed(Dense(144, ))(second_Dense)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')

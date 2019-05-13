@@ -174,8 +174,8 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
     _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
 
     _traffic_labels = np.zeros((_data.shape[0], wide, high, channel))
-    _traffic_labels[:, :, :, :, 0] = _data
-    _traffic_labels[:, :, :, :, 1] = _labels
+    _traffic_labels[:, :, :, 0] = _data
+    _traffic_labels[:, :, :, 1] = _labels
 
     dataX = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide, high, channel))
     dataY = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide * high))

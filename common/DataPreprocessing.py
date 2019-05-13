@@ -173,20 +173,19 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
 
     _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
 
-    _data = np.expand_dims(_data, axis=3)
-    _labels = np.expand_dims(_labels, axis=3)
+    _traffic_labels = np.zeros((_data.shape[0], ntimesteps, wide, high, channel))
+    _traffic_labels[:, :, :, :, 0] = _data
+    _traffic_labels[:, :, :, :, 1] = _labels
 
-    _data = np.concatenate([_data, _labels], axis=3)
+    dataX = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide, high, channel))
+    dataY = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide, high, 1))
 
-    dataX = np.zeros((_data.shape[0] - ntimesteps, ntimesteps, wide, high, channel))
-    dataY = np.zeros((_data.shape[0] - ntimesteps, ntimesteps, wide, high, 1))
-
-    for idx in range(_data.shape[0] - ntimesteps):
-        _x = _data[idx: (idx + ntimesteps), :, :, :]
+    for idx in range(_traffic_labels.shape[0] - ntimesteps):
+        _x = _traffic_labels[idx: (idx + ntimesteps)]
 
         dataX[idx] = _x
 
-        _y = _data[(idx + 1):(idx + ntimesteps + 1), :, :, 0]
+        _y = _data[(idx + 1):(idx + ntimesteps + 1)]
         _y = np.expand_dims(_y, axis=3)
 
         dataY[idx] = _y

@@ -73,3 +73,5 @@ class ConvLSTM(AbstractModel):
         outputs = TimeDistributed(Dense(144, ))(second_Dense)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')
+
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

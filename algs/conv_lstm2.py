@@ -94,10 +94,12 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
 
-        # predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
+        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
         # predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
         print(predictX.shape)
         predict_tm = predictX[-1]
+
+        predict_tm = np.reshape(predict_tm, newshape=(test_data.shape[1], test_data.shape[2]))
 
         # if ts == 20:
         #     plot_test_data('Plot', raw_data[ts + 1:ts + Config.CONV_LSTM_STEP - 1],

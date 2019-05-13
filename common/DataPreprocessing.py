@@ -186,7 +186,7 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
         dataX[idx] = _x
 
         _y = _data[(idx + 1):(idx + ntimesteps + 1)]
-        _y = np.reshape(newshape=(ntimesteps, wide * high))
+        _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
 
         dataY[idx] = _y
 

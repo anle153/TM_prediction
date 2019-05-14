@@ -44,13 +44,14 @@ class ConvLSTM(AbstractModel):
                              dropout=self.dropout[0],
                              return_sequences=True,
                              recurrent_dropout=self.rnn_dropout[0],
-                             data_format='channels_last'
+                             data_format='channels_last',
+                             activation='relu',
                              )(input)
 
         BatchNormalization_0 = BatchNormalization()(layer_0)
 
-        first_Pooling = MaxPooling3D(pool_size=(1, 2, 2), padding='same', data_format='channels_last')(
-            BatchNormalization_0)
+        # first_Pooling = MaxPooling3D(pool_size=(1, 2, 2), padding='same', data_format='channels_last')(
+        #     BatchNormalization_0)
 
         layer_1 = ConvLSTM2D(filters=self.a_filters[1],
                              kernel_size=self.kernel_sizes[1],
@@ -59,14 +60,15 @@ class ConvLSTM(AbstractModel):
                              dropout=self.dropout[1],
                              return_sequences=True,
                              recurrent_dropout=self.rnn_dropout[1],
-                             data_format='channels_last'
-                             )(first_Pooling)
+                             data_format='channels_last',
+                             activation='relu'
+                             )(BatchNormalization_0)
 
         BatchNormalization_1 = BatchNormalization()(layer_1)
-        second_Pooling = MaxPooling3D(pool_size=(1, 3, 3), padding='same', data_format='channels_last')(
-            BatchNormalization_1)
+        # second_Pooling = MaxPooling3D(pool_size=(1, 3, 3), padding='same', data_format='channels_last')(
+        #     BatchNormalization_1)
 
-        flat_layer = TimeDistributed(Flatten())(second_Pooling)
+        flat_layer = TimeDistributed(Flatten())(BatchNormalization_1)
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)
         second_Dense = TimeDistributed(Dense(256, ))(first_Dense)

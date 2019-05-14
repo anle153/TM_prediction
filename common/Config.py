@@ -21,6 +21,27 @@ LSTM_TESTING_TIME = 1
 
 LSTM_IMS = False
 
+# ----------------- LSTM Config ---------------
+FWBW_LSTM_N_EPOCH = 100
+FWBW_LSTM_BATCH_SIZE = 64
+FWBW_LSTM_HIDDEN_UNIT = 64
+FWBW_LSTM_DROPOUT = 0.5
+
+FWBW_LSTM_DEEP = False
+FWBW_LSTM_DEEP_NLAYERS = 3
+
+FWBW_LSTM_STEP = 26
+FWBW_LSTM_FEATURES = 2
+FWBW_LSTM_IMS_STEP = 12
+
+FWBW_LSTM_MON_RAIO = 0.25
+
+FW_LSTM_BEST_CHECKPOINT = 14
+BW_LSTM_BEST_CHECKPOINT = 14
+FWBW_LSTM_TESTING_TIME = 1
+
+FWBW_LSTM_IMS = False
+
 # ----------------------------------------------
 
 # ------------- FWBW_CONV_LSTM Config ----------
@@ -85,7 +106,7 @@ CONV_LSTM_BEST_CHECKPOINT = 100
 CONV_LSTM_TESTING_TIME = 1
 
 CONV_LSTM_LAYERS = 1
-CONV_LSTM_FILTERS = [8]
+CONV_LSTM_FILTERS = [16]
 CONV_LSTM_KERNEL_SIZE = [[3, 3]]
 CONV_LSTM_STRIDES = [[1, 1]]
 CONV_LSTM_DROPOUTS = [0.1]
@@ -226,6 +247,20 @@ def set_comet_params_lstm_nn():
         'lstm_step': LSTM_STEP,
         'drop_out': LSTM_DROPOUT,
         'hidden_unit': LSTM_HIDDEN_UNIT
+    }
+
+    return params
+
+
+def set_comet_params_fwbw_lstm():
+    params = {
+        'deep_lstm': FWBW_LSTM_DEEP,
+        'epochs': FWBW_LSTM_N_EPOCH,
+        'batch_size': FWBW_LSTM_BATCH_SIZE,
+        'mon_ratio': FWBW_LSTM_MON_RAIO,
+        'lstm_step': FWBW_LSTM_STEP,
+        'drop_out': FWBW_LSTM_DROPOUT,
+        'hidden_unit': FWBW_LSTM_HIDDEN_UNIT
     }
 
     return params

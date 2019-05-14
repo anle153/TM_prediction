@@ -228,7 +228,7 @@ def train_conv_lstm(data, experiment):
                                                        validation_data=(validX, validY),
                                                        shuffle=True,
                                                        initial_epoch=from_epoch,
-                                                       verbose=1)
+                                                       verbose=2)
 
         # Plot the training history
         if training_history is not None:

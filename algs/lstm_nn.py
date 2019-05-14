@@ -15,6 +15,23 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
+def plot_test_data(prefix, raw_data, pred, current_data):
+    saving_path = Config.RESULTS_PATH + 'plot_check_lstm/'
+
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
+    from matplotlib import pyplot as plt
+    for flow_x in range(raw_data.shape[1]):
+        plt.plot(raw_data[:, flow_x], label='Actual')
+        plt.plot(pred[:, flow_x], label='Pred_fw')
+        plt.plot(current_data[:, flow_x], label='Current_pred')
+
+        plt.legend()
+        plt.savefig(saving_path + '{}_flow_{:02d}.png'.format(prefix, flow_x))
+        plt.close()
+
+
 def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
     dataX = np.zeros(shape=(data.shape[1], Config.LSTM_STEP, 2))
@@ -55,6 +72,11 @@ def predict_lstm_nn(init_data, test_data, model):
     tm_pred[0:init_data.shape[0]] = init_data
     labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
+    raw_data = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+
+    raw_data[0:init_data.shape[0]] = init_data
+    raw_data[init_data.shape[0]:] = test_data
+
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
@@ -73,6 +95,11 @@ def predict_lstm_nn(init_data, test_data, model):
 
         pred = np.expand_dims(predictX[:, -1, 0], axis=1)
 
+        if ts == 20:
+            plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1],
+                           predictX[:, :, 0].T,
+                           tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1])
+
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
@@ -86,7 +113,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         pred_input = pred.T * inv_sampling
 
-        ground_true = test_data[ts, :]
+        ground_true = test_data[ts]
 
         measured_input = np.expand_dims(ground_true, axis=0) * sampling
 
@@ -144,19 +171,18 @@ def train_lstm_nn(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         lstm_net = build_model(input_shape)
 
-    # -------------------------------- Create offline training and validating dataset ------------------------------
-    print('|--- Create offline train set for lstm-nn!')
-    trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-    print('|--- Create offline valid set for lstm-nn!')
-    validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
-    # --------------------------------------------------------------------------------------------------------------
-
     if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
         lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
 
     else:
         print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
         from_epoch = lstm_net.load_model_from_check_point()
+        # -------------------------------- Create offline training and validating dataset ------------------------------
+        print('|--- Create offline train set for lstm-nn!')
+        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+        print('|--- Create offline valid set for lstm-nn!')
+        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+        # --------------------------------------------------------------------------------------------------------------
 
         if from_epoch > 0:
             training_history = lstm_net.model.fit(x=trainX,

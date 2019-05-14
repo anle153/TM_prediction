@@ -1,19 +1,4 @@
 
-# --------------- Data Config -----------------
-
-DATA_PATH = './Dataset/'
-MODEL_SAVE = './trained_models/'
-RESULTS_PATH = './results/'
-ADDED_RESULT_NAME = 'random'
-
-ABILENE_DAY_SIZE = 288
-GEANT_DAY_SIZE = 96
-
-ALL_DATA = True
-NUM_DAYS = 160
-
-SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler']
-SCALER = SCALERS[2]
 # ----------------------------------------------
 
 # ----------------- LSTM Config ---------------
@@ -29,12 +14,33 @@ LSTM_STEP = 26
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
-LSTM_MON_RAIO = 0.20
+LSTM_MON_RAIO = 0.25
 
-LSTM_BEST_CHECKPOINT = 5
+LSTM_BEST_CHECKPOINT = 14
 LSTM_TESTING_TIME = 1
 
 LSTM_IMS = False
+
+# ----------------- FWBW_LSTM Config ---------------
+FWBW_LSTM_N_EPOCH = 100
+FWBW_LSTM_BATCH_SIZE = 64
+FWBW_LSTM_HIDDEN_UNIT = 64
+FWBW_LSTM_DROPOUT = 0.5
+
+FWBW_LSTM_DEEP = False
+FWBW_LSTM_DEEP_NLAYERS = 3
+
+FWBW_LSTM_STEP = 26
+FWBW_LSTM_FEATURES = 2
+FWBW_LSTM_IMS_STEP = 12
+
+FWBW_LSTM_MON_RAIO = 0.25
+
+FW_LSTM_BEST_CHECKPOINT = 14
+BW_LSTM_BEST_CHECKPOINT = 14
+FWBW_LSTM_TESTING_TIME = 1
+
+FWBW_LSTM_IMS = False
 
 # ----------------------------------------------
 
@@ -56,7 +62,7 @@ FWBW_CONV_LSTM_CHANNEL = 2
 FWBW_CONV_LSTM_MON_RAIO = 0.30
 
 FWBW_CONV_LSTM_IMS_STEP = 4
-FWBW_CONV_LSTM_STEP = 35
+FWBW_CONV_LSTM_STEP = 26
 
 FWBW_CONV_LSTM_TESTING_TIME = 1
 FW_BEST_CHECKPOINT = 99
@@ -91,56 +97,98 @@ HOLT_WINTER_IMS = False
 # ----------- CONV_LSTM Config ----------------------
 
 CONV_LSTM_N_EPOCH = 100
-CONV_LSTM_BATCH_SIZE = 64
+CONV_LSTM_BATCH_SIZE = 256
 
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 26
 
-CONV_LSTM_BEST_CHECKPOINT = 94
+CONV_LSTM_BEST_CHECKPOINT = 100
 CONV_LSTM_TESTING_TIME = 1
 
 CONV_LSTM_LAYERS = 2
-CONV_LSTM_FILTERS = [8, 8]
-CONV_LSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
+CONV_LSTM_FILTERS = [8, 16]
+CONV_LSTM_KERNEL_SIZE = [[3, 3], [5, 5]]
 CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
-CONV_LSTM_DROPOUTS = [0.0, 0.0]
-CONV_LSTM_RNN_DROPOUTS = [0.2, 0.2]
+CONV_LSTM_DROPOUTS = [0.5, 0.5]
+CONV_LSTM_RNN_DROPOUTS = [0.5, 0.5]
 
 CONV_LSTM_WIDE = 12
 CONV_LSTM_HIGH = 12
 CONV_LSTM_CHANNEL = 2
 
-CONV_LSTM_MON_RAIO = 0.3
+CONV_LSTM_MON_RAIO = 0.30
 
 CONV_LSTM_IMS = False
 
+CONV_LSTM_DATA_GENERATE_TIME = 10
+
 # ----------- XGB Config ----------------------
-XGB_STEP = 288
+XGB_STEP = 288 * 2
 XGB_MON_RATIO = 0.3
 XGB_IMS = False
 XGB_IMS_STEP = 12
 XGB_TESTING_TIME = 1
 XGB_NJOBS = 16
-XGB_FEATURES = 26
+XGB_FEATURES = 19
 
 # ----------- RUNNING Config ----------------------
 
 RUN_MODES = ['train', 'test', 'plot']
 ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
+SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler']
 
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[2]
-GPU = 1
+ALG = ALGS[1]
+GPU = 0
+SCALER = SCALERS[2]
+
+# --------------- Data Config -----------------
+
+DATA_PATH = './Dataset/'
+MODEL_SAVE = './trained_models/'
+RESULTS_PATH = './results/'
+ADDED_RESULT_NAME = 'random'
+
+ABILENE_DAY_SIZE = 288
+GEANT_DAY_SIZE = 96
+
+ALL_DATA = True
+NUM_DAYS = 160
+
 
 # -----------------------------------------------------------------------------------------------------------------------
 if ALG == ALGS[0]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(FWBW_CONV_LSTM_MON_RAIO * 100), FWBW_CONV_LSTM_STEP)
+    filters = ''
+    kernel = ''
+    for layer in range(FWBW_CONV_LSTM_LAYERS):
+        filters = filters + '{:02d}_'.format(FWBW_CONV_LSTM_FILTERS[layer])
+        kernel = kernel + '{:02d}_'.format(FWBW_CONV_LSTM_KERNEL_SIZE[layer][0])
+
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{}kernel_{}batch_{:03d}'.format(
+        int(FWBW_CONV_LSTM_MON_RAIO * 100),
+        FWBW_CONV_LSTM_STEP,
+        FWBW_CONV_LSTM_LAYERS,
+        filters, kernel,
+        FWBW_CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[1]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(CONV_LSTM_MON_RAIO * 100), CONV_LSTM_STEP)
+    filters = ''
+    kernel = ''
+    for layer in range(CONV_LSTM_LAYERS):
+        filters = filters + '{:02d}_'.format(CONV_LSTM_FILTERS[layer])
+        kernel = kernel + '{:02d}_'.format(CONV_LSTM_KERNEL_SIZE[layer][0])
+
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{}kernel_{}batch_{:03d}'.format(int(CONV_LSTM_MON_RAIO * 100),
+                                                                                        CONV_LSTM_STEP,
+                                                                                        CONV_LSTM_LAYERS,
+                                                                                        filters, kernel,
+                                                                                        CONV_LSTM_BATCH_SIZE)
 elif ALG == ALGS[2]:
-    TAG = 'mon_{:2d}_lstm_{:2d}'.format(int(LSTM_MON_RAIO * 100), LSTM_STEP)
+    TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),
+                                                                     LSTM_STEP,
+                                                                     LSTM_BATCH_SIZE,
+                                                                     LSTM_HIDDEN_UNIT)
 elif ALG == ALGS[3]:
     TAG = 'mon_{:2d}_update_{:2d}'.format(int(ARIMA_MON_RATIO * 100), ARIMA_UPDATE)
 elif ALG == ALGS[4]:
@@ -182,7 +230,7 @@ def set_comet_params_conv_lstm():
         'lstm_step': CONV_LSTM_STEP
     }
 
-    for i in range(FWBW_CONV_LSTM_LAYERS):
+    for i in range(CONV_LSTM_LAYERS):
         params['layer{}_filter'.format(i + 1)] = CONV_LSTM_FILTERS[i]
         params['layer{}_kernel_size'.format(i + 1)] = CONV_LSTM_KERNEL_SIZE[i]
         params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]
@@ -201,6 +249,20 @@ def set_comet_params_lstm_nn():
         'lstm_step': LSTM_STEP,
         'drop_out': LSTM_DROPOUT,
         'hidden_unit': LSTM_HIDDEN_UNIT
+    }
+
+    return params
+
+
+def set_comet_params_fwbw_lstm():
+    params = {
+        'deep_lstm': FWBW_LSTM_DEEP,
+        'epochs': FWBW_LSTM_N_EPOCH,
+        'batch_size': FWBW_LSTM_BATCH_SIZE,
+        'mon_ratio': FWBW_LSTM_MON_RAIO,
+        'lstm_step': FWBW_LSTM_STEP,
+        'drop_out': FWBW_LSTM_DROPOUT,
+        'hidden_unit': FWBW_LSTM_HIDDEN_UNIT
     }
 
     return params

@@ -36,6 +36,7 @@ def print_fwbw_conv_lstm_info():
 
 def print_conv_lstm_info():
     print('|--- MON_RATIO:\t{}'.format(Config.CONV_LSTM_MON_RAIO))
+    print('|--- DATA_GENERATE_TIME:\t{}'.format(Config.CONV_LSTM_DATA_GENERATE_TIME))
     print('            -----------            ')
 
     print('|--- CONV_LAYERS:\t{}'.format(Config.CONV_LSTM_LAYERS))
@@ -115,7 +116,8 @@ def print_holt_winter_info():
 def print_xgb_info():
     print('|--- MON_RATIO:\t{}'.format(Config.XGB_MON_RATIO))
     print('            -----------            ')
-    print('|--- FEATURES:\t{}'.format(Config.XGB_STEP))
+    print('|--- STEPS:\t{}'.format(Config.XGB_STEP))
+    print('|--- FEATURES:\t{}'.format(Config.XGB_FEATURES))
     print('|--- N_JOBS:\t{}'.format(Config.XGB_NJOBS))
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:

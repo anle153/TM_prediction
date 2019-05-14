@@ -37,17 +37,21 @@ class ConvLSTM(AbstractModel):
 
         input = Input(shape=(self.n_timsteps, self.wide, self.high, self.channel), name='input')
 
-        layer_0 = ConvLSTM2D(filters=self.a_filters[0],
-                             kernel_size=self.kernel_sizes[0],
-                             strides=[1, 1],
-                             padding='same',
-                             dropout=self.dropout[0],
-                             return_sequences=True,
-                             recurrent_dropout=self.rnn_dropout[0],
-                             data_format='channels_last'
-                             )(input)
+        last_layer = input
 
-        BatchNormalization_0 = BatchNormalization()(layer_0)
+        for layer in self.cnn_layers:
+            lstm_layer = ConvLSTM2D(filters=self.a_filters[layer],
+                                    kernel_size=self.kernel_sizes[layer],
+                                    strides=[1, 1],
+                                    padding='same',
+                                    dropout=self.dropout[0],
+                                    return_sequences=True,
+                                    recurrent_dropout=self.rnn_dropout[layer],
+                                    data_format='channels_last'
+                                    )(last_layer)
+
+            BatchNormalization_layer = BatchNormalization()(lstm_layer)
+            last_layer = BatchNormalization_layer
 
         # first_Pooling = MaxPooling3D(pool_size=(1, 2, 2), padding='same', data_format='channels_last')(
         #     BatchNormalization_0)
@@ -67,7 +71,7 @@ class ConvLSTM(AbstractModel):
         # second_Pooling = MaxPooling3D(pool_size=(1, 3, 3), padding='same', data_format='channels_last')(
         #     BatchNormalization_1)
 
-        flat_layer = TimeDistributed(Flatten())(BatchNormalization_0)
+        flat_layer = TimeDistributed(Flatten())(last_layer)
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)
         second_Dense = TimeDistributed(Dense(256, ))(first_Dense)

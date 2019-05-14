@@ -120,6 +120,8 @@ CONV_LSTM_MON_RAIO = 0.3
 
 CONV_LSTM_IMS = False
 
+CONV_LSTM_DATA_GENERATE_TIME = 3
+
 # ----------- XGB Config ----------------------
 XGB_STEP = 288 * 2
 XGB_MON_RATIO = 0.3

@@ -219,7 +219,6 @@ def train_conv_lstm(data, experiment):
                                                        initial_epoch=from_epoch)
         else:
             print('|--- Training new model.')
-
             training_history = conv_lstm_net.model.fit(x=trainX,
                                                        y=trainY,
                                                        batch_size=Config.CONV_LSTM_BATCH_SIZE,

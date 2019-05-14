@@ -164,10 +164,11 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * 2, ntimesteps, wide, high, channel))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * 2, ntimesteps, wide * high))
+    dataX = np.zeros(
+        ((data.shape[0] - ntimesteps) * Config.CONV_LSTM_DATA_GENERATE_TIME, ntimesteps, wide, high, channel))
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * Config.CONV_LSTM_DATA_GENERATE_TIME, ntimesteps, wide * high))
 
-    for time in range(2):
+    for time in range(Config.CONV_LSTM_DATA_GENERATE_TIME):
         measured_matrix = np.random.choice(_tf,
                                            size=data.shape,
                                            p=(mon_ratio, 1 - mon_ratio))

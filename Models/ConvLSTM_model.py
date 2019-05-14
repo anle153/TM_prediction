@@ -39,7 +39,7 @@ class ConvLSTM(AbstractModel):
 
         last_layer = input
 
-        for layer in self.cnn_layers:
+        for layer in range(self.cnn_layers):
             lstm_layer = ConvLSTM2D(filters=self.a_filters[layer],
                                     kernel_size=self.kernel_sizes[layer],
                                     strides=[1, 1],

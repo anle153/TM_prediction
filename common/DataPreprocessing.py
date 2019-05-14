@@ -164,31 +164,31 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps):
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
+    dataX = np.zeros(((data.shape[0] - ntimesteps) * 2, ntimesteps, wide, high, channel))
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * 2, ntimesteps, wide * high))
 
-    measured_matrix = np.random.choice(_tf,
-                                       size=data.shape,
-                                       p=(mon_ratio, 1 - mon_ratio))
-    _labels = measured_matrix.astype(int)
-    _data = np.copy(data)
+    for time in range(2):
+        measured_matrix = np.random.choice(_tf,
+                                           size=data.shape,
+                                           p=(mon_ratio, 1 - mon_ratio))
+        _labels = measured_matrix.astype(int)
+        _data = np.copy(data)
 
-    _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
+        _data[_labels == 0] = np.random.uniform(_data[_labels == 0] - eps, _data[_labels == 0] + eps)
 
-    _traffic_labels = np.zeros((_data.shape[0], wide, high, channel))
-    _traffic_labels[:, :, :, 0] = _data
-    _traffic_labels[:, :, :, 1] = _labels
+        _traffic_labels = np.zeros((_data.shape[0], wide, high, channel))
+        _traffic_labels[:, :, :, 0] = _data
+        _traffic_labels[:, :, :, 1] = _labels
 
-    dataX = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide, high, channel))
-    dataY = np.zeros((_traffic_labels.shape[0] - ntimesteps, ntimesteps, wide * high))
+        for idx in range(_traffic_labels.shape[0] - ntimesteps):
+            _x = _traffic_labels[idx: (idx + ntimesteps)]
 
-    for idx in range(_traffic_labels.shape[0] - ntimesteps):
-        _x = _traffic_labels[idx: (idx + ntimesteps)]
+            dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
 
-        dataX[idx] = _x
+            _y = _data[(idx + 1):(idx + ntimesteps + 1)]
+            _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
 
-        _y = _data[(idx + 1):(idx + ntimesteps + 1)]
-        _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
-
-        dataY[idx] = _y
+            dataY[idx + time * (data.shape[0] - ntimesteps)] = _y
 
     return dataX, dataY
 

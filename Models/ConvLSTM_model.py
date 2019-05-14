@@ -44,8 +44,7 @@ class ConvLSTM(AbstractModel):
                              dropout=self.dropout[0],
                              return_sequences=True,
                              recurrent_dropout=self.rnn_dropout[0],
-                             data_format='channels_last',
-                             activation='relu',
+                             data_format='channels_last'
                              )(input)
 
         BatchNormalization_0 = BatchNormalization()(layer_0)

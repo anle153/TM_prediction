@@ -120,7 +120,7 @@ CONV_LSTM_MON_RAIO = 0.45
 
 CONV_LSTM_IMS = False
 
-CONV_LSTM_DATA_GENERATE_TIME = 3
+CONV_LSTM_DATA_GENERATE_TIME = 5
 
 # ----------- XGB Config ----------------------
 XGB_STEP = 288 * 2

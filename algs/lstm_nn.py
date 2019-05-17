@@ -192,7 +192,8 @@ def train_lstm_nn(data, experiment):
                                                   callbacks=lstm_net.callbacks_list,
                                                   validation_data=(validX, validY),
                                                   shuffle=True,
-                                                  initial_epoch=from_epoch)
+                                                  initial_epoch=from_epoch,
+                                                  verbose=2)
         else:
 
             training_history = lstm_net.model.fit(x=trainX,
@@ -201,7 +202,8 @@ def train_lstm_nn(data, experiment):
                                                   epochs=Config.LSTM_N_EPOCH,
                                                   callbacks=lstm_net.callbacks_list,
                                                   validation_data=(validX, validY),
-                                                  shuffle=True)
+                                                  shuffle=True,
+                                                  verbose=2)
 
         if training_history is not None:
             lstm_net.plot_training_history(training_history)

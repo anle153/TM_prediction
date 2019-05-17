@@ -134,7 +134,7 @@ XGB_FEATURES = 19
 # ----------- RUNNING Config ----------------------
 
 RUN_MODES = ['train', 'test', 'plot']
-ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb']
+ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler']
 
 DATA_NAME = 'Abilene2d'

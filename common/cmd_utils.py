@@ -100,7 +100,8 @@ def print_fwbw_lstm_info():
             print('|--- IMS_STEP:\t{}'.format(Config.FWBW_LSTM_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_LSTM_TESTING_TIME))
-        print('|--- BEST_CHECKPOINT:\t{}'.format(Config.FWBW_LSTM_BEST_CHECKPOINT))
+        print('|--- BEST_CHECKPOINT FW:\t{}'.format(Config.FW_LSTM_BEST_CHECKPOINT))
+        print('|--- BEST_CHECKPOINT BW:\t{}'.format(Config.BW_LSTM_BEST_CHECKPOINT))
     else:
         raise Exception('Unknown RUN_MODE!')
 
@@ -191,7 +192,7 @@ def print_info():
     elif Config.ALG == Config.ALGS[5]:
         print_xgb_info()
     elif Config.ALG == Config.ALGS[6]:
-        print_fwbw_lstm()
+        print_fwbw_lstm_info()
     else:
         raise ValueError('Unkown alg!')
     print('|--- RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))

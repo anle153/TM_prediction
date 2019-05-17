@@ -140,7 +140,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[2]
+ALG = ALGS[6]
 GPU = 0
 SCALER = SCALERS[2]
 

@@ -366,50 +366,50 @@ def train_fwbw_lstm(data, experiment):
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    # if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_LSTM_N_EPOCH)):
-    #     print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_LSTM_BEST_CHECKPOINT))
-    #     fw_net.load_model_from_check_point(_from_epoch=Config.FW_LSTM_BEST_CHECKPOINT)
-    # else:
-    #     print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
-    #     # -------------------------------- Create offline training and validating dataset ------------------------------
-    #
-    #     print('|--- Create offline train set for forward net!')
-    #
-    #     trainX_fw, trainY_fw = create_offline_lstm_nn_data(train_data_normalized2d,
-    #                                                        input_shape, Config.FWBW_LSTM_MON_RAIO,
-    #                                                        0.5)
-    #     print('|--- Create offline valid set for forward net!')
-    #
-    #     validX_fw, validY_fw = create_offline_lstm_nn_data(valid_data_normalized2d,
-    #                                                        input_shape, Config.FWBW_LSTM_MON_RAIO,
-    #                                                        0.5)
-    #
-    #     # Load model check point
-    #     from_epoch = fw_net.load_model_from_check_point()
-    #     if from_epoch > 0:
-    #         print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-    #         training_fw_history = fw_net.model.fit(x=trainX_fw,
-    #                                                y=trainY_fw,
-    #                                                batch_size=Config.FWBW_LSTM_BATCH_SIZE,
-    #                                                epochs=Config.FWBW_LSTM_N_EPOCH,
-    #                                                callbacks=fw_net.callbacks_list,
-    #                                                validation_data=(validX_fw, validY_fw),
-    #                                                shuffle=True,
-    #                                                initial_epoch=from_epoch)
-    #     else:
-    #         print('|--- Training new forward model.')
-    #
-    #         training_fw_history = fw_net.model.fit(x=trainX_fw,
-    #                                                y=trainY_fw,
-    #                                                batch_size=Config.FWBW_LSTM_BATCH_SIZE,
-    #                                                epochs=Config.FWBW_LSTM_N_EPOCH,
-    #                                                callbacks=fw_net.callbacks_list,
-    #                                                validation_data=(validX_fw, validY_fw),
-    #                                                shuffle=True)
-    #
-    #     # Plot the training history
-    #     if training_fw_history is not None:
-    #         fw_net.plot_training_history(training_fw_history)
+    if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_LSTM_N_EPOCH)):
+        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_LSTM_BEST_CHECKPOINT))
+        fw_net.load_model_from_check_point(_from_epoch=Config.FW_LSTM_BEST_CHECKPOINT)
+    else:
+        print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
+        # -------------------------------- Create offline training and validating dataset ------------------------------
+
+        print('|--- Create offline train set for forward net!')
+
+        trainX_fw, trainY_fw = create_offline_lstm_nn_data(train_data_normalized2d,
+                                                           input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                           0.5)
+        print('|--- Create offline valid set for forward net!')
+
+        validX_fw, validY_fw = create_offline_lstm_nn_data(valid_data_normalized2d,
+                                                           input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                           0.5)
+
+        # Load model check point
+        from_epoch = fw_net.load_model_from_check_point()
+        if from_epoch > 0:
+            print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
+            training_fw_history = fw_net.model.fit(x=trainX_fw,
+                                                   y=trainY_fw,
+                                                   batch_size=Config.FWBW_LSTM_BATCH_SIZE,
+                                                   epochs=Config.FWBW_LSTM_N_EPOCH,
+                                                   callbacks=fw_net.callbacks_list,
+                                                   validation_data=(validX_fw, validY_fw),
+                                                   shuffle=True,
+                                                   initial_epoch=from_epoch)
+        else:
+            print('|--- Training new forward model.')
+
+            training_fw_history = fw_net.model.fit(x=trainX_fw,
+                                                   y=trainY_fw,
+                                                   batch_size=Config.FWBW_LSTM_BATCH_SIZE,
+                                                   epochs=Config.FWBW_LSTM_N_EPOCH,
+                                                   callbacks=fw_net.callbacks_list,
+                                                   validation_data=(validX_fw, validY_fw),
+                                                   shuffle=True)
+
+        # Plot the training history
+        if training_fw_history is not None:
+            fw_net.plot_training_history(training_fw_history)
     # --------------------------------------------------------------------------------------------------------------
 
     # --------------------------- Create offline training and validating dataset for bw net ------------------------

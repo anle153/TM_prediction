@@ -195,6 +195,11 @@ elif ALG == ALGS[4]:
     TAG = 'mon_{:2d}_update_{:2d}'.format(int(HOLT_WINTER_MON_RATIO * 100), HOLT_WINTER_UPDATE)
 elif ALG == ALGS[5]:
     TAG = 'mon_{:2d}_features_{:2d}_steps_{:2d}'.format(int(XGB_MON_RATIO * 100), XGB_FEATURES, XGB_STEP)
+elif ALG == ALGS[6]:
+    TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(FWBW_LSTM_MON_RAIO * 100),
+                                                                     FWBW_LSTM_STEP,
+                                                                     FWBW_LSTM_BATCH_SIZE,
+                                                                     FWBW_LSTM_HIDDEN_UNIT)
 else:
     raise Exception('Unknown alg!')
 

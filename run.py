@@ -33,7 +33,8 @@ def train():
         train_xgboost(data=data)
     elif Config.ALG == Config.ALGS[6]:
         from algs.fwbw_lstm import train_fwbw_lstm
-        train_fwbw_lstm(data=data)
+        experiment = Experiment(project_name='tmp-fwbw-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        train_fwbw_lstm(data=data, experiment=experiment)
     else:
         raise ValueError('Unkown alg!')
 

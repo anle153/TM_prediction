@@ -311,19 +311,25 @@ def build_model(input_shape):
     tag = Config.TAG
     data_name = Config.DATA_NAME
 
-    # CNN_BRNN forward model
+    # lstm forward model
     fw_net = lstm(input_shape=input_shape,
                   hidden=Config.FWBW_LSTM_HIDDEN_UNIT,
                   drop_out=Config.FWBW_LSTM_DROPOUT,
                   alg_name=alg_name, tag=tag, check_point=True,
                   saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/fw/'.format(data_name, alg_name, tag, Config.SCALER))
 
-    # CNN_BRNN backward model
+    # lstm backward model
     bw_net = lstm(input_shape=input_shape,
                   hidden=Config.FWBW_LSTM_HIDDEN_UNIT,
                   drop_out=Config.FWBW_LSTM_DROPOUT,
                   alg_name=alg_name, tag=tag, check_point=True,
                   saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/bw/'.format(data_name, alg_name, tag, Config.SCALER))
+    if Config.FWBW_LSTM_DEEP:
+        fw_net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
+        bw_net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
+    else:
+        fw_net.seq2seq_model_construction()
+        bw_net.seq2seq_model_construction()
 
     return fw_net, bw_net
 

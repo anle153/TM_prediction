@@ -31,6 +31,9 @@ def train():
     elif Config.ALG == Config.ALGS[5]:
         from algs.boosting_based import train_xgboost
         train_xgboost(data=data)
+    elif Config.ALG == Config.ALGS[6]:
+        from algs.fwbw_lstm import train_fwbw_lstm
+        train_fwbw_lstm(data=data)
     else:
         raise ValueError('Unkown alg!')
 

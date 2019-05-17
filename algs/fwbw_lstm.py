@@ -401,7 +401,8 @@ def train_fwbw_lstm(data, experiment):
     #                                                callbacks=fw_net.callbacks_list,
     #                                                validation_data=(validX_fw, validY_fw),
     #                                                shuffle=True,
-    #                                                initial_epoch=from_epoch)
+    #                                                initial_epoch=from_epoch,
+    #                                                verbose=2)
     #     else:
     #         print('|--- Training new forward model.')
     #
@@ -411,7 +412,8 @@ def train_fwbw_lstm(data, experiment):
     #                                                epochs=Config.FWBW_LSTM_N_EPOCH,
     #                                                callbacks=fw_net.callbacks_list,
     #                                                validation_data=(validX_fw, validY_fw),
-    #                                                shuffle=True)
+    #                                                shuffle=True,
+    #                                                verbose=2)
     #
     #     # Plot the training history
     #     if training_fw_history is not None:
@@ -453,7 +455,8 @@ def train_fwbw_lstm(data, experiment):
                                                    callbacks=bw_net.callbacks_list,
                                                    validation_data=(validX_bw, validY_bw),
                                                    shuffle=True,
-                                                   initial_epoch=from_epoch_bw)
+                                                   initial_epoch=from_epoch_bw,
+                                                   verbose=2)
 
         else:
             print('|--- Training new backward model.')
@@ -464,7 +467,8 @@ def train_fwbw_lstm(data, experiment):
                                                    epochs=Config.FWBW_LSTM_N_EPOCH,
                                                    callbacks=bw_net.callbacks_list,
                                                    validation_data=(validX_bw, validY_bw),
-                                                   shuffle=True)
+                                                   shuffle=True,
+                                                   verbose=2)
         if training_bw_history is not None:
             bw_net.plot_training_history(training_bw_history)
 

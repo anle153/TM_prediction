@@ -62,7 +62,7 @@ def ims_tm_prediction(init_data, model, init_labels):
 
 
 def predict_lstm_nn(init_data, test_data, model):
-    tf_a = np.array([True, False])
+    tf_a = np.array([1.0, 0.0])
     labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -93,12 +93,7 @@ def predict_lstm_nn(init_data, test_data, model):
         # Get the TM prediction of next time slot
         predictX = model.predict(rnn_input)
 
-        pred = np.expand_dims(predictX[:, -1, 0], axis=1)
-
-        if ts == 20:
-            plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1],
-                           predictX[:, :, 0].T,
-                           tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP + 1])
+        pred = predictX[:, -1, 0]
 
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)
@@ -109,17 +104,16 @@ def predict_lstm_nn(init_data, test_data, model):
 
         labels[ts + Config.LSTM_STEP] = sampling
         # invert of sampling: for choosing value from the original data
-        inv_sampling = np.invert(sampling)
-
-        pred_input = pred.T * inv_sampling
+        inv_sampling = 1.0 - sampling
+        pred_input = pred * inv_sampling
 
         ground_true = test_data[ts]
 
-        measured_input = np.expand_dims(ground_true, axis=0) * sampling
+        measured_input = ground_true * sampling
 
         # Merge value from pred_input and measured_input
         new_input = pred_input + measured_input
-        # new_input = np.reshape(new_input, (new_input.shap e[0], new_input.shape[1], 1))
+        # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
 
         # Concatenating new_input into current rnn_input
         tm_pred[ts + Config.LSTM_STEP] = new_input

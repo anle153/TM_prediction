@@ -14,9 +14,9 @@ LSTM_STEP = 26
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
-LSTM_MON_RAIO = 0.20
+LSTM_MON_RAIO = 0.30
 
-LSTM_BEST_CHECKPOINT = 14
+LSTM_BEST_CHECKPOINT = 20
 LSTM_TESTING_TIME = 1
 
 LSTM_IMS = False
@@ -120,7 +120,7 @@ CONV_LSTM_MON_RAIO = 0.30
 
 CONV_LSTM_IMS = False
 
-CONV_LSTM_DATA_GENERATE_TIME = 15
+CONV_LSTM_DATA_GENERATE_TIME = 5
 
 # ----------- XGB Config ----------------------
 XGB_STEP = 288 * 2
@@ -140,8 +140,8 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[6]
-GPU = 0
+ALG = ALGS[2]
+GPU = 1
 SCALER = SCALERS[2]
 
 # --------------- Data Config -----------------

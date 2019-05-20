@@ -42,6 +42,8 @@ FWBW_LSTM_TESTING_TIME = 1
 
 FWBW_LSTM_IMS = False
 
+FWBW_LSTM_VALID_TEST = True
+
 # ----------------------------------------------
 
 # ------------- FWBW_CONV_LSTM Config ----------

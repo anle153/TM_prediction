@@ -275,7 +275,7 @@ def error_ratio(y_true, y_pred, measured_matrix):
     y_true_flatten = y_true.flatten()
     y_pred_flatten = y_pred.flatten()
     measured_matrix = measured_matrix.flatten()
-    observated_indice = np.where(measured_matrix == False)
+    observated_indice = np.where(measured_matrix == 0.0)
 
     e1 = sqrt(np.sum(np.square(y_true_flatten[observated_indice] - y_pred_flatten[observated_indice])))
     e2 = sqrt(np.sum(np.square(y_true_flatten[observated_indice])))

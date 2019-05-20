@@ -3,13 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from Models.RNN_LSTM import lstm
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_lstm_nn_data
-from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
+from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
 config = tf.ConfigProto()
@@ -36,201 +35,6 @@ def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
             plt.close()
 
 
-def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matrix):
-    eps = 10e-5
-
-    cl = calculate_consecutive_loss_3d(measured_matrix).astype(float)
-
-    flows_stds = np.std(rnn_input, axis=0)
-
-    cl_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(cl)
-    flows_stds_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(flows_stds)
-    rl_forward_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(rl_forward)
-    rl_backward_scaled = MinMaxScaler(feature_range=(eps, 1.0)).fit_transform(rl_backward)
-
-    w = 1 / (rl_forward_scaled * Config.FWBW_LSTM_HYPERPARAMS[0] +
-             rl_backward_scaled * Config.FWBW_LSTM_HYPERPARAMS[1] +
-             cl_scaled * Config.FWBW_LSTM_HYPERPARAMS[2] +
-             flows_stds_scaled * Config.FWBW_LSTM_HYPERPARAMS[3])
-
-    return w
-
-
-def set_measured_flow_3d(rnn_input_labels, forward_pred, backward_pred):
-    rnn_input = rnn_input_labels[:, :, :, 0]
-    measured_matrix = rnn_input_labels[:, :, :, 1]
-
-    rl_forward, rl_backward = calculate_forward_backward_loss_3d(measured_block=measured_matrix,
-                                                                 pred_forward=forward_pred,
-                                                                 pred_backward=backward_pred,
-                                                                 rnn_input=rnn_input)
-
-    w = calculate_flows_weights_3d(rnn_input=rnn_input,
-                                   rl_forward=rl_forward,
-                                   rl_backward=rl_backward,
-                                   measured_matrix=measured_matrix)
-
-    sampling = np.zeros(shape=(rnn_input.shape[1] * rnn_input.shape[2]))
-    m = int(Config.FWBW_LSTM_MON_RAIO * rnn_input.shape[1] * rnn_input.shape[2])
-
-    w = w.flatten()
-    sorted_idx_w = np.argpartition(w, m)
-    sampling[sorted_idx_w[:m]] = 1
-
-    sampling = np.expand_dims(sampling, axis=0)
-
-    sampling = np.reshape(sampling, newshape=(rnn_input.shape[1], rnn_input.shape[2]))
-
-    return sampling.astype(bool)
-
-
-def calculate_updated_weights_3d(measured_block, forward_loss, backward_loss):
-    labels = measured_block.astype(int)
-
-    measured_count = np.sum(labels, axis=0).astype(float)
-    _eta = measured_count / Config.FWBW_LSTM_STEP
-
-    # _eta[_eta == 0.0] = eps
-
-    alpha = 1 - _eta  # shape = (od, od)
-    alpha = np.tile(np.expand_dims(alpha, axis=0), (Config.FWBW_LSTM_STEP, 1, 1))
-
-    # Calculate rho
-    rho = np.empty((0, measured_block.shape[1], measured_block.shape[1]))
-    mu = np.empty((0, measured_block.shape[1], measured_block.shape[1]))
-    for j in range(0, Config.FWBW_LSTM_STEP):
-        _mu = np.expand_dims((np.sum(measured_block[:(j + 1), :, :], axis=0)) / float(j + 1), axis=0)
-        mu = np.concatenate([mu, _mu], axis=0)
-
-        _rho = np.expand_dims((np.sum(measured_block[j:, :, :], axis=0)) / float(Config.FWBW_LSTM_STEP - j),
-                              axis=0)
-        rho = np.concatenate([rho, _rho], axis=0)
-
-    forward_loss = np.tile(np.expand_dims(forward_loss, axis=0), (Config.FWBW_LSTM_STEP, 1, 1))
-    backward_loss = np.tile(np.expand_dims(backward_loss, axis=0), (Config.FWBW_LSTM_STEP, 1, 1))
-
-    forward_loss = forward_loss[0:-2, :, :]
-    backward_loss = backward_loss[0:-2, :, :]
-
-    mu = mu[0:-2, :, :]
-    rho = rho[2:, :, :]
-
-    alpha = alpha[:-2, :, :]
-
-    beta = (backward_loss + mu) * (1 - alpha) / (forward_loss + backward_loss + mu + rho)
-
-    gamma = (forward_loss + rho) * (1 - alpha) / (forward_loss + backward_loss + mu + rho)
-
-    return alpha, beta, gamma
-
-
-def calculate_forward_backward_loss_3d(measured_block, pred_forward, pred_backward, rnn_input):
-    eps = 10e-8
-
-    rnn_first_input_updated = np.expand_dims(pred_backward[1, :, :], axis=0)
-    rnn_last_input_updated = np.expand_dims(pred_forward[-2, :, :], axis=0)
-    rnn_updated_input_forward = np.concatenate(
-        [rnn_first_input_updated, pred_forward[0:-2, :, :], rnn_last_input_updated],
-        axis=0)
-    rnn_updated_input_backward = np.concatenate(
-        [rnn_first_input_updated, pred_backward[2:, :, :], rnn_last_input_updated],
-        axis=0)
-    rl_forward = recovery_loss_3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_forward,
-                                  measured_matrix=measured_block)
-    rl_forward[rl_forward == 0] = eps
-
-    rl_backward = recovery_loss_3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_backward,
-                                   measured_matrix=measured_block)
-    rl_backward[rl_backward == 0] = eps
-
-    return rl_forward, rl_backward
-
-
-def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_input_labels, ts):
-    rnn_input = rnn_input_labels[:, :, :, 0]
-    measured_block = rnn_input_labels[:, :, :, 1]
-
-    forward_loss, backward_loss = calculate_forward_backward_loss_3d(measured_block=measured_block,
-                                                                     pred_forward=pred_forward,
-                                                                     pred_backward=pred_backward,
-                                                                     rnn_input=rnn_input)
-
-    alpha, beta, gamma = calculate_updated_weights_3d(measured_block=measured_block,
-                                                      forward_loss=forward_loss,
-                                                      backward_loss=backward_loss)
-
-    considered_rnn_input = rnn_input[1:-1, :, :]
-    considered_forward = pred_forward[0:-2, :, :]
-    considered_backward = pred_backward[2:, :, :]
-
-    updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
-
-    sampling_measured_matrix = measured_block.astype(bool)
-    sampling_measured_matrix = sampling_measured_matrix[1:-1, :, :]
-    inv_sampling_measured_matrix = np.invert(sampling_measured_matrix)
-
-    if ts == 20:
-        print('Alpha: {}'.format(alpha[:, 0, 3]))
-        print('Beta: {}'.format(beta[:, 0, 3]))
-        print('Gamma: {}'.format(gamma[:, 0, 3]))
-
-    bidirect_rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
-
-    tm_labels[(ts + 1):ts + Config.FWBW_LSTM_STEP - 1, :, :, 0] = \
-        tm_labels[(ts + 1):ts + Config.FWBW_LSTM_STEP - 1, :, :,
-        0] * sampling_measured_matrix + bidirect_rnn_pred_value
-
-    return tm_labels
-
-
-def ims_tm_prediction(init_data_labels, forward_model, backward_model):
-    multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.FWBW_LSTM_IMS_STEP,
-                                     init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
-
-    multi_steps_tm[0:init_data_labels.shape[0], :, :, :] = init_data_labels
-
-    for ts_ahead in range(Config.FWBW_LSTM_IMS_STEP):
-        rnn_input = multi_steps_tm[-Config.FWBW_LSTM_STEP:, :, :, :]  # shape(timesteps, od, od , 2)
-
-        rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
-
-        rnn_input_backward = np.flip(rnn_input, axis=0)
-        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
-
-        # Prediction results from forward network
-        predictX = forward_model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
-
-        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
-        predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
-
-        # Prediction results from backward network
-        predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
-
-        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
-
-        # Flipping the backward prediction
-        predictX_backward = np.flip(predictX_backward, axis=0)
-
-        # Correcting the imprecise input data
-        updating_historical_data_3d(tm_labels=multi_steps_tm, pred_forward=predictX, pred_backward=predictX_backward,
-                                    rnn_input_labels=rnn_input, ts=ts_ahead)
-
-        predict_tm = predictX[-1, :, :]
-
-        sampling = np.zeros(shape=(Config.FWBW_LSTM_WIDE, Config.FWBW_LSTM_HIGH, 1))
-
-        # Calculating the true value for the TM
-        new_input = predict_tm
-
-        # Concaternating the new tm to the final results
-        # Shape = (12, 12, 2)
-        new_input = np.concatenate([np.expand_dims(new_input, axis=2), sampling], axis=2)
-        multi_steps_tm[ts_ahead + Config.FWBW_LSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
-
-    return multi_steps_tm[-1, :, :, 0]
-
-
 def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
     dataX = np.zeros(shape=(data.shape[1], Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES))
@@ -244,61 +48,68 @@ def prepare_input_online_prediction(data, labels):
     return dataX
 
 
-def recovery_loss(rnn_input, rnn_updated, measured_matrix):
-    labels = measured_matrix.astype(int)
-    r_l = []
-    for flow_id in range(rnn_input.shape[0]):
-        flow_label = labels[flow_id, :]
-        n_measured_data = np.count_nonzero(flow_label)
-        if n_measured_data == 0:  # If no measured data point ==> negative recovery loss
-            r_l.append(labels.shape[1])
-        else:
-            # Only consider the data point which is measured
-            observated_idx = np.where(flow_label == 1)
-            flow_true = rnn_input[flow_id, :]
-            flow_pred = rnn_updated[flow_id, :]
-            r_l.append(sqrt(np.sum(np.square(flow_true[observated_idx] - flow_pred[observated_idx]))))
-
-    r_l = np.asarray(r_l)
-    r_l[r_l < 0] = r_l.max()
-
-    return r_l
-
-
 def calculate_forward_backward_loss(measured_block, pred_forward, pred_backward, rnn_input):
-    eps = 10e-8
+    l_fw, l_bw = [], []
+    for flow_id in range(rnn_input.shape[0]):
+        l_fw.append(error_ratio(y_true=rnn_input[flow_id, 1:],
+                                y_pred=pred_forward[flow_id, :Config.FWBW_LSTM_STEP - 1],
+                                measured_matrix=measured_block[flow_id, 1:]))
+        l_bw.append(error_ratio(y_true=rnn_input[flow_id, 0:Config.FWBW_LSTM_STEP - 1],
+                                y_pred=pred_backward[flow_id, 1:],
+                                measured_matrix=measured_block[flow_id, 0:Config.FWBW_LSTM_STEP - 1]))
 
-    rnn_first_input_updated = np.expand_dims(pred_backward[:, 1], axis=1)
-    rnn_last_input_updated = np.expand_dims(pred_forward[:, -2], axis=1)
-    rnn_updated_input_forward = np.concatenate([rnn_first_input_updated, pred_forward[:, 0:-2], rnn_last_input_updated],
-                                               axis=1)
-    rnn_updated_input_backward = np.concatenate([rnn_first_input_updated, pred_backward[:, 2:], rnn_last_input_updated],
-                                                axis=1)
-    rl_forward = recovery_loss(rnn_input=rnn_input, rnn_updated=rnn_updated_input_forward,
-                               measured_matrix=measured_block)
-    rl_forward[rl_forward == 0] = eps
+    l_fw = np.array(l_fw)
+    l_fw[l_fw == 0.] = np.max(l_fw)
+    l_bw = np.array(l_bw)
+    l_bw[l_bw == 0.] = np.max(l_bw)
 
-    rl_backward = recovery_loss(rnn_input=rnn_input, rnn_updated=rnn_updated_input_backward,
-                                measured_matrix=measured_block)
-    rl_backward[rl_backward == 0] = eps
-
-    return rl_forward, rl_backward
+    return l_fw, l_bw
 
 
-def data_correction(tm_pred, pred_forward, pred_backward, ts, measured_block):
-    rnn_input = tm_pred[ts: ts + Config.FWBW_LSTM_STEP]
+def calculate_confident_factors(measured_block, forward_loss, backward_loss):
+    eps = 0.0001
 
-    forward_loss, backward_loss = calculate_forward_backward_loss(measured_block=measured_block,
+    labels = measured_block.astype(int)  # shape = (#nflows, #steps)
+
+    measured_count = np.sum(labels, axis=1).astype(float)  # shape = (#nflows,)
+    _eta = measured_count / Config.FWBW_LSTM_STEP
+
+    _eta[_eta == 0.0] = eps
+
+    alpha = 1.0 - _eta  # shape = (#nflows,)
+    alpha = np.tile(np.expand_dims(alpha, axis=1), (1, Config.FWBW_LSTM_STEP))  # shape = (#nflows, #steps)
+
+    rho = np.zeros((measured_block.shape[0], Config.FWBW_LSTM_STEP))
+    mu = np.zeros((measured_block.shape[0], Config.FWBW_LSTM_STEP))
+    for j in range(0, Config.FWBW_LSTM_STEP):
+        _rho = (np.sum(measured_block[:, j:], axis=1)) / float(Config.FWBW_LSTM_STEP - j)
+        _mu = (np.sum(measured_block[:, :(j + 1)], axis=1)) / float(j + 1)
+        rho[:, j] = _rho
+        mu[:, j] = _mu
+
+    forward_loss = np.tile(np.expand_dims(forward_loss, axis=1), (1, Config.FWBW_LSTM_STEP))
+    backward_loss = np.tile(np.expand_dims(backward_loss, axis=1), (1, Config.FWBW_LSTM_STEP))
+
+    beta = (backward_loss + mu) * (1.0 - alpha) / (forward_loss + backward_loss + mu + rho)
+
+    gamma = (forward_loss + rho) * (1.0 - alpha) / (forward_loss + backward_loss + mu + rho)
+
+    return alpha, beta, gamma
+
+
+def data_correction(tm_pred, pred_forward, pred_backward, measured_block):
+    rnn_input = tm_pred  # shape = (#step, #nflows)
+
+    forward_loss, backward_loss = calculate_forward_backward_loss(measured_block=measured_block.T,
                                                                   pred_forward=pred_forward,
                                                                   pred_backward=pred_backward,
-                                                                  rnn_input=rnn_input)
+                                                                  rnn_input=rnn_input.T)
 
-    alpha, beta, gamma = calculate_updated_weights(look_back=look_back,
-                                                   measured_block=measured_block,
+    alpha, beta, gamma = calculate_confident_factors(measured_block=measured_block.T,
                                                    forward_loss=forward_loss,
                                                    backward_loss=backward_loss)
 
-    considered_forward = pred_forward[:, 0:-2]
+    considered_forward = pred_forward[:, :-2]
     considered_backward = pred_backward[:, 2:]
     considered_rnn_input = rnn_input[:, 1:-1]
 
@@ -308,25 +119,18 @@ def data_correction(tm_pred, pred_forward, pred_backward, ts, measured_block):
 
     updated_rnn_input = considered_backward * gamma + considered_forward * beta + considered_rnn_input * alpha
 
-    sampling_measured_matrix = measured_matrix.T[:, (current_ts + 1):(current_ts + look_back - 1)]
-    inv_sampling_measured_matrix = np.invert(sampling_measured_matrix)
+    sampling_measured_matrix = measured_block.T[:, 1:-1]
+    inv_sampling_measured_matrix = 1.0 - sampling_measured_matrix
     bidirect_rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
 
-    pred_tm[:, (current_ts + 1):(current_ts + look_back - 1)] = \
-        pred_tm[:, (current_ts + 1):(current_ts + look_back - 1)] * sampling_measured_matrix + bidirect_rnn_pred_value
+    tm_pred[1:-1, :] = \
+        tm_pred[1:-1, :] * sampling_measured_matrix.T + bidirect_rnn_pred_value.T
 
-    # Calculate loss after update
-    er_ = error_ratio(y_true=raw_data, y_pred=pred_tm.T[-look_back:, :],
-                      measured_matrix=measured_matrix[-look_back:, :])
-
-    # if er_ > _er:
-    #     print('Correcting Fail')
-
-    return pred_tm.T
+    return tm_pred
 
 
 def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
-    tf_a = np.array([True, False])
+    tf_a = np.array([1.0, 0.0])
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -365,6 +169,12 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
         pred_bw = predictX_bw[:, -1, 0]
         pred_bw = np.flip(pred_bw, axis=0)
 
+        # Data Correction
+        data_correction(tm_pred=tm_pred[ts:ts + Config.FWBW_LSTM_STEP],
+                        pred_forward=pred_fw,
+                        pred_backward=pred_bw,
+                        measured_block=labels[ts:ts + Config.FWBW_LSTM_STEP])
+
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
@@ -374,7 +184,7 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
 
         labels[ts + Config.FWBW_LSTM_STEP] = sampling
         # invert of sampling: for choosing value from the original data
-        inv_sampling = np.invert(sampling)
+        inv_sampling = 1.0 - sampling
 
         pred_input = pred.T * inv_sampling
 

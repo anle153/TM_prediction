@@ -62,7 +62,7 @@ def ims_tm_prediction(init_data, model, init_labels):
 
 
 def predict_lstm_nn(init_data, test_data, model):
-    tf_a = np.array([True, False])
+    tf_a = np.array([1.0, 0.0])
     labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -104,8 +104,7 @@ def predict_lstm_nn(init_data, test_data, model):
 
         labels[ts + Config.LSTM_STEP] = sampling
         # invert of sampling: for choosing value from the original data
-        inv_sampling = np.invert(sampling)
-
+        inv_sampling = 1.0 - sampling
         pred_input = pred * inv_sampling
 
         ground_true = test_data[ts]

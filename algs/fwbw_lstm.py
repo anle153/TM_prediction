@@ -98,12 +98,12 @@ def calculate_confident_factors(measured_block, forward_loss, backward_loss):
 
 
 def data_correction(tm_pred, pred_forward, pred_backward, measured_block):
-    rnn_input = tm_pred  # shape = (#step, #nflows)
+    rnn_input = np.copy(tm_pred).T  # shape = (#step, #nflows)
 
     forward_loss, backward_loss = calculate_forward_backward_loss(measured_block=measured_block,
                                                                   pred_forward=pred_forward,
                                                                   pred_backward=pred_backward,
-                                                                  rnn_input=rnn_input.T)
+                                                                  rnn_input=rnn_input)
 
     alpha, beta, gamma = calculate_confident_factors(measured_block=measured_block,
                                                      forward_loss=forward_loss,

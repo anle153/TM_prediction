@@ -177,20 +177,33 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
         # Data Correction
 
         # _before = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
-            # plot_test_data(prefix='Before_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-            #                pred_fw=pred_fw[:, :-2].T,
-            #                pred_bw=pred_bw[:, 2:].T,
-            #                current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        if ts == 30:
+            plot_test_data(prefix='No_bw', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+                           pred_fw=pred_fw[:, :-2].T,
+                           pred_bw=pred_bw[:, 2:].T,
+                           current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
-        data_correction(tm_pred=tm_pred[ts:ts + Config.FWBW_LSTM_STEP],
-                        pred_forward=pred_fw,
-                        pred_backward=pred_bw,
-                        measured_block=labels[ts:ts + Config.FWBW_LSTM_STEP].T)
+        _err_before = error_ratio(y_true=raw_data[Config.FWBW_LSTM_STEP:ts + Config.FWBW_LSTM_STEP],
+                                  y_pred=tm_pred[Config.FWBW_LSTM_STEP:ts + Config.FWBW_LSTM_STEP],
+                                  measured_matrix=labels[Config.FWBW_LSTM_STEP:ts + Config.FWBW_LSTM_STEP])
+
+        # data_correction(tm_pred=tm_pred[ts:ts + Config.FWBW_LSTM_STEP],
+        #                 pred_forward=pred_fw,
+        #                 pred_backward=pred_bw,
+        #                 measured_block=labels[ts:ts + Config.FWBW_LSTM_STEP].T)
+        #
+        # _err_after_correction = error_ratio(y_true=raw_data[Config.FWBW_LSTM_STEP:ts+Config.FWBW_LSTM_STEP],
+        #                           y_pred=tm_pred[Config.FWBW_LSTM_STEP:ts+Config.FWBW_LSTM_STEP],
+        #                           measured_matrix=labels[Config.FWBW_LSTM_STEP:ts+Config.FWBW_LSTM_STEP])
+
+        print('ts: {} - err_before: {}'.format(ts, _err_before))
+
         # _after = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
-            # plot_test_data(prefix='After_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-            #                pred_fw=pred_fw[:, :-2].T,
-            #                pred_bw=pred_bw[:, 2:].T,
-            #                current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        # if ts == 30:
+        #     plot_test_data(prefix='After_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+        #                    pred_fw=pred_fw[:, :-2].T,
+        #                    pred_bw=pred_bw[:, 2:].T,
+        #                    current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         # if np.array_equal(_before, _after):
         #     print('|----> ts: {} Not changed!'.format(ts))
@@ -386,8 +399,10 @@ def train_fwbw_lstm(data, experiment):
             if training_bw_history is not None:
                 bw_net.plot_training_history(training_bw_history)
     else:
-        fw_net.load_model_from_check_point(_from_epoch=Config.FW_LSTM_BEST_CHECKPOINT)
-        bw_net.load_model_from_check_point(_from_epoch=Config.BW_LSTM_BEST_CHECKPOINT)
+        fw_net.model.load_weights(
+            fw_net.checkpoints_path + "weights-{:02d}.hdf5".format(Config.FW_LSTM_BEST_CHECKPOINT))
+        bw_net.model.load_weights(
+            bw_net.checkpoints_path + "weights-{:02d}.hdf5".format(Config.BW_LSTM_BEST_CHECKPOINT))
 
     # --------------------------------------------------------------------------------------------------------------
     run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_LSTM_STEP:],

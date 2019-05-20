@@ -66,7 +66,7 @@ def ims_tm_prediction(init_data_labels, conv_lstm_model):
 
 
 def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
-    tf_a = np.array([True, False])
+    tf_a = np.array([1.0, 0.0])
 
     init_labels = np.ones((initial_data.shape[0], initial_data.shape[1], initial_data.shape[2]))
 
@@ -88,15 +88,13 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.CONV_LSTM_STEP, :, :, :],
                                            conv_lstm_model=conv_lstm_model)
 
-        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP), :, :, :]  # shape(timesteps, od, od , 2)
+        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP)]  # shape(timesteps, od, od , 2)
 
         rnn_input = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
         predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
 
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
-        # predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
-        # print(predictX.shape)
         predict_tm = predictX[-1]
 
         predict_tm = np.reshape(predict_tm, newshape=(test_data.shape[1], test_data.shape[2]))
@@ -109,7 +107,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         # Selecting next monitored flows randomly
         sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                     p=(Config.CONV_LSTM_MON_RAIO, 1 - Config.CONV_LSTM_MON_RAIO))
-        inv_sampling = np.invert(sampling)
+        inv_sampling = 1 - sampling
 
         pred_tm = predict_tm * inv_sampling
         corrected_data = test_data[ts]
@@ -188,52 +186,57 @@ def train_conv_lstm(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         conv_lstm_net = build_model(input_shape)
 
-    if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
-        print('|--- Model exist!')
-        conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
-    else:
-        print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
+    if not Config.CONV_LSTM_VALID_TEST:
 
-        # -------------------------------- Create offline training and validating dataset --------------------------
-        print('|--- Create offline train set for conv_lstm net!')
-
-        trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                input_shape, Config.CONV_LSTM_MON_RAIO,
-                                                                train_data_normalized.mean(), 1)
-        print('|--- Create offline valid set for conv_lstm net!')
-
-        validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                input_shape, Config.CONV_LSTM_MON_RAIO,
-                                                                train_data_normalized.mean(), 1)
-        # ----------------------------------------------------------------------------------------------------------
-
-        # Load model check point
-        from_epoch = conv_lstm_net.load_model_from_check_point()
-        if from_epoch > 0:
-            print('|--- Continue training model from epoch %i --- ' % from_epoch)
-            training_history = conv_lstm_net.model.fit(x=trainX,
-                                                       y=trainY,
-                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.CONV_LSTM_N_EPOCH,
-                                                       callbacks=conv_lstm_net.callbacks_list,
-                                                       validation_data=(validX, validY),
-                                                       shuffle=True,
-                                                       initial_epoch=from_epoch)
+        if os.path.isfile(path=conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.CONV_LSTM_N_EPOCH)):
+            print('|--- Model exist!')
+            conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)
         else:
-            print('|--- Training new model.')
-            training_history = conv_lstm_net.model.fit(x=trainX,
-                                                       y=trainY,
-                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.CONV_LSTM_N_EPOCH,
-                                                       callbacks=conv_lstm_net.callbacks_list,
-                                                       validation_data=(validX, validY),
-                                                       shuffle=True,
-                                                       verbose=2)
+            print('|--- Compile model. Saving path %s --- ' % conv_lstm_net.saving_path)
 
-        # Plot the training history
-        if training_history is not None:
-            conv_lstm_net.plot_training_history(training_history)
+            # -------------------------------- Create offline training and validating dataset --------------------------
+            print('|--- Create offline train set for conv_lstm net!')
 
+            trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
+                                                                    input_shape, Config.CONV_LSTM_MON_RAIO,
+                                                                    train_data_normalized.mean(), 1)
+            print('|--- Create offline valid set for conv_lstm net!')
+
+            validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
+                                                                    input_shape, Config.CONV_LSTM_MON_RAIO,
+                                                                    train_data_normalized.mean(), 1)
+            # ----------------------------------------------------------------------------------------------------------
+
+            # Load model check point
+            from_epoch = conv_lstm_net.load_model_from_check_point()
+            if from_epoch > 0:
+                print('|--- Continue training model from epoch %i --- ' % from_epoch)
+                training_history = conv_lstm_net.model.fit(x=trainX,
+                                                           y=trainY,
+                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.CONV_LSTM_N_EPOCH,
+                                                           callbacks=conv_lstm_net.callbacks_list,
+                                                           validation_data=(validX, validY),
+                                                           shuffle=True,
+                                                           initial_epoch=from_epoch)
+            else:
+                print('|--- Training new model.')
+                training_history = conv_lstm_net.model.fit(x=trainX,
+                                                           y=trainY,
+                                                           batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.CONV_LSTM_N_EPOCH,
+                                                           callbacks=conv_lstm_net.callbacks_list,
+                                                           validation_data=(validX, validY),
+                                                           shuffle=True,
+                                                           verbose=2)
+
+            # Plot the training history
+            if training_history is not None:
+                conv_lstm_net.plot_training_history(training_history)
+    else:
+        print('|--- Test valid set')
+        conv_lstm_net.model.load_weights(
+            conv_lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(Config.CONV_LSTM_BEST_CHECKPOINT))
     print('---------------------------------CONV_LSTM_NET SUMMARY---------------------------------')
     print(conv_lstm_net.model.summary())
 

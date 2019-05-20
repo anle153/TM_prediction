@@ -105,7 +105,7 @@ CONV_LSTM_BATCH_SIZE = 256
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 26
 
-CONV_LSTM_BEST_CHECKPOINT = 100
+CONV_LSTM_BEST_CHECKPOINT = 38
 CONV_LSTM_TESTING_TIME = 1
 
 CONV_LSTM_LAYERS = 2
@@ -124,6 +124,7 @@ CONV_LSTM_MON_RAIO = 0.30
 CONV_LSTM_IMS = False
 
 CONV_LSTM_DATA_GENERATE_TIME = 5
+CONV_LSTM_VALID_TEST = True
 
 # ----------- XGB Config ----------------------
 XGB_STEP = 288 * 2
@@ -143,7 +144,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[2]
+ALG = ALGS[1]
 GPU = 1
 SCALER = SCALERS[2]
 

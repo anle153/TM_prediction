@@ -3,7 +3,7 @@
 
 # ----------------- LSTM Config ---------------
 LSTM_N_EPOCH = 100
-LSTM_BATCH_SIZE = 64
+LSTM_BATCH_SIZE = 256
 LSTM_HIDDEN_UNIT = 64
 LSTM_DROPOUT = 0.5
 
@@ -142,7 +142,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
+ALG = ALGS[2]
 GPU = 0
 SCALER = SCALERS[2]
 

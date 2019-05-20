@@ -94,7 +94,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
 
-        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
+        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
         predict_tm = predictX[-1]
 
         predict_tm = np.reshape(predict_tm, newshape=(test_data.shape[1], test_data.shape[2]))
@@ -117,8 +117,8 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         new_tm = pred_tm + ground_truth
 
         # Concaternating the new tm to the final results
-        new_tm = np.concatenate([np.expand_dims(new_tm, axis=2), np.expand_dims(sampling, axis=2)], axis=2)
-        tm_labels[ts + Config.CONV_LSTM_STEP] = new_tm  # Shape = (timestep, 12, 12, 2)
+        tm_labels[ts + Config.CONV_LSTM_STEP, :, :, 0] = new_tm  # Shape = (timestep, 12, 12, 2)
+        tm_labels[ts + Config.CONV_LSTM_STEP, :, :, 1] = sampling  # Shape = (timestep, 12, 12, 2)
 
     return tm_labels[Config.CONV_LSTM_STEP:, :, :, :], ims_tm
 

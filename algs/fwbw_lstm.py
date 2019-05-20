@@ -27,11 +27,11 @@ def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
         plt.plot(raw_data[:, flow_id], label='Actual')
         plt.plot(pred_fw[:, flow_id], label='Pred_fw')
         plt.plot(pred_bw[:, flow_id], label='Pred_bw')
-        plt.plot(current_data[:, flow_id, 0], label='Current_pred')
+        plt.plot(current_data[:, flow_id], label='Current_pred')
 
-            plt.legend()
+        plt.legend()
         plt.savefig(saving_path + '{}_flow_{:02d}.png'.format(prefix, flow_id))
-            plt.close()
+        plt.close()
 
 
 def prepare_input_online_prediction(data, labels):
@@ -50,12 +50,16 @@ def prepare_input_online_prediction(data, labels):
 def calculate_forward_backward_loss(measured_block, pred_forward, pred_backward, rnn_input):
     l_fw, l_bw = [], []
     for flow_id in range(rnn_input.shape[0]):
-        l_fw.append(error_ratio(y_true=rnn_input[flow_id, 1:],
-                                y_pred=pred_forward[flow_id, :Config.FWBW_LSTM_STEP - 1],
-                                measured_matrix=measured_block[flow_id, 1:]))
-        l_bw.append(error_ratio(y_true=rnn_input[flow_id, 0:Config.FWBW_LSTM_STEP - 1],
-                                y_pred=pred_backward[flow_id, 1:],
-                                measured_matrix=measured_block[flow_id, 0:Config.FWBW_LSTM_STEP - 1]))
+        idx_fw = measured_block[flow_id, 1:]
+
+        l_fw.append(error_ratio(y_true=rnn_input[flow_id, 1:][idx_fw == 1.0],
+                                y_pred=pred_forward[flow_id, :-1][idx_fw == 1.0],
+                                measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
+        idx_bw = measured_block[flow_id, 0:-1]
+
+        l_bw.append(error_ratio(y_true=rnn_input[flow_id, :-1][idx_bw == 1.0],
+                                y_pred=pred_backward[flow_id, 1:][idx_bw == 1.0],
+                                measured_matrix=np.zeros(idx_bw[idx_bw == 1.0].shape)))
 
     l_fw = np.array(l_fw)
     l_fw[l_fw == 0.] = np.max(l_fw)
@@ -172,15 +176,23 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
 
         # Data Correction
 
-        if 70 < ts < 100:
+        if ts == 20:
             _before = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
+            # plot_test_data(prefix='Before_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+            #                pred_fw=pred_fw[:, :-2].T,
+            #                pred_bw=pred_bw[:, 2:].T,
+            #                current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         data_correction(tm_pred=tm_pred[ts:ts + Config.FWBW_LSTM_STEP],
                         pred_forward=pred_fw,
                         pred_backward=pred_bw,
                         measured_block=labels[ts:ts + Config.FWBW_LSTM_STEP].T)
-        if 70 < ts < 100:
+        if ts == 20:
             _after = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
+            # plot_test_data(prefix='After_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+            #                pred_fw=pred_fw[:, :-2].T,
+            #                pred_bw=pred_bw[:, 2:].T,
+            #                current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
             if np.array_equal(_before, _after):
                 print('|----> Nothing happen!')

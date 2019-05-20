@@ -135,9 +135,8 @@ def calculate_forward_backward_loss_3d(measured_block, pred_forward, pred_backwa
     rnn_updated_input_backward = np.concatenate(
         [rnn_first_input_updated, pred_backward[2:, :, :], rnn_last_input_updated],
         axis=0)
-    rl_forward = recovery_loss
-    _3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_forward,
-        measured_matrix=measured_block)
+    rl_forward = recovery_loss_3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_forward,
+                                  measured_matrix=measured_block)
     rl_forward[rl_forward == 0] = eps
 
     rl_backward = recovery_loss_3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_backward,

@@ -173,9 +173,11 @@ def train_lstm_nn(data, experiment):
         from_epoch = lstm_net.load_model_from_check_point()
         # -------------------------------- Create offline training and validating dataset ------------------------------
         print('|--- Create offline train set for lstm-nn!')
-        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
+                                                     train_data_normalized2d.mean())
         print('|--- Create offline valid set for lstm-nn!')
-        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO, 0.5)
+        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
+                                                     train_data_normalized2d.mean())
         # --------------------------------------------------------------------------------------------------------------
 
         if from_epoch > 0:

@@ -258,7 +258,7 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
             dataX[i, :, 0] = _x
             dataX[i, :, 1] = _label
 
-            _y = _data[(idx + 1):(idx + ntimesteps + 1), flow]
+            _y = data[(idx + 1):(idx + ntimesteps + 1), flow]
 
             dataY[i, :, :] = np.array(_y).reshape((ntimesteps, 1))
 

@@ -176,8 +176,7 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
 
         # Data Correction
 
-        if ts == 20:
-            _before = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
+        # _before = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
             # plot_test_data(prefix='Before_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
             #                pred_fw=pred_fw[:, :-2].T,
             #                pred_bw=pred_bw[:, 2:].T,
@@ -187,15 +186,15 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model, backward_model):
                         pred_forward=pred_fw,
                         pred_backward=pred_bw,
                         measured_block=labels[ts:ts + Config.FWBW_LSTM_STEP].T)
-        if ts == 20:
-            _after = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
+        # _after = np.copy(tm_pred[ts:ts + Config.FWBW_LSTM_STEP])
             # plot_test_data(prefix='After_', raw_data=raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
             #                pred_fw=pred_fw[:, :-2].T,
             #                pred_bw=pred_bw[:, 2:].T,
             #                current_data=tm_pred[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
-            if np.array_equal(_before, _after):
-                print('|----> Nothing happen!')
+        # if np.array_equal(_before, _after):
+        #     print('|----> ts: {} Not changed!'.format(ts))
+        #     assert np.sum(labels[ts:ts + Config.FWBW_LSTM_STEP]) / tm_pred.shape[1] == Config.FWBW_LSTM_STEP
 
         sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
                                     p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
@@ -474,11 +473,10 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
         for i in range(Config.FWBW_LSTM_TESTING_TIME):
             print('|--- Run time {}'.format(i))
 
-            pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm(
-                initial_data=init_data2d,
-                test_data=test_data_normalized2d,
-                forward_model=fw_net.model,
-                backward_model=bw_net.model)
+            pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm(initial_data=init_data2d,
+                                                                       test_data=test_data_normalized2d,
+                                                                       forward_model=fw_net.model,
+                                                                       backward_model=bw_net.model)
 
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
                                                                                   Config.SCALER, i),

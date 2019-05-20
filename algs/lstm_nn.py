@@ -181,6 +181,7 @@ def train_lstm_nn(data, experiment):
         # --------------------------------------------------------------------------------------------------------------
 
         if from_epoch > 0:
+            print('|--- Continue training.')
             training_history = lstm_net.model.fit(x=trainX,
                                                   y=trainY,
                                                   batch_size=Config.LSTM_BATCH_SIZE,
@@ -191,6 +192,7 @@ def train_lstm_nn(data, experiment):
                                                   initial_epoch=from_epoch,
                                                   verbose=2)
         else:
+            print('|--- Training new model.')
 
             training_history = lstm_net.model.fit(x=trainX,
                                                   y=trainY,

@@ -228,7 +228,6 @@ def train_conv_lstm(data, experiment):
                                                        callbacks=conv_lstm_net.callbacks_list,
                                                        validation_data=(validX, validY),
                                                        shuffle=True,
-                                                       initial_epoch=from_epoch,
                                                        verbose=2)
 
         # Plot the training history

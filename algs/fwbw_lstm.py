@@ -17,21 +17,20 @@ session = tf.Session(config=config)
 
 
 def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
-    saving_path = Config.RESULTS_PATH + 'plot_check_fwbw/'
+    saving_path = Config.RESULTS_PATH + 'plot_check_fwbw_lstm/'
 
     if not os.path.exists(saving_path):
         os.makedirs(saving_path)
 
     from matplotlib import pyplot as plt
-    for flow_x in range(raw_data.shape[1]):
-        for flow_y in range(raw_data.shape[2]):
-            plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
-            plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
-            plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
-            plt.plot(current_data[:, flow_x, flow_y, 0], label='Current_pred')
+    for flow_id in range(raw_data.shape[1]):
+        plt.plot(raw_data[:, flow_id], label='Actual')
+        plt.plot(pred_fw[:, flow_id], label='Pred_fw')
+        plt.plot(pred_bw[:, flow_id], label='Pred_bw')
+        plt.plot(current_data[:, flow_id, 0], label='Current_pred')
 
             plt.legend()
-            plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
+        plt.savefig(saving_path + '{}_flow_{:02d}.png'.format(prefix, flow_id))
             plt.close()
 
 
@@ -463,16 +462,12 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
         for i in range(Config.FWBW_LSTM_TESTING_TIME):
             print('|--- Run time {}'.format(i))
 
-            pred_tm, measured_matrix, ims_tm = predict_fwbw_lstm(
+            pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm(
                 initial_data=init_data2d,
                 test_data=test_data_normalized2d,
                 forward_model=fw_net.model,
                 backward_model=bw_net.model)
 
-            pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
-            measured_matrix2d = np.reshape(np.copy(measured_matrix),
-                                           newshape=(measured_matrix.shape[0],
-                                                     measured_matrix.shape[1] * measured_matrix.shape[2]))
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
                                                                                   Config.SCALER, i),
                     pred_tm2d)
@@ -490,9 +485,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
 
             if Config.FWBW_IMS:
                 # Calculate error for multistep-ahead-prediction
-
-                ims_tm2d = np.reshape(np.copy(ims_tm), newshape=(ims_tm.shape[0], ims_tm.shape[1] * ims_tm.shape[2]))
-
                 ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
                 ims_ytrue2d = ims_tm_test_data(test_data=test_data2d)

@@ -37,41 +37,31 @@ class ConvLSTM(AbstractModel):
 
         input = Input(shape=(self.n_timsteps, self.wide, self.high, self.channel), name='input')
 
-        last_layer = input
+        lstm_layer1 = ConvLSTM2D(filters=self.a_filters[0],
+                                 kernel_size=self.kernel_sizes[0],
+                                 strides=[1, 1],
+                                 padding='same',
+                                 dropout=self.dropout[0],
+                                 return_sequences=True,
+                                 recurrent_dropout=self.rnn_dropout[0],
+                                 data_format='channels_last'
+                                 )(input)
 
-        for layer in range(self.cnn_layers):
-            lstm_layer = ConvLSTM2D(filters=self.a_filters[layer],
-                                    kernel_size=self.kernel_sizes[layer],
-                                    strides=[1, 1],
-                                    padding='same',
-                                    dropout=self.dropout[0],
-                                    return_sequences=True,
-                                    recurrent_dropout=self.rnn_dropout[layer],
-                                    data_format='channels_last'
-                                    )(last_layer)
+        BatchNormalization_layer1 = BatchNormalization()(lstm_layer1)
 
-            BatchNormalization_layer = BatchNormalization()(lstm_layer)
-            last_layer = BatchNormalization_layer
+        lstm_layer2 = ConvLSTM2D(filters=self.a_filters[0],
+                                 kernel_size=self.kernel_sizes[0],
+                                 strides=[1, 1],
+                                 padding='same',
+                                 dropout=self.dropout[0],
+                                 return_sequences=True,
+                                 recurrent_dropout=self.rnn_dropout[0],
+                                 data_format='channels_last'
+                                 )(BatchNormalization_layer1)
 
-        # first_Pooling = MaxPooling3D(pool_size=(1, 2, 2), padding='same', data_format='channels_last')(
-        #     BatchNormalization_0)
+        BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
 
-        # layer_1 = ConvLSTM2D(filters=self.a_filters[1],
-        #                      kernel_size=self.kernel_sizes[1],
-        #                      strides=[1, 1],
-        #                      padding='same',
-        #                      dropout=self.dropout[1],
-        #                      return_sequences=True,
-        #                      recurrent_dropout=self.rnn_dropout[1],
-        #                      data_format='channels_last',
-        #                      activation='relu'
-        #                      )(BatchNormalization_0)
-        #
-        # BatchNormalization_1 = BatchNormalization()(layer_1)
-        # second_Pooling = MaxPooling3D(pool_size=(1, 3, 3), padding='same', data_format='channels_last')(
-        #     BatchNormalization_1)
-
-        flat_layer = TimeDistributed(Flatten())(last_layer)
+        flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)
         second_Dense = TimeDistributed(Dense(256, ))(first_Dense)

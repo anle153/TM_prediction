@@ -165,48 +165,51 @@ def train_lstm_nn(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         lstm_net = build_model(input_shape)
 
-    if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
-        lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
+    if not Config.LSTM_VALID_TEST:
+        if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
+            lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
 
-    else:
-        print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
-        from_epoch = lstm_net.load_model_from_check_point()
-        # -------------------------------- Create offline training and validating dataset ------------------------------
-        print('|--- Create offline train set for lstm-nn!')
-        trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
-                                                     train_data_normalized2d.mean())
-        print('|--- Create offline valid set for lstm-nn!')
-        validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
-                                                     train_data_normalized2d.mean())
-        # --------------------------------------------------------------------------------------------------------------
-
-        if from_epoch > 0:
-            print('|--- Continue training.')
-            training_history = lstm_net.model.fit(x=trainX,
-                                                  y=trainY,
-                                                  batch_size=Config.LSTM_BATCH_SIZE,
-                                                  epochs=Config.LSTM_N_EPOCH,
-                                                  callbacks=lstm_net.callbacks_list,
-                                                  validation_data=(validX, validY),
-                                                  shuffle=True,
-                                                  initial_epoch=from_epoch,
-                                                  verbose=2)
         else:
-            print('|--- Training new model.')
+            print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
+            from_epoch = lstm_net.load_model_from_check_point()
+            # -------------------------------- Create offline training and validating dataset ------------------------------
+            print('|--- Create offline train set for lstm-nn!')
+            trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
+                                                         train_data_normalized2d.mean())
+            print('|--- Create offline valid set for lstm-nn!')
+            validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
+                                                         train_data_normalized2d.mean())
+            # --------------------------------------------------------------------------------------------------------------
 
-            training_history = lstm_net.model.fit(x=trainX,
-                                                  y=trainY,
-                                                  batch_size=Config.LSTM_BATCH_SIZE,
-                                                  epochs=Config.LSTM_N_EPOCH,
-                                                  callbacks=lstm_net.callbacks_list,
-                                                  validation_data=(validX, validY),
-                                                  shuffle=True,
-                                                  verbose=2)
+            if from_epoch > 0:
+                print('|--- Continue training.')
+                training_history = lstm_net.model.fit(x=trainX,
+                                                      y=trainY,
+                                                      batch_size=Config.LSTM_BATCH_SIZE,
+                                                      epochs=Config.LSTM_N_EPOCH,
+                                                      callbacks=lstm_net.callbacks_list,
+                                                      validation_data=(validX, validY),
+                                                      shuffle=True,
+                                                      initial_epoch=from_epoch,
+                                                      verbose=2)
+            else:
+                print('|--- Training new model.')
 
-        if training_history is not None:
-            lstm_net.plot_training_history(training_history)
-            experiment.log_parameters(params)
+                training_history = lstm_net.model.fit(x=trainX,
+                                                      y=trainY,
+                                                      batch_size=Config.LSTM_BATCH_SIZE,
+                                                      epochs=Config.LSTM_N_EPOCH,
+                                                      callbacks=lstm_net.callbacks_list,
+                                                      validation_data=(validX, validY),
+                                                      shuffle=True,
+                                                      verbose=2)
 
+            if training_history is not None:
+                lstm_net.plot_training_history(training_history)
+                experiment.log_parameters(params)
+    else:
+        lstm_net.model.load_weights(
+            lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(Config.LSTM_BEST_CHECKPOINT))
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
 

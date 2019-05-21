@@ -316,7 +316,7 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
 
             err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
             r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-            rmse.append(calculate_rmse(y_true=test_data2d, y_pred=pred_tm_invert2d))
+            rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
             if Config.LSTM_IMS:
                 ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
@@ -326,7 +326,7 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
                                            measured_matrix=measured_matrix_ims))
 
                 r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
-                rmse_ims.append(calculate_rmse(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+                rmse_ims.append(calculate_rmse(y_true=ims_test_set / 1000000, y_pred=ims_tm_invert2d / 1000000))
 
             else:
                 err_ims.append(0)

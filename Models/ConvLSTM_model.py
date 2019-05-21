@@ -61,13 +61,13 @@ class ConvLSTM(AbstractModel):
 
         BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
 
-        lstm_layer3 = ConvLSTM2D(filters=self.a_filters[1],
-                                 kernel_size=self.kernel_sizes[1],
+        lstm_layer3 = ConvLSTM2D(filters=self.a_filters[2],
+                                 kernel_size=self.kernel_sizes[2],
                                  strides=[1, 1],
                                  padding='same',
-                                 dropout=self.dropout[1],
+                                 dropout=self.dropout[2],
                                  return_sequences=True,
-                                 recurrent_dropout=self.rnn_dropout[1],
+                                 recurrent_dropout=self.rnn_dropout[2],
                                  data_format='channels_last'
                                  )(BatchNormalization_layer2)
 

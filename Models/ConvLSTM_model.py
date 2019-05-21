@@ -61,6 +61,18 @@ class ConvLSTM(AbstractModel):
 
         BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
 
+        # lstm_layer3 = ConvLSTM2D(filters=self.a_filters[2],
+        #                          kernel_size=self.kernel_sizes[2],
+        #                          strides=[1, 1],
+        #                          padding='same',
+        #                          dropout=self.dropout[2],
+        #                          return_sequences=True,
+        #                          recurrent_dropout=self.rnn_dropout[2],
+        #                          data_format='channels_last'
+        #                          )(BatchNormalization_layer2)
+        #
+        # BatchNormalization_layer3 = BatchNormalization()(lstm_layer3)
+
         flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)

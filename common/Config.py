@@ -124,7 +124,7 @@ CONV_LSTM_MON_RAIO = 0.30
 CONV_LSTM_IMS = False
 
 CONV_LSTM_DATA_GENERATE_TIME = 2
-CONV_LSTM_VALID_TEST = True
+CONV_LSTM_VALID_TEST = False
 
 # ----------- XGB Config ----------------------
 XGB_STEP = 288 * 2

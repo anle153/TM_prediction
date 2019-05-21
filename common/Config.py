@@ -20,7 +20,7 @@ LSTM_BEST_CHECKPOINT = 16
 LSTM_TESTING_TIME = 1
 
 LSTM_IMS = False
-LSTM_VALID_TEST = True
+LSTM_VALID_TEST = False
 
 # ----------------- FWBW_LSTM Config ---------------
 FWBW_LSTM_N_EPOCH = 100

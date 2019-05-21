@@ -157,7 +157,7 @@ DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
 ALG = ALGS[1]
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

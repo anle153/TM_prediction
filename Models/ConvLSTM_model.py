@@ -64,10 +64,8 @@ class ConvLSTM(AbstractModel):
         flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)
-        drop_out1 = Dropout(0.25)(first_Dense)
-        second_Dense = TimeDistributed(Dense(256, ))(drop_out1)
-        drop_out2 = Dropout(0.25)(second_Dense)
-        outputs = TimeDistributed(Dense(144, ))(drop_out2)
+        second_Dense = TimeDistributed(Dense(256, ))(first_Dense)
+        outputs = TimeDistributed(Dense(144, ))(second_Dense)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')
 

@@ -139,14 +139,14 @@ XGB_FEATURES = 19
 
 RUN_MODES = ['train', 'test', 'plot']
 ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm']
-SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler']
+SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
 
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
 ALG = ALGS[1]
 GPU = 1
-SCALER = SCALERS[2]
+SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------
 

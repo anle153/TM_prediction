@@ -405,15 +405,35 @@ def parallel_create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps)
 #                                                Data scalling                                                         #
 
 
+class sd_scale():
+    def __init__(self):
+        self.fit_data = None
+        self.__mean = None
+        self.__std = None
+
+    def fit(self, data):
+        self.fit_data = data
+        self.__mean = np.mean(data)
+        self.__std = np.std(data)
+
+    def transform(self, data):
+        assert self.__mean is not None
+        return (data - self.__mean) / self.__std
+
+    def inverse_transform(self, data):
+        assert self.__mean is not None
+        return (data * self.__std) + self.__mean
+
+
 def data_scalling(train_data2d, valid_data2d, test_data2d):
-    if Config.SCALER == Config.SCALERS[0]:
+    if Config.SCALER == Config.SCALERS[0]:  # Power transform
         pt = PowerTransformer(copy=True, standardize=True, method='yeo-johnson')
         pt.fit(train_data2d)
         train_data_normalized2d = pt.transform(train_data2d)
         valid_data_normalized2d = pt.transform(valid_data2d)
         test_data_normalized2d = pt.transform(test_data2d)
         scalers = pt
-    elif Config.SCALER == Config.SCALERS[1]:
+    elif Config.SCALER == Config.SCALERS[1]:  # Standard Scaler
         ss = StandardScaler(copy=True)
         ss.fit(train_data2d)
         train_data_normalized2d = ss.transform(train_data2d)
@@ -441,6 +461,13 @@ def data_scalling(train_data2d, valid_data2d, test_data2d):
         valid_data_normalized2d = rb.transform(valid_data2d)
         test_data_normalized2d = rb.transform(test_data2d)
         scalers = rb
+    elif Config.SCALER == Config.SCALERS[5]:
+        sd = sd_scale()
+        sd.fit(train_data2d)
+        train_data_normalized2d = sd.transform(train_data2d)
+        valid_data_normalized2d = sd.transform(valid_data2d)
+        test_data_normalized2d = sd.transform(test_data2d)
+        scalers = sd
     else:
         raise Exception('Unknown scaler!')
 

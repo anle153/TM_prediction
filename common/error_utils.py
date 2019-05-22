@@ -199,13 +199,6 @@ def calculate_r2_score(y_true, y_pred):
 
 
 def recovery_loss_3d(rnn_input, rnn_updated, measured_matrix):
-    """
-    Calculate the recovery loss for each flow using this equation: r_l = sqrt(sum((y_true - y_pred)^2))
-    :param rnn_input: array-like, shape = (time x od x od)
-    :param rnn_updated: array-like, shape = (time x od x od)
-    :param measured_matrix: array-like, shape = (time x od x od)
-    :return: shape = (od, od)
-    """
     labels = measured_matrix.astype(int)
     r_l = []
     for flow_id_i in range(rnn_input.shape[1]):

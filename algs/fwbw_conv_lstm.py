@@ -85,70 +85,49 @@ def set_measured_flow_3d(rnn_input_labels, forward_pred, backward_pred):
 
 
 def calculate_updated_weights_3d(measured_block, forward_loss, backward_loss):
-    labels = measured_block.astype(int)
-
-    measured_count = np.sum(labels, axis=0).astype(float)
+    measured_count = np.sum(measured_block, axis=0).astype(float)
     _eta = measured_count / Config.FWBW_CONV_LSTM_STEP
-
-    # _eta[_eta == 0.0] = eps
 
     alpha = 1 - _eta  # shape = (od, od)
     alpha = np.tile(np.expand_dims(alpha, axis=0), (Config.FWBW_CONV_LSTM_STEP, 1, 1))
 
     # Calculate rho
-    rho = np.empty((0, measured_block.shape[1], measured_block.shape[1]))
-    mu = np.empty((0, measured_block.shape[1], measured_block.shape[1]))
+    rho = np.zeros((Config.FWBW_CONV_LSTM_STEP, measured_block.shape[1], measured_block.shape[1]))
+    mu = np.zeros((Config.FWBW_CONV_LSTM_STEP, measured_block.shape[1], measured_block.shape[1]))
     for j in range(0, Config.FWBW_CONV_LSTM_STEP):
-        _mu = np.expand_dims((np.sum(measured_block[:(j + 1), :, :], axis=0)) / float(j + 1), axis=0)
-        mu = np.concatenate([mu, _mu], axis=0)
+        _mu = (np.sum(measured_block[:(j + 1)], axis=0)) / float(j + 1)
+        mu[j] = _mu
 
-        _rho = np.expand_dims((np.sum(measured_block[j:, :, :], axis=0)) / float(Config.FWBW_CONV_LSTM_STEP - j),
-                              axis=0)
-        rho = np.concatenate([rho, _rho], axis=0)
+        _rho = (np.sum(measured_block[j:, :, :], axis=0)) / float(Config.FWBW_CONV_LSTM_STEP - j)
+        rho[j] = _rho
 
     forward_loss = np.tile(np.expand_dims(forward_loss, axis=0), (Config.FWBW_CONV_LSTM_STEP, 1, 1))
     backward_loss = np.tile(np.expand_dims(backward_loss, axis=0), (Config.FWBW_CONV_LSTM_STEP, 1, 1))
 
-    forward_loss = forward_loss[0:-2, :, :]
-    backward_loss = backward_loss[0:-2, :, :]
+    beta = (backward_loss + mu) * (1.0 - alpha) / (forward_loss + backward_loss + mu + rho)
 
-    mu = mu[0:-2, :, :]
-    rho = rho[2:, :, :]
+    gamma = (forward_loss + rho) * (1.0 - alpha) / (forward_loss + backward_loss + mu + rho)
 
-    alpha = alpha[:-2, :, :]
-
-    beta = (backward_loss + mu) * (1 - alpha) / (forward_loss + backward_loss + mu + rho)
-
-    gamma = (forward_loss + rho) * (1 - alpha) / (forward_loss + backward_loss + mu + rho)
-
-    return alpha, beta, gamma
+    return alpha[1:-1], beta[1:-1], gamma[1:-1]
 
 
 def calculate_forward_backward_loss_3d(measured_block, pred_forward, pred_backward, rnn_input):
     eps = 10e-8
 
-    rnn_first_input_updated = np.expand_dims(pred_backward[1, :, :], axis=0)
-    rnn_last_input_updated = np.expand_dims(pred_forward[-2, :, :], axis=0)
-    rnn_updated_input_forward = np.concatenate(
-        [rnn_first_input_updated, pred_forward[0:-2, :, :], rnn_last_input_updated],
-        axis=0)
-    rnn_updated_input_backward = np.concatenate(
-        [rnn_first_input_updated, pred_backward[2:, :, :], rnn_last_input_updated],
-        axis=0)
-    rl_forward = recovery_loss_3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_forward,
-                                  measured_matrix=measured_block)
+    rl_forward = recovery_loss_3d(rnn_input=rnn_input[1:], rnn_updated=pred_forward[:-1],
+                                  measured_matrix=measured_block[1:])
     rl_forward[rl_forward == 0] = eps
 
-    rl_backward = recovery_loss_3d(rnn_input=rnn_input, rnn_updated=rnn_updated_input_backward,
-                                   measured_matrix=measured_block)
+    rl_backward = recovery_loss_3d(rnn_input=rnn_input[:-1], rnn_updated=pred_backward[1:],
+                                   measured_matrix=measured_block[:-1])
     rl_backward[rl_backward == 0] = eps
 
     return rl_forward, rl_backward
 
 
-def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_input_labels, ts):
-    rnn_input = rnn_input_labels[:, :, :, 0]
-    measured_block = rnn_input_labels[:, :, :, 1]
+def updating_historical_data_3d(rnn_input, pred_forward, pred_backward, labels):
+    rnn_input = np.copy(rnn_input)
+    measured_block = np.copy(labels)
 
     forward_loss, backward_loss = calculate_forward_backward_loss_3d(measured_block=measured_block,
                                                                      pred_forward=pred_forward,
@@ -165,22 +144,17 @@ def updating_historical_data_3d(tm_labels, pred_forward, pred_backward, rnn_inpu
 
     updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
 
-    sampling_measured_matrix = measured_block.astype(bool)
-    sampling_measured_matrix = sampling_measured_matrix[1:-1, :, :]
-    inv_sampling_measured_matrix = np.invert(sampling_measured_matrix)
+    sampling_measured_matrix = measured_block[1:-1]
+    inv_sampling_measured_matrix = 1 - sampling_measured_matrix
 
-    if ts == 20:
-        print('Alpha: {}'.format(alpha[:, 0, 3]))
-        print('Beta: {}'.format(beta[:, 0, 3]))
-        print('Gamma: {}'.format(gamma[:, 0, 3]))
+    # if ts == 20:
+    #     print('Alpha: {}'.format(alpha[:, 0, 3]))
+    #     print('Beta: {}'.format(beta[:, 0, 3]))
+    #     print('Gamma: {}'.format(gamma[:, 0, 3]))
 
-    bidirect_rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
+    rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
 
-    tm_labels[(ts + 1):ts + Config.FWBW_CONV_LSTM_STEP - 1, :, :, 0] = \
-        tm_labels[(ts + 1):ts + Config.FWBW_CONV_LSTM_STEP - 1, :, :,
-        0] * sampling_measured_matrix + bidirect_rnn_pred_value
-
-    return tm_labels
+    return rnn_pred_value
 
 
 def ims_tm_prediction(init_data_labels, forward_model, backward_model):
@@ -232,13 +206,13 @@ def ims_tm_prediction(init_data_labels, forward_model, backward_model):
 
 
 def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_model):
-    tf_a = np.array([True, False])
+    tf_a = np.array([1.0, 0.0])
 
-    init_labels = np.ones(shape=initial_data.shape)
+    tm_labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
+    tm_labels[0:initial_data.shape[0], :, :] = initial_data
 
-    tm_labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2], 2))
-    tm_labels[0:initial_data.shape[0], :, :, 0] = initial_data
-    tm_labels[0:init_labels.shape[0], :, :, 1] = init_labels
+    labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
+    labels[0:initial_data.shape[0], :, :] = np.ones(shape=initial_data.shape)
 
     ims_tm = np.zeros(
         shape=(test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
@@ -254,53 +228,62 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP, :, :, :],
                                            forward_model=forward_model,
                                            backward_model=backward_model)
+        rnn_input = np.zeros(
+            shape=(Config.FWBW_CONV_LSTM_STEP, Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, 2))
 
-        rnn_input = tm_labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]  # shape(timesteps, od, od , 2)
-
-        rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
+        rnn_input[:, :, :, 0] = tm_labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]
+        rnn_input[:, :, :, 1] = labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]
 
         rnn_input_backward = np.flip(np.copy(rnn_input), axis=0)
-        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
+
+        rnn_input_forward = np.expand_dims(rnn_input, axis=0)
+        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)
 
         # Prediction results from forward network
         predictX = forward_model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
+        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
+        predictX = np.reshape(predictX, newshape=(predictX.shape[0], test_data.shape[1], test_data.shape[2]))
 
-        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
-        predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
+        predict_tm = np.copy(predictX[-1])
 
         # Prediction results from backward network
         predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
 
         predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
-
-        # Flipping the backward prediction
+        predictX_backward = np.reshape(predictX_backward, newshape=(predictX_backward.shape[0],
+                                                                    test_data.shape[1],
+                                                                    test_data.shape[2]))
         predictX_backward = np.flip(predictX_backward, axis=0)
 
         if ts == 20:
-            plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-                           predictX[:-2],
-                           predictX_backward[2:],
-                           tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+            # plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+            #                predictX[:-2],
+            #                predictX_backward[2:],
+            #                tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
             before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
         # Correcting the imprecise input data
-        tm_labels = updating_historical_data_3d(tm_labels=tm_labels, pred_forward=predictX,
-                                                pred_backward=predictX_backward,
-                                                rnn_input_labels=rnn_input, ts=ts)
+        rnn_pred_value = updating_historical_data_3d(rnn_input=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+                                                     pred_forward=predictX,
+                                                     pred_backward=predictX_backward,
+                                                     labels=labels[ts:ts + Config.FWBW_CONV_LSTM_STEP])
+        tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] = \
+            tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] * \
+            labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] + \
+            rnn_pred_value
+
         if ts == 20:
-            plot_test_data('After_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-                           predictX[:-2],
-                           predictX_backward[2:],
-                           tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+            # plot_test_data('After_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+            #                predictX[:-2],
+            #                predictX_backward[2:],
+            #                tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
             after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
             if np.array_equal(before_, after_):
                 print('Some things wrong!')
 
-        predict_tm = predictX[-1, :, :]
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                         p=(Config.FWBW_CONV_LSTM_MON_RAIO, 1 - Config.FWBW_CONV_LSTM_MON_RAIO))
@@ -310,20 +293,19 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         #                                     backward_pred=predictX_backward)
 
         # Selecting next monitored flows randomly
-        inv_sampling = np.invert(sampling)
+        inv_sampling = 1 - sampling
 
         pred_tm = predict_tm * inv_sampling
-        corrected_data = test_data[ts, :, :]
+        corrected_data = test_data[ts]
         ground_truth = corrected_data * sampling
 
         # Calculating the true value for the TM
         new_tm = pred_tm + ground_truth
 
-        # Concaternating the new tm to the final results
-        new_tm = np.concatenate([np.expand_dims(new_tm, axis=2), np.expand_dims(sampling, axis=2)], axis=2)
-        tm_labels[ts + Config.FWBW_CONV_LSTM_STEP] = new_tm  # Shape = (timestep, 12, 12, 2)
+        tm_labels[ts + Config.FWBW_CONV_LSTM_STEP] = new_tm
+        labels[ts + Config.FWBW_CONV_LSTM_STEP] = sampling
 
-    return tm_labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm
+    return tm_labels[Config.FWBW_CONV_LSTM_STEP:], labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm
 
 
 def build_model(input_shape):
@@ -602,13 +584,10 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
                                                                                 Config.FWBW_CONV_LSTM_WIDE,
                                                                                 Config.FWBW_CONV_LSTM_HIGH))
 
-            tm_labels, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
-                                                       test_data=test_data_normalized,
-                                                       forward_model=fw_net.model,
-                                                       backward_model=bw_net.model)
-
-            pred_tm = tm_labels[:, :, :, 0]
-            measured_matrix = tm_labels[:, :, :, 1]
+            pred_tm, measured_matrix, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
+                                                                      test_data=test_data_normalized,
+                                                                      forward_model=fw_net.model,
+                                                                      backward_model=bw_net.model)
 
             pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
             measured_matrix2d = np.reshape(np.copy(measured_matrix),

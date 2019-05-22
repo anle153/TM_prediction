@@ -88,11 +88,11 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.CONV_LSTM_STEP, :, :, :],
                                            conv_lstm_model=conv_lstm_model)
 
-        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP)]  # shape(timesteps, od, od , 2)
+        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP)]
 
-        rnn_input = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
+        rnn_input = np.expand_dims(rnn_input, axis=0)
 
-        predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
+        predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, #nflows)
 
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
         predict_tm = predictX[-1]

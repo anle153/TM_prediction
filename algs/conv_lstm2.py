@@ -402,8 +402,8 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_
             'r2_ims': results_summary['rmse_ims'],
         }
 
-        experiment.log_metrics(metrics)
-        experiment.log_parameters(params)
+        # experiment.log_metrics(metrics)
+        # experiment.log_parameters(params)
         print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
                                                                np.mean(np.array(rmse)),
                                                                np.mean(np.array(r2_score))))

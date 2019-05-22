@@ -340,6 +340,9 @@ def build_model(input_shape):
                       check_point=True,
                       saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/bw/'.format(data_name, alg_name, tag, Config.SCALER))
 
+    print(fw_net.model.summary())
+    print(bw_net.model.summary())
+
     return fw_net, bw_net
 
 

@@ -49,7 +49,7 @@ FWBW_LSTM_VALID_TEST = True
 
 # ------------- FWBW_CONV_LSTM Config ----------
 FWBW_CONV_LSTM_N_EPOCH = 100
-FWBW_CONV_LSTM_BATCH_SIZE = 64
+FWBW_CONV_LSTM_BATCH_SIZE = 256
 
 FWBW_CONV_LSTM_LAYERS = 2
 FWBW_CONV_LSTM_FILTERS = [8, 8]
@@ -158,8 +158,8 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
-GPU = 1
+ALG = ALGS[0]
+GPU = 0
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

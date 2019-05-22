@@ -422,12 +422,13 @@ def train_fwbw_conv_lstm(data, experiment):
 
         trainX_fw, trainY_fw = create_offline_convlstm_data_fix_ratio(train_data_normalized,
                                                                       input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      0.5)
+                                                                      train_data_normalized.mean())
         print('|--- Create offline valid set for forward net!')
 
         validX_fw, validY_fw = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
                                                                       input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      0.5)
+                                                                      train_data_normalized.mean(),
+                                                                      1)
 
         # Load model check point
         from_epoch = fw_net.load_model_from_check_point()
@@ -440,7 +441,8 @@ def train_fwbw_conv_lstm(data, experiment):
                                                    callbacks=fw_net.callbacks_list,
                                                    validation_data=(validX_fw, validY_fw),
                                                    shuffle=True,
-                                                   initial_epoch=from_epoch)
+                                                   initial_epoch=from_epoch,
+                                                   verbose=2)
         else:
             print('|--- Training new forward model.')
 
@@ -450,19 +452,16 @@ def train_fwbw_conv_lstm(data, experiment):
                                                    epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
                                                    callbacks=fw_net.callbacks_list,
                                                    validation_data=(validX_fw, validY_fw),
-                                                   shuffle=True)
+                                                   shuffle=True,
+                                                   verbose=2)
 
         # Plot the training history
         if training_fw_history is not None:
             fw_net.plot_training_history(training_fw_history)
     # --------------------------------------------------------------------------------------------------------------
 
-    # --------------------------- Create offline training and validating dataset for bw net ------------------------
-
-    train_data_bw_normalized = np.flip(train_data_normalized, axis=0)
-    valid_data_bw_normalized = np.flip(valid_data_normalized, axis=0)
-
-    # --------------------------------------------------------------------------------------------------------------
+    train_data_bw_normalized = np.flip(np.copy(train_data_normalized), axis=0)
+    valid_data_bw_normalized = np.flip(np.copy(valid_data_normalized), axis=0)
 
     # --------------------------------------------Training bw model-------------------------------------------------
 
@@ -475,13 +474,14 @@ def train_fwbw_conv_lstm(data, experiment):
 
         trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
                                                                       input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      0.5)
+                                                                      train_data_bw_normalized.mean())
 
         print('|--- Create offline valid set for backward net!')
 
         validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
                                                                       input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      0.5)
+                                                                      train_data_bw_normalized.mean(),
+                                                                      1)
 
         from_epoch_bw = bw_net.load_model_from_check_point()
         if from_epoch_bw > 0:
@@ -492,7 +492,8 @@ def train_fwbw_conv_lstm(data, experiment):
                                                    callbacks=bw_net.callbacks_list,
                                                    validation_data=(validX_bw, validY_bw),
                                                    shuffle=True,
-                                                   initial_epoch=from_epoch_bw)
+                                                   initial_epoch=from_epoch_bw,
+                                                   verbose=2)
 
         else:
             print('|--- Training new backward model.')
@@ -503,14 +504,14 @@ def train_fwbw_conv_lstm(data, experiment):
                                                    epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
                                                    callbacks=bw_net.callbacks_list,
                                                    validation_data=(validX_bw, validY_bw),
-                                                   shuffle=True)
+                                                   shuffle=True,
+                                                   verbose=2)
         if training_bw_history is not None:
             bw_net.plot_training_history(training_bw_history)
 
-        experiment.log_parameters(params)
+        # experiment.log_parameters(params)
 
     # --------------------------------------------------------------------------------------------------------------
-    # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers, args)
     run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
              fw_net, bw_net, params, scalers)
 
@@ -601,11 +602,10 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
                                                                                 Config.FWBW_CONV_LSTM_WIDE,
                                                                                 Config.FWBW_CONV_LSTM_HIGH))
 
-            tm_labels, ims_tm = predict_fwbw_conv_lstm(
-                initial_data=init_data,
-                test_data=test_data_normalized,
-                forward_model=fw_net.model,
-                backward_model=bw_net.model)
+            tm_labels, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
+                                                       test_data=test_data_normalized,
+                                                       forward_model=fw_net.model,
+                                                       backward_model=bw_net.model)
 
             pred_tm = tm_labels[:, :, :, 0]
             measured_matrix = tm_labels[:, :, :, 1]

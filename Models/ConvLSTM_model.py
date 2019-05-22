@@ -73,7 +73,7 @@ class ConvLSTM(AbstractModel):
 
         BatchNormalization_layer3 = BatchNormalization()(lstm_layer3)
 
-        flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
+        flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer3)
 
         first_Dense = TimeDistributed(Dense(512, ))(flat_layer)
         second_Dense = TimeDistributed(Dense(256, ))(first_Dense)

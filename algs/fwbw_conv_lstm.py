@@ -314,7 +314,6 @@ def build_model(input_shape):
     tag = Config.TAG
     data_name = Config.DATA_NAME
 
-    # CNN_BRNN forward model
     fw_net = ConvLSTM(input_shape=input_shape,
                       cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
                       a_filters=Config.FWBW_CONV_LSTM_FILTERS,
@@ -327,7 +326,6 @@ def build_model(input_shape):
                       check_point=True,
                       saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/fw/'.format(data_name, alg_name, tag, Config.SCALER))
 
-    # CNN_BRNN backward model
     bw_net = ConvLSTM(input_shape=input_shape,
                       cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
                       a_filters=Config.FWBW_CONV_LSTM_FILTERS,

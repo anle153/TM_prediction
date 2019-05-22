@@ -88,11 +88,11 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.CONV_LSTM_STEP, :, :, :],
                                            conv_lstm_model=conv_lstm_model)
 
-        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP)]  # shape(timesteps, od, od , 2)
+        rnn_input = tm_labels[ts:(ts + Config.CONV_LSTM_STEP)]
 
-        rnn_input = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
+        rnn_input = np.expand_dims(rnn_input, axis=0)
 
-        predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
+        predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, #nflows)
 
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
         predict_tm = predictX[-1]
@@ -241,7 +241,6 @@ def train_conv_lstm(data, experiment):
     print('---------------------------------CONV_LSTM_NET SUMMARY---------------------------------')
     print(conv_lstm_net.model.summary())
 
-    # run_test(experiment, test_data, test_data_normalized, init_data, fw_net, bw_net, params, scalers)
     run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.CONV_LSTM_STEP:],
              conv_lstm_net, params, scalers)
     return
@@ -331,10 +330,9 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_
                                                                                 Config.CONV_LSTM_WIDE,
                                                                                 Config.CONV_LSTM_HIGH))
 
-            tm_labels, ims_tm = predict_conv_lstm(
-                initial_data=init_data,
-                test_data=test_data_normalized,
-                conv_lstm_model=conv_lstm_net.model)
+            tm_labels, ims_tm = predict_conv_lstm(initial_data=init_data,
+                                                  test_data=test_data_normalized,
+                                                  conv_lstm_model=conv_lstm_net.model)
 
             pred_tm = tm_labels[:, :, :, 0]
             measured_matrix = tm_labels[:, :, :, 1]
@@ -404,7 +402,10 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, conv_
             'r2_ims': results_summary['rmse_ims'],
         }
 
-        experiment.log_metrics(metrics)
-        experiment.log_parameters(params)
+        # experiment.log_metrics(metrics)
+        # experiment.log_parameters(params)
+        print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                               np.mean(np.array(rmse)),
+                                                               np.mean(np.array(r2_score))))
 
     return

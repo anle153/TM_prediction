@@ -353,10 +353,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
         results_summary['r2_ims'] = r2_score_ims
         results_summary['rmse_ims'] = rmse_ims
 
-        print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-                                                               np.mean(np.array(rmse)),
-                                                               np.mean(np.array(r2_score))))
-
         results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
                                                                                       alg_name, tag, Config.SCALER),
                                index=False)
@@ -369,5 +365,8 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
             'r2_ims': results_summary['rmse_ims'],
         }
 
-        experiment.log_metrics(metrics)
-        experiment.log_parameters(params)
+        # experiment.log_metrics(metrics)
+        # experiment.log_parameters(params)
+        print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                               np.mean(np.array(rmse)),
+                                                               np.mean(np.array(r2_score))))

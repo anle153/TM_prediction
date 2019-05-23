@@ -30,7 +30,7 @@ class fwbw_lstm_model(AbstractModel):
         # self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='FW_Model')
         #
         # self.fw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-        input_tensor = Input(shape=self.input_shape, name='input')
+
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)
 
@@ -45,25 +45,25 @@ class fwbw_lstm_model(AbstractModel):
         #
         # self.bw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
-        # _fw_outs = fw_outputs[:, :-2, 0]
-        # dims = [1]
-        # _bw_outs = tf.reverse(bw_outputs, dims)[:, 2:, 0]
-        # _input = input_tensor[:, 1:-1, 0]
-        # _labels = input_tensor[:, 1:-1, 1]
-        #
-        # _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
-        #
-        # fc_1 = Dense(64, )(_in_tensor)
-        # fc_2 = Dense(32, )(fc_1)
-        # fc_3 = Dense(24, name='correct_data')(fc_2)
-        input_tensor = Input(shape=self.input_shape, name='input')
-        input_tensor_flatten = tf.layers.flatten(input_tensor)
-        _input = concatenate(inputs=[input_tensor_flatten, fw_outputs, bw_outputs])
+        _fw_outs = fw_outputs[None, :-2, 0]
+        dims = [1]
+        _bw_outs = tf.reverse(bw_outputs, dims)[None, 2:, 0]
+        _input = input_tensor[None, 1:-1, 0]
+        _labels = input_tensor[None, 1:-1, 1]
 
-        x = Dense(64,)(_input)
-        x = Dense(32,)(x)
-        outputs = Dense(1,)(x)
+        _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
 
-        self.model = Model(inputs=input_tensor, outputs=[outputs, fw_outputs], name='fwbw-lstm')
+        fc_1 = Dense(64, )(_in_tensor)
+        fc_2 = Dense(32, )(fc_1)
+        fc_3 = Dense(24, name='correct_data')(fc_2)
+
+        # input_tensor_flatten = tf.layers.flatten(input_tensor)
+        # _input = concatenate(inputs=[input_tensor_flatten, fw_outputs, bw_outputs], axis=1)
+        #
+        # x = Dense(64,)(_input)
+        # x = Dense(32,)(x)
+        # outputs = Dense(1,)(x)
+
+        self.model = Model(inputs=input_tensor, outputs=[fc_3, fw_outputs], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1., 0.2])

@@ -25,7 +25,7 @@ class fwbw_lstm_model(AbstractModel):
         fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
         fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
         fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
-        fw_outputs = TimeDistributed(Dense(1, ))(fw_dense_2)
+        fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
 
         # fw_out = Dense(1, name='fw_out')(fw_dense_2[:, -1])
 

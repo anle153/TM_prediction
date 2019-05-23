@@ -57,7 +57,7 @@ class fwbw_lstm_model(AbstractModel):
         fc_2 = Dense(32, )(fc_1)
         fc_3 = Dense(24, )(fc_2)
 
-        outputs = tf.concat([input_tensor[:, 0, 0], fc_3, fw_outputs[:, -1]], axis=1)
+        outputs = tf.concat([input_tensor[:, 0, 0], fc_3[:, :, 0], fw_outputs[:, -1, 0]], axis=1)
 
         self.model = Model(inputs=input_tensor, outputs=outputs, name='fwbw-lstm')
 

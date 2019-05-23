@@ -27,7 +27,7 @@ class fwbw_lstm_model(AbstractModel):
         fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
         fw_outputs = TimeDistributed(Dense(1, ))(fw_dense_2)
 
-        fw_out = Dense(1, )(fw_dense_2[:, -1])
+        fw_out = Dense(1, name='fw_out')(fw_dense_2[:, -1])
 
         # self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='FW_Model')
         #
@@ -57,7 +57,7 @@ class fwbw_lstm_model(AbstractModel):
 
         fc_1 = Dense(64, )(_in_tensor)
         fc_2 = Dense(32, )(fc_1)
-        fc_3 = Dense(24, )(fc_2)
+        fc_3 = Dense(24, name='correct_data')(fc_2)
 
         self.model = Model(inputs=input_tensor, outputs=[fc_3, fw_out], name='fwbw-lstm')
 

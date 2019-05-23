@@ -29,7 +29,7 @@ def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
             plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
             plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
             plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
-            plt.plot(current_data[:, flow_x, flow_y, 0], label='Current_pred')
+            plt.plot(current_data[:, flow_x, flow_y], label='Current_pred')
 
             plt.legend()
             plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))

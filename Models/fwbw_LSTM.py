@@ -58,7 +58,7 @@ class fwbw_lstm_model(AbstractModel):
         # fc_3 = Dense(24, name='correct_data')(fc_2)
 
         input_tensor_flatten = tf.reshape(input_tensor.output, shape=[-1])
-        _input = concatenate(inputs=[input_tensor_flatten, fw_outputs, bw_outputs], axis=1)
+        _input = concatenate(inputs=[input_tensor_flatten, fw_outputs, bw_outputs])
 
         x = Dense(64,)(_input)
         x = Dense(32,)(x)

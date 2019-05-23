@@ -57,6 +57,6 @@ class fwbw_lstm_model(AbstractModel):
         fc_2 = Dense(32, )(fc_1)
         fc_3 = Dense(24, )(fc_2)
 
-        self.model = Model(inputs=input_tensor, outputs=[fc_3, fw_outputs[:, -1]], name='fwbw-lstm')
+        self.model = Model(inputs=input_tensor, outputs=[fc_3, fw_outputs], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

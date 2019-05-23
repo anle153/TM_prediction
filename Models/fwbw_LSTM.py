@@ -51,13 +51,13 @@ class fwbw_lstm_model(AbstractModel):
         _input = input_tensor[:, 1:-1, 0]
         _labels = input_tensor[:, 1:-1, 1]
 
-        _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels])
+        _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
 
         fc_1 = Dense(64, )(_in_tensor)
         fc_2 = Dense(32, )(fc_1)
         fc_3 = Dense(24, )(fc_2)
 
-        outputs = tf.concat([input_tensor[:, 0, 0], fc_3, fw_outputs[:, -1]])
+        outputs = tf.concat([input_tensor[:, 0, 0], fc_3, fw_outputs[:, -1]], axis=1)
 
         self.model = Model(inputs=input_tensor, outputs=outputs, name='fwbw-lstm')
 

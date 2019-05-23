@@ -30,7 +30,7 @@ class fwbw_lstm_model(AbstractModel):
         # self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='FW_Model')
         #
         # self.fw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
+        input_tensor = Input(shape=self.input_shape, name='input')
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)
 
@@ -56,7 +56,7 @@ class fwbw_lstm_model(AbstractModel):
         # fc_1 = Dense(64, )(_in_tensor)
         # fc_2 = Dense(32, )(fc_1)
         # fc_3 = Dense(24, name='correct_data')(fc_2)
-
+        input_tensor = Input(shape=self.input_shape, name='input')
         input_tensor_flatten = tf.layers.flatten(input_tensor)
         _input = concatenate(inputs=[input_tensor_flatten, fw_outputs, bw_outputs])
 

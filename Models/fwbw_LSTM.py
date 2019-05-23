@@ -1,6 +1,6 @@
 import tensorflow as tf
-from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input
-from keras.models import Model
+from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, InputLayer, concatenate
+from keras.models import Model,
 
 from Models.AbstractModel import AbstractModel
 
@@ -26,8 +26,6 @@ class fwbw_lstm_model(AbstractModel):
         fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
         fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
         fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
-
-        fw_out = Dense(1, name='fw_out')(fw_dense_2[:, -1])
 
         # self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='FW_Model')
         #
@@ -59,6 +57,13 @@ class fwbw_lstm_model(AbstractModel):
         # fc_2 = Dense(32, )(fc_1)
         # fc_3 = Dense(24, name='correct_data')(fc_2)
 
-        self.model = Model(inputs=input_tensor, outputs=[bw_outputs, fw_out], name='fwbw-lstm')
+        input_tensor_flatten = tf.layers.Flatten()(input_tensor)
+        _input = concatenate(inputs=[input_tensor_flatten, fw_outputs, bw_outputs])
+
+        x = Dense(64,)(_input)
+        x = Dense(32,)(x)
+        outputs = Dense(1,)(x)
+
+        self.model = Model(inputs=input_tensor, outputs=[outputs, fw_outputs], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1., 0.2])

@@ -1,6 +1,6 @@
 import tensorflow as tf
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, InputLayer, concatenate
-from keras.models import Model,
+from keras.models import Model
 
 from Models.AbstractModel import AbstractModel
 

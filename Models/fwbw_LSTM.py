@@ -53,7 +53,9 @@ class fwbw_lstm_model(AbstractModel):
 
         _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
 
-        fc_1 = Dense(64, )(_in_tensor)
+        x = InputLayer(input_tensor=_in_tensor)
+
+        fc_1 = Dense(64, )(x)
         fc_2 = Dense(32, )(fc_1)
         fc_3 = Dense(24, name='correct_data')(fc_2)
 

@@ -141,6 +141,7 @@ def build_model(input_shape):
                              check_point=True,
                              saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
                                                                                    Config.SCALER))
+    print(conv_lstm_net.model.summary())
 
     return conv_lstm_net
 

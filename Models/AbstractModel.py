@@ -19,6 +19,16 @@ def plot_training_history(alg_name, tag, saving_path, model_history):
     plt.legend()
     plt.close()
 
+    plt.plot(model_history.history['val_mean_absolute_error'], label='val_mae')
+    plt.legend()
+    plt.savefig(saving_path + '[VAL-MAE]{}-{}.png'.format(alg_name, tag))
+    plt.close()
+
+    plt.plot(model_history.history['val_mean_squared_error'], label='val_mse')
+    plt.savefig(saving_path + '[VAL-MSE]{}-{}.png'.format(alg_name, tag))
+    plt.legend()
+    plt.close()
+
 
 class AbstractModel(object):
 

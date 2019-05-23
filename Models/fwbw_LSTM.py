@@ -16,7 +16,7 @@ class fwbw_lstm_model(AbstractModel):
         self.input_shape = input_shape
         self.drop_out = drop_out
 
-        input = tf.placeholder(shape=input_shape)
+        input = tf.placeholder(shape=input_shape, dtype=tf.float32)
 
         input_tensor = InputLayer(shape=self.input_shape, name='input', input_tensor=input)
 

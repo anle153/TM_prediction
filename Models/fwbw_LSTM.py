@@ -47,18 +47,18 @@ class fwbw_lstm_model(AbstractModel):
         #
         # self.bw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
-        _fw_outs = fw_outputs[:, :-2, 0]
-        dims = [1]
-        _bw_outs = tf.reverse(bw_outputs, dims)[:, 2:, 0]
-        _input = input_tensor[:, 1:-1, 0]
-        _labels = input_tensor[:, 1:-1, 1]
+        # _fw_outs = fw_outputs[:, :-2, 0]
+        # dims = [1]
+        # _bw_outs = tf.reverse(bw_outputs, dims)[:, 2:, 0]
+        # _input = input_tensor[:, 1:-1, 0]
+        # _labels = input_tensor[:, 1:-1, 1]
+        #
+        # _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
+        #
+        # fc_1 = Dense(64, )(_in_tensor)
+        # fc_2 = Dense(32, )(fc_1)
+        # fc_3 = Dense(24, name='correct_data')(fc_2)
 
-        _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
-
-        fc_1 = Dense(64, )(_in_tensor)
-        fc_2 = Dense(32, )(fc_1)
-        fc_3 = Dense(24, name='correct_data')(fc_2)
-
-        self.model = Model(inputs=input_tensor, outputs=[fc_3, fw_outputs], name='fwbw-lstm')
+        self.model = Model(inputs=input_tensor, outputs=[bw_outputs, fw_outputs], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1., 0.2])

@@ -45,11 +45,11 @@ class fwbw_lstm_model(AbstractModel):
         #
         # self.bw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
-        _fw_outs = fw_outputs[None, :-2, 0]
+        _fw_outs = fw_outputs[:, :-2, 0]
         dims = [1]
-        _bw_outs = tf.reverse(bw_outputs, dims)[None, 2:, 0]
-        _input = input_tensor[None, 1:-1, 0]
-        _labels = input_tensor[None, 1:-1, 1]
+        _bw_outs = tf.reverse(bw_outputs, dims)[:, 2:, 0]
+        _input = input_tensor[:, 1:-1, 0]
+        _labels = input_tensor[:, 1:-1, 1]
 
         _in_tensor = tf.concat([_fw_outs, _bw_outs, _input, _labels], axis=1)
 

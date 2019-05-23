@@ -61,4 +61,4 @@ class fwbw_lstm_model(AbstractModel):
 
         self.model = Model(inputs=input_tensor, outputs=[fc_3, fw_outputs], name='fwbw-lstm')
 
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1., 0.2])

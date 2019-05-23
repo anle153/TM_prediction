@@ -16,30 +16,32 @@ class fwbw_lstm_model(AbstractModel):
         self.input_shape = input_shape
         self.drop_out = drop_out
 
-        input_tensor = Input(shape=self.input_shape, name='input')
+        input = tf.placeholder(shape=input_shape)
 
-        # fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
+        input_tensor = InputLayer(shape=self.input_shape, name='input', input_tensor=input)
+
+        fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
+
+        fw_drop_out = Dropout(self.drop_out)(fw_lstm_layer)
+
+        fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
+        fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
+        fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
+        fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
+
+        # self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='FW_Model')
         #
-        # fw_drop_out = Dropout(self.drop_out)(fw_lstm_layer)
-        #
-        # fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
-        # fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
-        # fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
-        # fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
-        #
-        # # self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='FW_Model')
-        # #
-        # # self.fw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-        #
-        # bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
-        #                      return_sequences=True, go_backwards=True)(input_tensor)
-        #
-        # bw_drop_out = Dropout(self.drop_out)(bw_lstm_layer)
-        #
-        # bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
-        # bw_dense_1 = TimeDistributed(Dense(64, ))(bw_flat_layer)
-        # bw_dense_2 = TimeDistributed(Dense(32, ))(bw_dense_1)
-        # bw_outputs = TimeDistributed(Dense(1, ))(bw_dense_2)
+        # self.fw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
+        bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
+                             return_sequences=True, go_backwards=True)(input_tensor)
+
+        bw_drop_out = Dropout(self.drop_out)(bw_lstm_layer)
+
+        bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
+        bw_dense_1 = TimeDistributed(Dense(64, ))(bw_flat_layer)
+        bw_dense_2 = TimeDistributed(Dense(32, ))(bw_dense_1)
+        bw_outputs = TimeDistributed(Dense(1, ))(bw_dense_2)
 
         # self.bw_model = Model(inputs=input_tensor, outputs=bw_outputs, name='BW_Model')
         #

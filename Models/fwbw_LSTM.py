@@ -51,7 +51,7 @@ class fwbw_lstm_model(AbstractModel):
         _input = input_tensor[:, 1:-1, 0]
         _labels = input_tensor[:, 1:-1, 1]
 
-        _in_tensor = tf.constant(0, shape=[-1, 24 * 4])
+        _in_tensor = tf.constant(0, shape=[0, 24 * 4])
         _in_tensor[:, 0:24] = _fw_outs
         _in_tensor[:, 24:48] = _bw_outs
         _in_tensor[:, 48:72] = _input
@@ -61,7 +61,7 @@ class fwbw_lstm_model(AbstractModel):
         fc_2 = Dense(32, )(fc_1)
         fc_3 = Dense(24, )(fc_2)
 
-        outputs = tf.constant(0, shape=[-1, 26])
+        outputs = tf.constant(0, shape=[0, 26])
         outputs[:, 0] = input_tensor[:, 0, 0]
         outputs[:, 1:-1] = fc_3[:, :, 0]
         outputs[:, -1] = fw_outputs[:, -1, 0]

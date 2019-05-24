@@ -1,5 +1,6 @@
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape
 from keras.models import Model
+from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -52,3 +53,6 @@ class fwbw_lstm_model(AbstractModel):
         self.model = Model(inputs=input_tensor, outputs=[outputs, fw_out], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1., 0.2])
+
+    def plot_models(self):
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png')

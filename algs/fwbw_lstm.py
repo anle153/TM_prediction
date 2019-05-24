@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_lstm_nn_data
+from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm_data
 from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -214,6 +214,7 @@ def build_model(input_shape):
                                saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
                                                                                      Config.SCALER))
     print(fwbw_net.model.summary())
+    fwbw_net.plot_models()
     return fwbw_net
 
 
@@ -263,14 +264,14 @@ def train_fwbw_lstm(data, experiment):
 
             print('|--- Create offline train set for forward net!')
 
-            trainX_fw, trainY_fw = create_offline_lstm_nn_data(train_data_normalized2d,
-                                                               input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                               0.5)
+            trainX_fw, trainY_fw = create_offline_fwbw_lstm_data(train_data_normalized2d,
+                                                                 input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                 train_data_normalized2d.mean())
             print('|--- Create offline valid set for forward net!')
 
-            validX_fw, validY_fw = create_offline_lstm_nn_data(valid_data_normalized2d,
-                                                               input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                               0.5)
+            validX_fw, validY_fw = create_offline_fwbw_lstm_data(valid_data_normalized2d,
+                                                                 input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                 train_data_normalized2d.mean())
 
             # Load model check point
             from_epoch = fwbw_net.load_model_from_check_point()

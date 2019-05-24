@@ -263,9 +263,9 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
         # before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
-        _err_1 = error_ratio(y_pred=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
-                             y_true=raw_data[ts:ts + Config.FWBW_CONV_LSTM_STEP],
-                             measured_matrix=labels[ts: ts + Config.FWBW_CONV_LSTM_STEP])
+        # _err_1 = error_ratio(y_pred=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+        #                      y_true=raw_data[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+        #                      measured_matrix=labels[ts: ts + Config.FWBW_CONV_LSTM_STEP])
 
         # Correcting the imprecise input data
         rnn_pred_value = updating_historical_data_3d(rnn_input=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],

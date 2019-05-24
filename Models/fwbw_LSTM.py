@@ -58,4 +58,4 @@ class fwbw_lstm_model(AbstractModel):
         self.model.compile(loss={'pred_data': 'mse', 'corr_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):
-        plot_model(model=self.model, to_file=self.saving_path + '/model.png')
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

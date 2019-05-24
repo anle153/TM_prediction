@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
-from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
 from common import Config
@@ -18,7 +17,7 @@ session = tf.Session(config=config)
 
 
 def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
-    saving_path = Config.RESULTS_PATH + 'plot_check_fwbw/'
+    saving_path = Config.RESULTS_PATH + 'plot_fwbw_conv_lstm/'
 
     if not os.path.exists(saving_path):
         os.makedirs(saving_path)
@@ -29,7 +28,7 @@ def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
             plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
             plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
             plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
-            plt.plot(current_data[:, flow_x, flow_y, 0], label='Current_pred')
+            plt.plot(current_data[:, flow_x, flow_y], label='Current_pred')
 
             plt.legend()
             plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
@@ -95,10 +94,10 @@ def calculate_updated_weights_3d(measured_block, forward_loss, backward_loss):
     rho = np.zeros((Config.FWBW_CONV_LSTM_STEP, measured_block.shape[1], measured_block.shape[1]))
     mu = np.zeros((Config.FWBW_CONV_LSTM_STEP, measured_block.shape[1], measured_block.shape[1]))
     for j in range(0, Config.FWBW_CONV_LSTM_STEP):
-        _mu = (np.sum(measured_block[:(j + 1)], axis=0)) / float(j + 1)
+        _mu = np.sum(measured_block[:(j + 1)], axis=0) / float(j + 1)
         mu[j] = _mu
 
-        _rho = (np.sum(measured_block[j:, :, :], axis=0)) / float(Config.FWBW_CONV_LSTM_STEP - j)
+        _rho = np.sum(measured_block[j:, :, :], axis=0) / float(Config.FWBW_CONV_LSTM_STEP - j)
         rho[j] = _rho
 
     forward_loss = np.tile(np.expand_dims(forward_loss, axis=0), (Config.FWBW_CONV_LSTM_STEP, 1, 1))
@@ -142,7 +141,8 @@ def updating_historical_data_3d(rnn_input, pred_forward, pred_backward, labels):
     considered_forward = pred_forward[0:-2, :, :]
     considered_backward = pred_backward[2:, :, :]
 
-    updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
+    # updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
+    updated_rnn_input = (considered_rnn_input + considered_forward + considered_backward) / 3.0
 
     sampling_measured_matrix = measured_block[1:-1]
     inv_sampling_measured_matrix = 1 - sampling_measured_matrix
@@ -211,6 +211,9 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
     tm_labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
     tm_labels[0:initial_data.shape[0], :, :] = initial_data
 
+    _tm_labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
+    _tm_labels[0:initial_data.shape[0], :, :] = initial_data
+
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
     labels[0:initial_data.shape[0], :, :] = np.ones(shape=initial_data.shape)
 
@@ -222,7 +225,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
     raw_data[0:initial_data.shape[0]] = initial_data
     raw_data[initial_data.shape[0]:] = test_data
 
-    for ts in tqdm(range(test_data.shape[0])):
+    for ts in range(test_data.shape[0]):
 
         if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP, :, :, :],
@@ -255,34 +258,43 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
                                                                     test_data.shape[2]))
         predictX_backward = np.flip(predictX_backward, axis=0)
 
-        if ts == 20:
-            # plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-            #                predictX[:-2],
-            #                predictX_backward[2:],
-            #                tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        # if ts == 20:
+        #     plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+        #                    predictX[:-2],
+        #                    predictX_backward[2:],
+        #                    tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
 
-            before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        # before_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+
+        _err_1 = error_ratio(y_pred=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+                             y_true=raw_data[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+                             measured_matrix=labels[ts: ts + Config.FWBW_CONV_LSTM_STEP])
 
         # Correcting the imprecise input data
         rnn_pred_value = updating_historical_data_3d(rnn_input=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
                                                      pred_forward=predictX,
                                                      pred_backward=predictX_backward,
                                                      labels=labels[ts:ts + Config.FWBW_CONV_LSTM_STEP])
-        tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] = \
-            tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] * \
-            labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] + \
+
+        tm_labels[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] = \
+            tm_labels[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] * \
+            labels[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] + \
             rnn_pred_value
 
-        if ts == 20:
-            # plot_test_data('After_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-            #                predictX[:-2],
-            #                predictX_backward[2:],
-            #                tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-
-            after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-
-            if np.array_equal(before_, after_):
-                print('Some things wrong!')
+        # if ts == 20:
+        #     plot_test_data('After_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
+        #                    predictX[:-2],
+        #                    predictX_backward[2:],
+        #                    tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        #
+        # after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        # _err_2 = error_ratio(y_pred=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+        #                      y_true=raw_data[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+        #                      measured_matrix=labels[ts: ts+ Config.FWBW_CONV_LSTM_STEP])
+        #
+        # print('Err_1: {}  - Err_2: {}'.format(_err_1, _err_2))
+        # if np.array_equal(before_, after_):
+        #     print('No thing changes!')
 
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
@@ -303,7 +315,17 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
         new_tm = pred_tm + ground_truth
 
         tm_labels[ts + Config.FWBW_CONV_LSTM_STEP] = new_tm
+        _tm_labels[ts + Config.FWBW_CONV_LSTM_STEP] = new_tm
         labels[ts + Config.FWBW_CONV_LSTM_STEP] = sampling
+
+    _err_1 = error_ratio(y_pred=tm_labels[Config.FWBW_CONV_LSTM_STEP:],
+                         y_true=raw_data[Config.FWBW_CONV_LSTM_STEP:],
+                         measured_matrix=labels[Config.FWBW_CONV_LSTM_STEP:])
+    _err_2 = error_ratio(y_pred=_tm_labels[Config.FWBW_CONV_LSTM_STEP:],
+                         y_true=raw_data[Config.FWBW_CONV_LSTM_STEP:],
+                         measured_matrix=labels[Config.FWBW_CONV_LSTM_STEP:])
+
+    print('Err_w: {} -- Err_wo: {}'.format(_err_1, _err_2))
 
     return tm_labels[Config.FWBW_CONV_LSTM_STEP:], labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm
 
@@ -661,7 +683,10 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
             'r2_ims': results_summary['rmse_ims'],
         }
 
-        experiment.log_metrics(metrics)
-        experiment.log_parameters(params)
+        # experiment.log_metrics(metrics)
+        # experiment.log_parameters(params)
+        print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                               np.mean(np.array(rmse)),
+                                                               np.mean(np.array(r2_score))))
 
     return

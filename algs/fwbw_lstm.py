@@ -159,11 +159,11 @@ def predict_fwbw_lstm(initial_data, test_data, model):
         pred_data, corr_data = model.predict(rnn_input)
 
         # Data Correction
-        # updated_data = corr_data.T
-        # _labels = labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
-        # updated_data = updated_data * (1 - _labels)
-        # tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = tm_pred[
-        #                                                  ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * _labels + updated_data
+        updated_data = corr_data.T
+        _labels = labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
+        updated_data = updated_data * (1 - _labels)
+        tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = tm_pred[
+                                                         ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * _labels + updated_data
 
         # _err_2 = error_ratio(y_pred=tm_pred[0:ts + Config.FWBW_CONV_LSTM_STEP],
         #                      y_true=raw_data[0:ts + Config.FWBW_CONV_LSTM_STEP],

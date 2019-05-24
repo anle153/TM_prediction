@@ -1,4 +1,4 @@
-from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate
+from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape
 from keras.models import Model
 
 from Models.AbstractModel import AbstractModel
@@ -56,7 +56,7 @@ class fwbw_lstm_model(AbstractModel):
         # fc_2 = Dense(32, )(fc_1)
         # fc_3 = Dense(24, name='correct_data')(fc_2)
 
-        input_tensor_flatten = Flatten()(input_tensor)
+        input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
         _input = Concatenate(axis=1)([input_tensor_flatten, fw_outputs, bw_outputs])
 
         x = Dense(64,)(_input)

@@ -240,7 +240,7 @@ def train_fwbw_lstm(data, experiment):
 
     if not Config.FWBW_LSTM_VALID_TEST or \
             not os.path.isfile(
-                fwbw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FW_LSTM_BEST_CHECKPOINT)):
+                fwbw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_LSTM_BEST_CHECKPOINT)):
         print('|--- Compile model. Saving path %s --- ' % fwbw_net.saving_path)
         # -------------------------------- Create offline training and validating dataset --------------------------
 
@@ -287,7 +287,7 @@ def train_fwbw_lstm(data, experiment):
             fwbw_net.plot_training_history(training_fw_history)
 
     else:
-        fwbw_net.load_model_from_check_point(_from_epoch=Config.FW_LSTM_BEST_CHECKPOINT)
+        fwbw_net.load_model_from_check_point(_from_epoch=Config.FWBW_LSTM_BEST_CHECKPOINT)
     # --------------------------------------------------------------------------------------------------------------
     run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_LSTM_STEP:],
              fwbw_net, params, scalers)

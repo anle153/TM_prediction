@@ -132,7 +132,7 @@ def data_correction(tm_pred, pred_forward, pred_backward, measured_block):
     return tm_pred
 
 
-def predict_fwbw_lstm(initial_data, test_data, forward_model):
+def predict_fwbw_lstm(initial_data, test_data, model):
     tf_a = np.array([1.0, 0.0])
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
@@ -150,51 +150,34 @@ def predict_fwbw_lstm(initial_data, test_data, forward_model):
 
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
-        # This block is used for iterated multi-step traffic matrices prediction
-
-        # if Config.FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP):
-        #     ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.FWBW_LSTM_STEP, :],
-        #                                    model=model,
-        #                                    init_labels=labels[ts:ts + Config.FWBW_LSTM_STEP, :])
 
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
-        rnn_input_bw = np.copy(rnn_input)
-        rnn_input_bw = np.flip(rnn_input_bw, axis=0)
 
         # Get the TM prediction of next time slot
-        predictX = forward_model.predict(rnn_input)
-        _pred = predictX[:, :, 0]  # shape (#nflows, timesteps)
-
-        pred = np.copy(predictX[:, -1, 0])
+        pred_data, corr_data = model.predict(rnn_input)
 
         # Data Correction
-
-        updated_data = _pred[:, 1:-1].T
+        updated_data = corr_data.T
         _labels = labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
         updated_data = updated_data * (1 - _labels)
         tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = tm_pred[
                                                          ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * _labels + updated_data
 
+        # Sampling data
         sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
                                     p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
 
-        labels[ts + Config.FWBW_LSTM_STEP] = sampling
-        # invert of sampling: for choosing value from the original data
-        inv_sampling = 1.0 - sampling
+        labels[ts + Config.FWBW_LSTM_STEP] = sampling  # Store sampling to labels
+        inv_sampling = 1.0 - sampling  # invert of sampling: for choosing value from the original data
 
-        pred_input = pred * inv_sampling
-
+        pred_input = pred_data.T * inv_sampling
         ground_true = test_data[ts]
-
         measured_input = ground_true * sampling
 
         # Merge value from pred_input and measured_input
         new_input = pred_input + measured_input
-        # new_input = np.reshape(new_input, (new_input.shap e[0], new_input.shape[1], 1))
-
-        # Concatenating new_input into current rnn_input
         tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
 
     return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm
@@ -390,7 +373,7 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fwbw_
 
             pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm(initial_data=init_data2d,
                                                                        test_data=test_data_normalized2d,
-                                                                       forward_model=fwbw_net.model)
+                                                                       model=fwbw_net.model)
 
             np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
                                                                                   Config.SCALER, i),

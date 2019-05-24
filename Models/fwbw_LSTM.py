@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, InputLayer
+from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input
 from keras.models import Model
 
 from Models.AbstractModel import AbstractModel
@@ -16,7 +16,7 @@ class fwbw_lstm_model(AbstractModel):
         self.input_shape = input_shape
         self.drop_out = drop_out
 
-        input_tensor = InputLayer(input_shape=self.input_shape, name='input')
+        input_tensor = Input(shape=self.input_shape, name='input')
 
         fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor.output)
 

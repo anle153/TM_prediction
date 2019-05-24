@@ -281,7 +281,8 @@ def train_fwbw_lstm(data, experiment):
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(validX, [validY_1, validY_2]),
+                                                     validation_data=(
+                                                     validX, {'pred_data': validY_1, 'corr_data': validY_2}),
                                                      shuffle=True,
                                                      initial_epoch=from_epoch,
                                                      verbose=2)
@@ -289,11 +290,12 @@ def train_fwbw_lstm(data, experiment):
             print('|--- Training new forward model.')
 
             training_fw_history = fwbw_net.model.fit(x=trainX,
-                                                     y=[trainY_1, trainY_2],
+                                                     y={'pred_data': trainY_1, 'corr_data': trainY_2},
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(validX, [validY_1, validY_2]),
+                                                     validation_data=(
+                                                     validX, {'pred_data': validY_1, 'corr_data': validY_2}),
                                                      shuffle=True,
                                                      verbose=2)
 

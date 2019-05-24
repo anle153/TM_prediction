@@ -293,7 +293,7 @@ def create_offline_fwbw_lstm_data(data, input_shape, mon_ratio, eps):
 
             _y = data[(idx + 1):(idx + ntimesteps - 1), flow]
 
-            dataY_1[i] = np.array(_y).reshape((ntimesteps, 1))
+            dataY_1[i] = np.array(_y).reshape((ntimesteps - 2, 1))
             dataY_2[i] = data[idx + ntimesteps, flow]
             i += 1
 

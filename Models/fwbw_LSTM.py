@@ -56,3 +56,38 @@ class fwbw_lstm_model(AbstractModel):
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)
+
+    def plot_training_history(self, model_history):
+        import matplotlib.pyplot as plt
+        plt.plot(model_history.history['pred_data_loss'], label='pred_data_loss')
+        plt.plot(model_history.history['val_pred_data_loss'], label='val_pred_data_loss')
+        plt.legend()
+        plt.savefig(self.saving_path + '[pred_data_los]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.close()
+
+        plt.plot(model_history.history['loss'], label='loss')
+        plt.plot(model_history.history['val_loss'], label='val_loss')
+        plt.savefig(self.saving_path + '[loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['corr_data_loss'], label='corr_data_loss')
+        plt.plot(model_history.history['val_corr_data_loss'], label='val_corr_data_loss')
+        plt.savefig(self.saving_path + '[corr_data_loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['val_pred_data_loss'], label='val_pred_data_loss')
+        plt.legend()
+        plt.savefig(self.saving_path + '[val_pred_data_los]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.close()
+
+        plt.plot(model_history.history['val_loss'], label='val_loss')
+        plt.savefig(self.saving_path + '[val_loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['val_corr_data_loss'], label='val_corr_data_loss')
+        plt.savefig(self.saving_path + '[val_corr_data_loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()

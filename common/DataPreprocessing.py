@@ -293,8 +293,8 @@ def create_offline_fwbw_lstm_data(data, input_shape, mon_ratio, eps):
 
             _y = data[(idx + 1):(idx + ntimesteps - 1), flow]
 
-            dataY_2[i] = _y
             dataY_1[i] = data[idx + ntimesteps, flow]
+            dataY_2[i] = _y
             i += 1
 
     return dataX, dataY_1, dataY_2

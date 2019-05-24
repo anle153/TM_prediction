@@ -33,7 +33,7 @@ class fwbw_lstm_model(AbstractModel):
         fw_out = Dense(128, )(fw_out)
         fw_out = Dropout(0.2)(fw_out)
         fw_out = Dense(64, )(fw_out)
-        fw_out = Dense(1, )(fw_out)
+        fw_out = Dense(1, name='pred_value')(fw_out)
 
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)
@@ -51,7 +51,7 @@ class fwbw_lstm_model(AbstractModel):
         _input = Flatten()(_input)
         x = Dense(128, )(_input)
         x = Dense(64, )(x)
-        outputs = Dense(24,)(x)
+        outputs = Dense(24, name='corr_data')(x)
 
         self.model = Model(inputs=input_tensor, outputs=[outputs, fw_out], name='fwbw-lstm')
 

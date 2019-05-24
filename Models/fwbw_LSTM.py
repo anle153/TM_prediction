@@ -48,6 +48,7 @@ class fwbw_lstm_model(AbstractModel):
         input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
         _input = Concatenate(axis=1)([input_tensor_flatten, fw_outputs, bw_outputs])
 
+        _input = Flatten()(_input)
         x = Dense(128, )(_input)
         x = Dense(64, )(x)
         outputs = Dense(24,)(x)

@@ -54,7 +54,7 @@ class fwbw_lstm_model(AbstractModel):
 
         self.model = Model(inputs=input_tensor, outputs=[outputs, fw_out], name='fwbw-lstm')
 
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1., 0.2])
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self.saving_path + '/model.png')

@@ -264,37 +264,37 @@ def train_fwbw_lstm(data, experiment):
 
             print('|--- Create offline train set for forward net!')
 
-            trainX_fw, trainY_fw = create_offline_fwbw_lstm_data(train_data_normalized2d,
-                                                                 input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                                 train_data_normalized2d.mean())
+            trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm_data(train_data_normalized2d,
+                                                                       input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                       train_data_normalized2d.mean())
             print('|--- Create offline valid set for forward net!')
 
-            validX_fw, validY_fw = create_offline_fwbw_lstm_data(valid_data_normalized2d,
-                                                                 input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                                 train_data_normalized2d.mean())
+            validX, validY_1, validY_2 = create_offline_fwbw_lstm_data(valid_data_normalized2d,
+                                                                       input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                       train_data_normalized2d.mean())
 
             # Load model check point
             from_epoch = fwbw_net.load_model_from_check_point()
             if from_epoch > 0:
                 print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-                training_fw_history = fwbw_net.model.fit(x=trainX_fw,
-                                                         y=trainY_fw,
+                training_fw_history = fwbw_net.model.fit(x=trainX,
+                                                         y=[trainY_1, trainY_2],
                                                          batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                          epochs=Config.FWBW_LSTM_N_EPOCH,
                                                          callbacks=fwbw_net.callbacks_list,
-                                                         validation_data=(validX_fw, validY_fw),
+                                                         validation_data=(validX, [validY_1, validY_2]),
                                                          shuffle=True,
                                                          initial_epoch=from_epoch,
                                                          verbose=2)
             else:
                 print('|--- Training new forward model.')
 
-                training_fw_history = fwbw_net.model.fit(x=trainX_fw,
-                                                         y=trainY_fw,
+                training_fw_history = fwbw_net.model.fit(x=trainX,
+                                                         y=[trainY_1, trainY_2],
                                                          batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                          epochs=Config.FWBW_LSTM_N_EPOCH,
                                                          callbacks=fwbw_net.callbacks_list,
-                                                         validation_data=(validX_fw, validY_fw),
+                                                         validation_data=(validX, [validY_1, validY_2]),
                                                          shuffle=True,
                                                          verbose=2)
 

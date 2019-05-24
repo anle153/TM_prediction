@@ -275,7 +275,8 @@ def create_offline_fwbw_lstm_data(data, input_shape, mon_ratio, eps):
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
     dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, 1))
+    dataY_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps - 2, 1))
+    dataY_2 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], 1))
 
     _data = np.copy(data)
 
@@ -290,13 +291,13 @@ def create_offline_fwbw_lstm_data(data, input_shape, mon_ratio, eps):
             dataX[i, :, 0] = _x
             dataX[i, :, 1] = _label
 
-            _y = data[(idx + 1):(idx + ntimesteps + 1), flow]
+            _y = data[(idx + 1):(idx + ntimesteps - 1), flow]
 
-            dataY[i] = np.array(_y).reshape((ntimesteps, 1))
-
+            dataY_1[i] = np.array(_y).reshape((ntimesteps, 1))
+            dataY_2[i] = data[idx + ntimesteps, flow]
             i += 1
 
-    return dataX, dataY
+    return dataX, dataY_1, dataY_2
 
 
 def add_trend_feature(arr, abs_values=False):

@@ -18,7 +18,7 @@ class fwbw_lstm_model(AbstractModel):
 
         input_tensor = Input(shape=self.input_shape, name='input')
 
-        fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor.output)
+        fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
 
         fw_drop_out = Dropout(self.drop_out)(fw_lstm_layer)
 
@@ -32,7 +32,7 @@ class fwbw_lstm_model(AbstractModel):
         # self.fw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
-                             return_sequences=True, go_backwards=True)(input_tensor.output)
+                             return_sequences=True, go_backwards=True)(input_tensor)
 
         bw_drop_out = Dropout(self.drop_out)(bw_lstm_layer)
 
@@ -58,7 +58,7 @@ class fwbw_lstm_model(AbstractModel):
         # fc_3 = Dense(24, name='correct_data')(fc_2)
 
         input_tensor_flatten = tf.keras.layers.Reshape((self.input_shape[0] * self.input_shape[1],),
-                                                       input_shape=self.input_shape)(input_tensor.output)
+                                                       input_shape=self.input_shape)(input_tensor)
         _input = tf.concat(inputs=[input_tensor_flatten.output, fw_outputs, bw_outputs], axis=1)
 
         x = Dense(64,)(_input)

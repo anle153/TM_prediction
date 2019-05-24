@@ -29,7 +29,9 @@ class fwbw_lstm_model(AbstractModel):
 
         fw_out = Flatten()(fw_outputs)
         fw_out = Dense(256, )(fw_out)
+        fw_out = Dropout(0.2)(fw_out)
         fw_out = Dense(128, )(fw_out)
+        fw_out = Dropout(0.2)(fw_out)
         fw_out = Dense(64, )(fw_out)
         fw_out = Dense(1, )(fw_out)
 

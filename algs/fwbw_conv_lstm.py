@@ -55,11 +55,8 @@ def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matr
     return w
 
 
-def set_measured_flow_3d(rnn_input_labels, forward_pred, backward_pred):
-    rnn_input = rnn_input_labels[:, :, :, 0]
-    measured_matrix = rnn_input_labels[:, :, :, 1]
-
-    rl_forward, rl_backward = calculate_forward_backward_loss_3d(measured_block=measured_matrix,
+def set_measured_flow_3d(rnn_input, labels, forward_pred, backward_pred):
+    rl_forward, rl_backward = calculate_forward_backward_loss_3d(measured_block=labels,
                                                                  pred_forward=forward_pred,
                                                                  pred_backward=backward_pred,
                                                                  rnn_input=rnn_input)
@@ -67,7 +64,7 @@ def set_measured_flow_3d(rnn_input_labels, forward_pred, backward_pred):
     w = calculate_flows_weights_3d(rnn_input=rnn_input,
                                    rl_forward=rl_forward,
                                    rl_backward=rl_backward,
-                                   measured_matrix=measured_matrix)
+                                   measured_matrix=labels)
 
     sampling = np.zeros(shape=(rnn_input.shape[1] * rnn_input.shape[2]))
     m = int(Config.FWBW_CONV_LSTM_MON_RAIO * rnn_input.shape[1] * rnn_input.shape[2])
@@ -80,7 +77,7 @@ def set_measured_flow_3d(rnn_input_labels, forward_pred, backward_pred):
 
     sampling = np.reshape(sampling, newshape=(rnn_input.shape[1], rnn_input.shape[2]))
 
-    return sampling.astype(bool)
+    return sampling
 
 
 def calculate_updated_weights_3d(measured_block, forward_loss, backward_loss):
@@ -281,28 +278,14 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
             labels[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] + \
             rnn_pred_value
 
-        # if ts == 20:
-        #     plot_test_data('After_update', raw_data[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1],
-        #                    predictX[:-2],
-        #                    predictX_backward[2:],
-        #                    tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-        #
-        # after_ = np.copy(tm_labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
-        # _err_2 = error_ratio(y_pred=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
-        #                      y_true=raw_data[ts:ts + Config.FWBW_CONV_LSTM_STEP],
-        #                      measured_matrix=labels[ts: ts+ Config.FWBW_CONV_LSTM_STEP])
-        #
-        # print('Err_1: {}  - Err_2: {}'.format(_err_1, _err_2))
-        # if np.array_equal(before_, after_):
-        #     print('No thing changes!')
-
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                         p=(Config.FWBW_CONV_LSTM_MON_RAIO, 1 - Config.FWBW_CONV_LSTM_MON_RAIO))
-        # else:
-        #     sampling = set_measured_flow_3d(rnn_input_labels=rnn_input,
-        #                                     forward_pred=predictX,
-        #                                     backward_pred=predictX_backward)
+        else:
+            sampling = set_measured_flow_3d(rnn_input=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+                                            labels=labels[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+                                            forward_pred=predictX,
+                                            backward_pred=predictX_backward)
 
         # Selecting next monitored flows randomly
         inv_sampling = 1 - sampling

@@ -53,9 +53,9 @@ class fwbw_lstm_model(AbstractModel):
         x = Dense(64, )(x)
         outputs = Dense(24, name='corr_data')(x)
 
-        self.model = Model(inputs=input_tensor, outputs=[outputs, fw_out], name='fwbw-lstm')
+        self.model = Model(inputs=input_tensor, outputs=[fw_out, outputs], name='fwbw-lstm')
 
-        self.model.compile(loss={'corr_data': 'mse', 'pred_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
+        self.model.compile(loss={'pred_data': 'mse', 'corr_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self.saving_path + '/model.png')

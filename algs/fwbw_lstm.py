@@ -277,7 +277,7 @@ def train_fwbw_lstm(data, experiment):
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
             training_fw_history = fwbw_net.model.fit(x=trainX,
-                                                     y=[trainY_1, trainY_2],
+                                                     y={'pred_data': trainY_1, 'corr_data': trainY_2},
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,

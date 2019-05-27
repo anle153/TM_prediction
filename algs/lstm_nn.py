@@ -165,7 +165,9 @@ def train_lstm_nn(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         lstm_net = build_model(input_shape)
 
-    if not Config.LSTM_VALID_TEST:
+    if not Config.LSTM_VALID_TEST or \
+            not os.path.isfile(
+                lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_BEST_CHECKPOINT)):
         if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
             lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
 

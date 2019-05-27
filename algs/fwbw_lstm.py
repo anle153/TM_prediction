@@ -350,7 +350,7 @@ def test_fwbw_lstm(data, experiment):
     input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fwbw_net = load_trained_models(input_shape, Config.FW_LSTM_BEST_CHECKPOINT)
+        fwbw_net = load_trained_models(input_shape, Config.FWBW_LSTM_BEST_CHECKPOINT)
 
     run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_LSTM_STEP:],
              fwbw_net, params, scalers)

@@ -18,6 +18,9 @@ class fwbw_lstm_model(AbstractModel):
 
         input_tensor = Input(shape=self.input_shape, name='input')
 
+        fw_out = LSTM(self.hidden, input_shape=self.input_shape)(input_tensor)
+        fw_out = Dense(1, name='pred_data')(fw_out)
+
         fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
 
         fw_drop_out = Dropout(self.drop_out)(fw_lstm_layer)
@@ -26,11 +29,6 @@ class fwbw_lstm_model(AbstractModel):
         fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
         fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
         fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
-
-        fw_out = Flatten()(fw_outputs)
-        fw_out = Dense(64, )(fw_out)
-        fw_out = Dense(32, )(fw_out)
-        fw_out = Dense(1, name='pred_data')(fw_out)
 
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)

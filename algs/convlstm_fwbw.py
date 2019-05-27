@@ -292,9 +292,9 @@ def train_fwbw_convlstm(data, experiment):
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
-    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
-                                                                                 valid_data2d,
-                                                                                 test_data2d)
+    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(np.copy(train_data2d),
+                                                                                 np.copy(valid_data2d),
+                                                                                 np.copy(test_data2d))
 
     train_data_normalized = np.reshape(np.copy(train_data_normalized2d), newshape=(train_data_normalized2d.shape[0],
                                                                                    Config.FWBW_CONVLSTM_WIDE,
@@ -320,13 +320,13 @@ def train_fwbw_convlstm(data, experiment):
         print('|--- Compile model. Saving path %s --- ' % net.saving_path)
         # -------------------------------- Create offline training and validating dataset ------------------------------
 
-        print('|--- Create offline train set for forward net!')
+        print('|--- Create offline train set!')
 
         trainX, trainY_1, trainY_2 = create_offline_fwbw_convlstm_data(train_data_normalized,
                                                                        input_shape, Config.FWBW_CONVLSTM_MON_RAIO,
                                                                        train_data_normalized.mean(),
                                                                        2)
-        print('|--- Create offline valid set for forward net!')
+        print('|--- Create offline valid set!')
 
         validX, validY_1, validY_2 = create_offline_fwbw_convlstm_data(valid_data_normalized,
                                                                        input_shape, Config.FWBW_CONVLSTM_MON_RAIO,

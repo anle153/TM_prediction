@@ -35,6 +35,10 @@ def train():
         from algs.fwbw_lstm import train_fwbw_lstm
         experiment = Experiment(project_name='tmp-fwbw-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         train_fwbw_lstm(data=data, experiment=experiment)
+    elif Config.ALG == Config.ALGS[7]:
+        from algs.convlstm_fwbw import train_fwbw_convlstm
+        experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        train_fwbw_convlstm(data=data, experiment=experiment)
     else:
         raise ValueError('Unkown alg!')
 
@@ -60,6 +64,10 @@ def test():
     elif Config.ALG == Config.ALGS[4]:
         from algs.holt_winter import test_holt_winter
         test_holt_winter(data=data)
+    elif Config.ALG == Config.ALGS[7]:
+        from algs.convlstm_fwbw import test_fwbw_convlstm
+        experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        test_fwbw_convlstm(data=data, experiment=experiment)
     # elif Config.ALG == Config.ALGS[5]:
     #     from algs.boosting_based import run_test
     #     test_holt_winter(data=data)

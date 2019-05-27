@@ -38,7 +38,7 @@ FWBW_LSTM_IMS_STEP = 12
 FWBW_LSTM_MON_RAIO = 0.30
 
 FWBW_LSTM_BEST_CHECKPOINT = 72
-FWBW_LSTM_TESTING_TIME = 1
+FWBW_LSTM_TESTING_TIME = 3
 
 FWBW_LSTM_IMS = False
 
@@ -73,6 +73,34 @@ FWBW_CONV_LSTM_RANDOM_ACTION = True
 FWBW_CONV_LSTM_HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]
 
 FWBW_IMS = False
+
+# ----------------------------------------------
+# ------------- FWBW_CONVLSTM Config ----------
+FWBW_CONVLSTM_N_EPOCH = 150
+FWBW_CONVLSTM_BATCH_SIZE = 256
+
+FWBW_CONVLSTM_LAYERS = 2
+FWBW_CONVLSTM_FILTERS = [2, 4]
+FWBW_CONVLSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
+FWBW_CONVLSTM_STRIDES = [[1, 1], [1, 1]]
+FWBW_CONVLSTM_DROPOUTS = [0.25, 0.25]
+FWBW_CONVLSTM_RNN_DROPOUTS = [0.25, 0.25]
+
+FWBW_CONVLSTM_WIDE = 12
+FWBW_CONVLSTM_HIGH = 12
+FWBW_CONVLSTM_CHANNEL = 2
+
+FWBW_CONVLSTM_MON_RAIO = 0.30
+
+FWBW_CONVLSTM_IMS_STEP = 4
+FWBW_CONVLSTM_STEP = 26
+
+FWBW_CONVLSTM_TESTING_TIME = 10
+FWBW_CONVLSTM_BEST_CHECKPOINT = 108
+FWBW_CONVLSTM_RANDOM_ACTION = True
+FWBW_CONVLSTM_HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]
+
+FWBW_CONVLSTM_IMS = False
 
 # ----------------------------------------------
 
@@ -151,13 +179,13 @@ XGB_FEATURES = 19
 # ----------- RUNNING Config ----------------------
 
 RUN_MODES = ['train', 'test', 'plot']
-ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm']
+ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm', 'fwbw-convlstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
 
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[6]
+ALG = ALGS[7]
 GPU = 1
 SCALER = SCALERS[5]
 
@@ -189,6 +217,19 @@ if ALG == ALGS[0]:
         FWBW_CONV_LSTM_LAYERS,
         filters, kernel,
         FWBW_CONV_LSTM_BATCH_SIZE)
+elif ALG == ALGS[7]:
+    filters = ''
+    kernel = ''
+    for layer in range(FWBW_CONVLSTM_LAYERS):
+        filters = filters + '{:02d}_'.format(FWBW_CONVLSTM_FILTERS[layer])
+        kernel = kernel + '{:02d}_'.format(FWBW_CONVLSTM_KERNEL_SIZE[layer][0])
+
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{}kernel_{}batch_{:03d}'.format(
+        int(FWBW_CONVLSTM_MON_RAIO * 100),
+        FWBW_CONVLSTM_STEP,
+        FWBW_CONVLSTM_LAYERS,
+        filters, kernel,
+        FWBW_CONVLSTM_BATCH_SIZE)
 elif ALG == ALGS[1]:
     filters = ''
     kernel = ''
@@ -239,6 +280,26 @@ def set_comet_params_fwbw_conv_lstm():
         params['layer{}_stride'.format(i + 1)] = FWBW_CONV_LSTM_STRIDES[i]
         params['layer{}_dropout'.format(i + 1)] = FWBW_CONV_LSTM_DROPOUTS[i]
         params['layer{}_rnn_dropout'.format(i + 1)] = FWBW_CONV_LSTM_RNN_DROPOUTS[i]
+
+    return params
+
+
+def set_comet_params_fwbw_convlstm():
+    params = {
+        'cnn_layers': FWBW_CONVLSTM_LAYERS,
+        'epochs': FWBW_CONVLSTM_N_EPOCH,
+        'batch_size': FWBW_CONVLSTM_BATCH_SIZE,
+        'mon_ratio': FWBW_CONVLSTM_MON_RAIO,
+        'lstm_step': FWBW_CONVLSTM_STEP,
+        'random_action': FWBW_CONVLSTM_RANDOM_ACTION
+    }
+
+    for i in range(FWBW_CONVLSTM_LAYERS):
+        params['layer{}_filter'.format(i + 1)] = FWBW_CONVLSTM_FILTERS[i]
+        params['layer{}_kernel_size'.format(i + 1)] = FWBW_CONVLSTM_KERNEL_SIZE[i]
+        params['layer{}_stride'.format(i + 1)] = FWBW_CONVLSTM_STRIDES[i]
+        params['layer{}_dropout'.format(i + 1)] = FWBW_CONVLSTM_DROPOUTS[i]
+        params['layer{}_rnn_dropout'.format(i + 1)] = FWBW_CONVLSTM_RNN_DROPOUTS[i]
 
     return params
 

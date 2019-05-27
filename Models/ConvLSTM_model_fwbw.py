@@ -1,8 +1,9 @@
 import os
 
-import tensorflow as tf
-from keras.layers import Input, ConvLSTM2D, BatchNormalization, TimeDistributed, Flatten, Dense
+from keras.layers import Input, ConvLSTM2D, BatchNormalization, TimeDistributed, Flatten, Dense, Dropout, Concatenate, \
+    Reshape
 from keras.models import Model
+from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -68,9 +69,12 @@ class ConvLSTM_FWBW(AbstractModel):
         fw_second_Dense = TimeDistributed(Dense(256, ))(fw_first_Dense)
         fw_outputs = TimeDistributed(Dense(144, ))(fw_second_Dense)
 
-        self.fw_model = Model(inputs=input, outputs=fw_outputs, name='Model')
-
-        self.fw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+        fw_outs = Flatten()(fw_outputs)
+        fw_outs = Dense(512, )(fw_outs)
+        fw_outs = Dropout(0.2)(fw_outs)
+        fw_outs = Dense(256, )(fw_outs)
+        fw_outs = Dropout(0.2)(fw_outs)
+        fw_outs = Dense(144, name='pred_data')(fw_outs)
 
         # ------------------------------- bw net -----------------------------------------------------------------------
         bw_lstm_layer1 = ConvLSTM2D(filters=self.a_filters[0],
@@ -102,16 +106,58 @@ class ConvLSTM_FWBW(AbstractModel):
         bw_second_Dense = TimeDistributed(Dense(256, ))(bw_first_Dense)
         bw_outputs = TimeDistributed(Dense(144, ))(bw_second_Dense)
 
-        self.bw_model = Model(inputs=input, outputs=bw_outputs, name='Model')
-
-        self.bw_model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
         # ------------------------------------ Data correction ---------------------------------------------------------
-        _fw_output = fw_outputs[0:-2]
-        _bw_output = bw_outputs[2:]
 
-        _input = input[1:-1]
+        fw_outputs_flatten = Flatten()(fw_outputs)
+        bw_outputs_flatten = Flatten()(bw_outputs)
+        input_flatten = Flatten()(input)
 
-        data_corr_input = tf.concat([_fw_output, _bw_output, _input], axis=3)
+        input_concate = Concatenate(axis=1)([input_flatten, fw_outputs_flatten, bw_outputs_flatten])
 
-        data_corr_input = Input(shape=(self.n_timsteps - 2, self.wide, self.high, 3))
+        corr_data = Dense(512, )(input_concate)
+        corr_data = Dense(256, )(corr_data)
+        corr_data = Dense(self.wide * self.high * (self.n_timsteps - 2), )(corr_data)
+
+        corr_data = Reshape((self.n_timsteps - 2, self.wide * self.high), name='corr_data')(corr_data)
+
+        self.model = Model(inputs=input, outputs=[fw_outs, corr_data], name='fwbw-conv-lstm')
+
+        self.model.compile(loss={'pred_data': 'mse', 'corr_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
+
+    def plot_models(self):
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)
+
+    def plot_training_history(self, model_history):
+        import matplotlib.pyplot as plt
+        plt.plot(model_history.history['pred_data_loss'], label='pred_data_loss')
+        plt.plot(model_history.history['val_pred_data_loss'], label='val_pred_data_loss')
+        plt.legend()
+        plt.savefig(self.saving_path + '[pred_data_los]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.close()
+
+        plt.plot(model_history.history['loss'], label='loss')
+        plt.plot(model_history.history['val_loss'], label='val_loss')
+        plt.savefig(self.saving_path + '[loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['corr_data_loss'], label='corr_data_loss')
+        plt.plot(model_history.history['val_corr_data_loss'], label='val_corr_data_loss')
+        plt.savefig(self.saving_path + '[corr_data_loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['val_pred_data_loss'], label='val_pred_data_loss')
+        plt.legend()
+        plt.savefig(self.saving_path + '[val_pred_data_los]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.close()
+
+        plt.plot(model_history.history['val_loss'], label='val_loss')
+        plt.savefig(self.saving_path + '[val_loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['val_corr_data_loss'], label='val_corr_data_loss')
+        plt.savefig(self.saving_path + '[val_corr_data_loss]{}-{}.png'.format(self.alg_name, self.tag))
+        plt.legend()
+        plt.close()

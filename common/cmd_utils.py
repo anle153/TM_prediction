@@ -34,6 +34,38 @@ def print_fwbw_conv_lstm_info():
         raise Exception('Unknown RUN_MODE!')
 
 
+def print_fwbw_convlstm_info():
+    print('|--- MON_RATIO:\t{}'.format(Config.FWBW_CONVLSTM_MON_RAIO))
+    print('            -----------            ')
+
+    print('|--- CONV_LAYERS:\t{}'.format(Config.FWBW_CONVLSTM_LAYERS))
+    print('|--- FILTERS:\t{}'.format(Config.FWBW_CONVLSTM_FILTERS))
+    print('|--- KERNEL_SIZE:\t{}'.format(Config.FWBW_CONVLSTM_KERNEL_SIZE))
+    print('|--- STRIDES:\t{}'.format(Config.FWBW_CONVLSTM_STRIDES))
+    print('|--- DROPOUTS:\t{}'.format(Config.FWBW_CONVLSTM_DROPOUTS))
+    print('|--- RNN_DROPOUTS:\t{}'.format(Config.FWBW_CONVLSTM_RNN_DROPOUTS))
+    print('|--- WIDE:\t{}'.format(Config.FWBW_CONVLSTM_WIDE))
+    print('|--- HIGH:\t{}'.format(Config.FWBW_CONVLSTM_HIGH))
+    print('|--- CHANNEL:\t{}'.format(Config.FWBW_CONVLSTM_CHANNEL))
+    print('            -----------            ')
+
+    print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONVLSTM_RANDOM_ACTION))
+
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+        print('|--- N_EPOCH:\t{}'.format(Config.FWBW_CONVLSTM_N_EPOCH))
+        print('|--- BATCH_SIZE:\t{}'.format(Config.FWBW_CONVLSTM_BATCH_SIZE))
+        print('|--- LSTM_STEP:\t{}'.format(Config.FWBW_CONVLSTM_STEP))
+        if Config.FWBW_CONVLSTM_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.FWBW_CONVLSTM_IMS_STEP))
+    elif Config.RUN_MODE == Config.RUN_MODES[1]:
+        print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_CONVLSTM_TESTING_TIME))
+        print('|--- BEST_CHECKPOINT:\t{}'.format(Config.FWBW_CONVLSTM_BEST_CHECKPOINT))
+        if not Config.FWBW_CONVLSTM_RANDOM_ACTION:
+            print('|--- HYPERPARAMS:\t{}'.format(Config.FWBW_CONVLSTM_HYPERPARAMS))
+    else:
+        raise Exception('Unknown RUN_MODE!')
+
+
 def print_conv_lstm_info():
     print('|--- MON_RATIO:\t{}'.format(Config.CONV_LSTM_MON_RAIO))
     print('|--- DATA_GENERATE_TIME:\t{}'.format(Config.CONV_LSTM_DATA_GENERATE_TIME))
@@ -195,6 +227,8 @@ def print_info():
         print_xgb_info()
     elif Config.ALG == Config.ALGS[6]:
         print_fwbw_lstm_info()
+    elif Config.ALG == Config.ALGS[7]:
+        print_fwbw_convlstm_info()
     else:
         raise ValueError('Unkown alg!')
     print('|--- RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))

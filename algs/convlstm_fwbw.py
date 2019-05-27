@@ -316,8 +316,8 @@ def train_fwbw_convlstm(data, experiment):
     # --------------------------------------------Training fw model-------------------------------------------------
 
     if os.path.isfile(path=net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONVLSTM_N_EPOCH)):
-        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FWBW_CONVLSTM_N_EPOCH))
-        net.load_model_from_check_point(_from_epoch=Config.FWBW_CONVLSTM_N_EPOCH)
+        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FWBW_CONVLSTM_BEST_CHECKPOINT))
+        net.load_model_from_check_point(_from_epoch=Config.FWBW_CONVLSTM_BEST_CHECKPOINT)
     else:
         print('|--- Compile model. Saving path %s --- ' % net.saving_path)
         # -------------------------------- Create offline training and validating dataset ------------------------------

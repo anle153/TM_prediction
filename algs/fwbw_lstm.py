@@ -137,9 +137,11 @@ def predict_fwbw_lstm(initial_data, test_data, model):
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+    tm_pred_no_updated = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
     tm_pred[0:initial_data.shape[0]] = initial_data
     labels[0:initial_data.shape[0]] = np.ones(shape=initial_data.shape)
+    tm_pred_no_updated[0:initial_data.shape[0]] = initial_data
 
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
 
@@ -183,6 +185,16 @@ def predict_fwbw_lstm(initial_data, test_data, model):
         # Merge value from pred_input and measured_input
         new_input = pred_input + measured_input
         tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
+        tm_pred_no_updated[ts + Config.FWBW_LSTM_STEP] = new_input
+
+    _err_1 = error_ratio(y_pred=tm_pred[Config.FWBW_CONVLSTM_STEP:],
+                         y_true=raw_data[Config.FWBW_CONVLSTM_STEP:],
+                         measured_matrix=labels[Config.FWBW_CONVLSTM_STEP:])
+    _err_2 = error_ratio(y_pred=tm_pred_no_updated[Config.FWBW_CONVLSTM_STEP:],
+                         y_true=raw_data[Config.FWBW_CONVLSTM_STEP:],
+                         measured_matrix=labels[Config.FWBW_CONVLSTM_STEP:])
+
+    print('Err_w_updated: {} -- Err_wo_updated: {}'.format(_err_1, _err_2))
 
     return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm
 

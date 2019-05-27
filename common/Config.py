@@ -1,6 +1,4 @@
 
-# ----------------------------------------------
-
 # ----------------- LSTM Config ---------------
 LSTM_N_EPOCH = 100
 LSTM_BATCH_SIZE = 256
@@ -17,7 +15,7 @@ LSTM_IMS_STEP = 12
 LSTM_MON_RAIO = 0.30
 
 LSTM_BEST_CHECKPOINT = 85
-LSTM_TESTING_TIME = 50
+LSTM_TESTING_TIME = 10
 
 LSTM_IMS = False
 LSTM_VALID_TEST = True
@@ -185,7 +183,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[6]
+ALG = ALGS[2]
 GPU = 1
 SCALER = SCALERS[5]
 

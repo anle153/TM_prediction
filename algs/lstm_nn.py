@@ -172,14 +172,14 @@ def train_lstm_nn(data, experiment):
         else:
             print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
             from_epoch = lstm_net.load_model_from_check_point()
-            # -------------------------------- Create offline training and validating dataset ------------------------------
+            # -------------------------------- Create offline training and validating dataset --------------------------
             print('|--- Create offline train set for lstm-nn!')
             trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
-                                                         train_data_normalized2d.mean())
+                                                         train_data_normalized2d.std())
             print('|--- Create offline valid set for lstm-nn!')
             validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
-                                                         train_data_normalized2d.mean())
-            # --------------------------------------------------------------------------------------------------------------
+                                                         train_data_normalized2d.std())
+            # ----------------------------------------------------------------------------------------------------------
 
             if from_epoch > 0:
                 print('|--- Continue training.')
@@ -288,85 +288,72 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
     ims_test_set = ims_tm_test_data(test_data=test_data2d)
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
-    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
-                test_data2d)
-
-    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
-                test_data_normalized2d)
+    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+    #     np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
+    #             test_data2d)
+    #
+    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
+    #     np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
+    #             test_data_normalized2d)
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
                                                                       alg_name, tag, Config.SCALER)):
         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
-    with experiment.test():
+    for i in range(Config.LSTM_TESTING_TIME):
+        print('|--- Running time: {}'.format(i))
+        pred_tm2d, measured_matrix2d, ims_tm2d = predict_lstm_nn(init_data=init_data2d,
+                                                                 test_data=test_data_normalized2d,
+                                                                 model=lstm_net.model)
 
-        for i in range(Config.LSTM_TESTING_TIME):
-            print('|--- Running time: {}'.format(i))
-            pred_tm2d, measured_matrix2d, ims_tm2d = predict_lstm_nn(init_data=init_data2d,
-                                                                     test_data=test_data_normalized2d,
-                                                                     model=lstm_net.model)
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                       Config.SCALER, i),
+        #         pred_tm2d)
 
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-                                                                                  Config.SCALER, i),
-                    pred_tm2d)
+        pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
-            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
+        err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+        r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
-            err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-            r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-            rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
+        if Config.LSTM_IMS:
+            ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
-            if Config.LSTM_IMS:
-                ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
+            err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+                                       y_true=ims_test_set,
+                                       measured_matrix=measured_matrix_ims))
 
-                err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                           y_true=ims_test_set,
-                                           measured_matrix=measured_matrix_ims))
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_set / 1000000, y_pred=ims_tm_invert2d / 1000000))
 
-                r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
-                rmse_ims.append(calculate_rmse(y_true=ims_test_set / 1000000, y_pred=ims_tm_invert2d / 1000000))
+        else:
+            err_ims.append(0)
+            r2_score_ims.append(0)
+            rmse_ims.append(0)
 
-            else:
-                err_ims.append(0)
-                r2_score_ims.append(0)
-                rmse_ims.append(0)
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
+                                                          r2_score_ims[i]))
 
-            print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-            print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
-                                                              err_ims[i], rmse_ims[i],
-                                                              r2_score_ims[i]))
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                Config.SCALER, i),
+        #         pred_tm_invert2d)
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                   Config.SCALER, i),
+        #         measured_matrix2d)
 
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-                                                                           Config.SCALER, i),
-                    pred_tm_invert2d)
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-                                                                              Config.SCALER, i),
-                    measured_matrix2d)
+    results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
+    results_summary['err'] = err
+    results_summary['r2'] = r2_score
+    results_summary['rmse'] = rmse
+    results_summary['err_ims'] = err_ims
+    results_summary['r2_ims'] = r2_score_ims
+    results_summary['rmse_ims'] = rmse_ims
 
-        results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
-        results_summary['err'] = err
-        results_summary['r2'] = r2_score
-        results_summary['rmse'] = rmse
-        results_summary['err_ims'] = err_ims
-        results_summary['r2_ims'] = r2_score_ims
-        results_summary['rmse_ims'] = rmse_ims
-
-        results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
-                                                                                      alg_name, tag, Config.SCALER),
-                               index=False)
-        metrics = {
-            'err': results_summary['err'],
-            'rmse': results_summary['rmse'],
-            'r2': results_summary['r2'],
-            'err_ims': results_summary['err_ims'],
-            'rmse_ims': results_summary['rmse_ims'],
-            'r2_ims': results_summary['rmse_ims'],
-        }
-
-        # experiment.log_metrics(metrics)
-        # experiment.log_parameters(params)
-        print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-                                                               np.mean(np.array(rmse)),
-                                                               np.mean(np.array(r2_score))))
+    results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
+                                                                                  alg_name, tag, Config.SCALER),
+                           index=False)
+    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                           np.mean(np.array(rmse)),
+                                                           np.mean(np.array(r2_score))))

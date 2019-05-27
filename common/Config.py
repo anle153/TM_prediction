@@ -76,7 +76,7 @@ FWBW_IMS = False
 
 # ----------------------------------------------
 # ------------- FWBW_CONVLSTM Config ----------
-FWBW_CONVLSTM_N_EPOCH = 150
+FWBW_CONVLSTM_N_EPOCH = 20
 FWBW_CONVLSTM_BATCH_SIZE = 256
 
 FWBW_CONVLSTM_LAYERS = 2

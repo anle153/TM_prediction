@@ -1,8 +1,8 @@
 
 # ----------------- LSTM Config ---------------
 LSTM_N_EPOCH = 100
-LSTM_BATCH_SIZE = 256
-LSTM_HIDDEN_UNIT = 128
+LSTM_BATCH_SIZE = 512
+LSTM_HIDDEN_UNIT = 64
 LSTM_DROPOUT = 0.5
 
 LSTM_DEEP = False

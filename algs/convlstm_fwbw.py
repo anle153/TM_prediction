@@ -327,7 +327,7 @@ def train_fwbw_convlstm(data, experiment):
         trainX, trainY_1, trainY_2 = create_offline_fwbw_convlstm_data(train_data_normalized,
                                                                        input_shape, Config.FWBW_CONVLSTM_MON_RAIO,
                                                                        train_data_normalized.mean(),
-                                                                       2)
+                                                                       4)
         print('|--- Create offline valid set!')
 
         validX, validY_1, validY_2 = create_offline_fwbw_convlstm_data(valid_data_normalized,

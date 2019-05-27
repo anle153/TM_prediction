@@ -37,7 +37,7 @@ FWBW_LSTM_IMS_STEP = 12
 
 FWBW_LSTM_MON_RAIO = 0.30
 
-FWBW_LSTM_BEST_CHECKPOINT = 72
+FWBW_LSTM_BEST_CHECKPOINT = 21
 FWBW_LSTM_TESTING_TIME = 3
 
 FWBW_LSTM_IMS = False
@@ -185,7 +185,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[7]
+ALG = ALGS[6]
 GPU = 1
 SCALER = SCALERS[5]
 

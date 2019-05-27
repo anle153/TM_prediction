@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
+from tqdm import tqdm
 
 from Models.ConvLSTM_model_fwbw import ConvLSTM_FWBW
 from common import Config
@@ -162,7 +163,7 @@ def predict_fwbw_convlstm(initial_data, test_data, model):
     raw_data[0:initial_data.shape[0]] = initial_data
     raw_data[initial_data.shape[0]:] = test_data
 
-    for ts in range(test_data.shape[0]):
+    for ts in tqdm(range(test_data.shape[0])):
 
         # if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONVLSTM_IMS_STEP):
         #     ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONVLSTM_STEP, :, :, :],

@@ -264,12 +264,12 @@ def train_fwbw_lstm(data, experiment):
 
         trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm_data(train_data_normalized2d,
                                                                    input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                                   train_data_normalized2d.mean())
+                                                                   train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
         validX, validY_1, validY_2 = create_offline_fwbw_lstm_data(valid_data_normalized2d,
                                                                    input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                                   train_data_normalized2d.mean())
+                                                                   train_data_normalized2d.std())
 
         # Load model check point
         from_epoch = fwbw_net.load_model_from_check_point()

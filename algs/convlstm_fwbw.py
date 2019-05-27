@@ -94,52 +94,52 @@ def calculate_forward_backward_loss_3d(measured_block, pred_forward, pred_backwa
     return rl_forward, rl_backward
 
 
-def ims_tm_prediction(init_data_labels, forward_model, backward_model):
-    multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.FWBW_CONVLSTM_IMS_STEP,
-                                     init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
-
-    multi_steps_tm[0:init_data_labels.shape[0], :, :, :] = init_data_labels
-
-    for ts_ahead in range(Config.FWBW_CONVLSTM_IMS_STEP):
-        rnn_input = multi_steps_tm[-Config.FWBW_CONVLSTM_STEP:, :, :, :]  # shape(timesteps, od, od , 2)
-
-        rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
-
-        rnn_input_backward = np.flip(rnn_input, axis=0)
-        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
-
-        # Prediction results from forward network
-        predictX = forward_model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
-
-        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
-        predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
-
-        # Prediction results from backward network
-        predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
-
-        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
-
-        # Flipping the backward prediction
-        predictX_backward = np.flip(predictX_backward, axis=0)
-
-        # Correcting the imprecise input data
-        updating_historical_data_3d(tm_labels=multi_steps_tm, pred_forward=predictX, pred_backward=predictX_backward,
-                                    rnn_input_labels=rnn_input, ts=ts_ahead)
-
-        predict_tm = predictX[-1, :, :]
-
-        sampling = np.zeros(shape=(Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH, 1))
-
-        # Calculating the true value for the TM
-        new_input = predict_tm
-
-        # Concaternating the new tm to the final results
-        # Shape = (12, 12, 2)
-        new_input = np.concatenate([np.expand_dims(new_input, axis=2), sampling], axis=2)
-        multi_steps_tm[ts_ahead + Config.FWBW_CONVLSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
-
-    return multi_steps_tm[-1, :, :, 0]
+# def ims_tm_prediction(init_data_labels, forward_model, backward_model):
+#     multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.FWBW_CONVLSTM_IMS_STEP,
+#                                      init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
+#
+#     multi_steps_tm[0:init_data_labels.shape[0], :, :, :] = init_data_labels
+#
+#     for ts_ahead in range(Config.FWBW_CONVLSTM_IMS_STEP):
+#         rnn_input = multi_steps_tm[-Config.FWBW_CONVLSTM_STEP:, :, :, :]  # shape(timesteps, od, od , 2)
+#
+#         rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
+#
+#         rnn_input_backward = np.flip(rnn_input, axis=0)
+#         rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
+#
+#         # Prediction results from forward network
+#         predictX = forward_model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
+#
+#         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
+#         predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
+#
+#         # Prediction results from backward network
+#         predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
+#
+#         predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
+#         predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
+#
+#         # Flipping the backward prediction
+#         predictX_backward = np.flip(predictX_backward, axis=0)
+#
+#         # Correcting the imprecise input data
+#         updating_historical_data_3d(tm_labels=multi_steps_tm, pred_forward=predictX, pred_backward=predictX_backward,
+#                                     rnn_input_labels=rnn_input, ts=ts_ahead)
+#
+#         predict_tm = predictX[-1, :, :]
+#
+#         sampling = np.zeros(shape=(Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH, 1))
+#
+#         # Calculating the true value for the TM
+#         new_input = predict_tm
+#
+#         # Concaternating the new tm to the final results
+#         # Shape = (12, 12, 2)
+#         new_input = np.concatenate([np.expand_dims(new_input, axis=2), sampling], axis=2)
+#         multi_steps_tm[ts_ahead + Config.FWBW_CONVLSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
+#
+#     return multi_steps_tm[-1, :, :, 0]
 
 
 def predict_fwbw_convlstm(initial_data, test_data, model):
@@ -164,12 +164,13 @@ def predict_fwbw_convlstm(initial_data, test_data, model):
 
     for ts in range(test_data.shape[0]):
 
-        if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONVLSTM_IMS_STEP):
-            ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONVLSTM_STEP, :, :, :],
-                                           forward_model=forward_model,
-                                           backward_model=backward_model)
+        # if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONVLSTM_IMS_STEP):
+        #     ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONVLSTM_STEP, :, :, :],
+        #                                    forward_model=forward_model,
+        #                                    backward_model=backward_model)
         rnn_input = np.zeros(
-            shape=(Config.FWBW_CONVLSTM_STEP, Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH, 2))
+            shape=(Config.FWBW_CONVLSTM_STEP,
+                   Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH, Config.FWBW_CONVLSTM_CHANNEL))
 
         rnn_input[:, :, :, 0] = tm_labels[ts:(ts + Config.FWBW_CONVLSTM_STEP)]
         rnn_input[:, :, :, 1] = labels[ts:(ts + Config.FWBW_CONVLSTM_STEP)]
@@ -177,14 +178,10 @@ def predict_fwbw_convlstm(initial_data, test_data, model):
         rnn_input_backward = np.flip(np.copy(rnn_input), axis=0)
 
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)
-        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)
 
         # Prediction results from forward network
-        predictX = model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
-        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
-        predictX = np.reshape(predictX, newshape=(predictX.shape[0], test_data.shape[1], test_data.shape[2]))
-
-        predict_tm = np.copy(predictX[-1])
+        predict_tm, corr_data = model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
+        predict_tm = np.reshape(predict_tm, newshape=(predict_tm.shape[0], test_data.shape[1], test_data.shape[2]))
 
         # if ts == 20:
         #     plot_test_data('Before_update', raw_data[ts + 1:ts + Config.FWBW_CONVLSTM_STEP - 1],
@@ -200,19 +197,24 @@ def predict_fwbw_convlstm(initial_data, test_data, model):
 
         # Correcting the imprecise input data
 
+        corr_data = np.reshape(corr_data, (Config.FWBW_CONVLSTM_STEP - 2,
+                                           Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH,))
+        _labels = labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
+
+        corr_data = corr_data * (1 - _labels)
         tm_labels[(ts + 1):(ts + Config.FWBW_CONVLSTM_STEP - 1)] = \
             tm_labels[(ts + 1):(ts + Config.FWBW_CONVLSTM_STEP - 1)] * \
             labels[(ts + 1):(ts + Config.FWBW_CONVLSTM_STEP - 1)] + \
-            rnn_pred_value
+            corr_data
 
         if Config.FWBW_CONVLSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),
                                         p=(Config.FWBW_CONVLSTM_MON_RAIO, 1 - Config.FWBW_CONVLSTM_MON_RAIO))
-        else:
-            sampling = set_measured_flow_3d(rnn_input=tm_labels[ts:ts + Config.FWBW_CONVLSTM_STEP],
-                                            labels=labels[ts:ts + Config.FWBW_CONVLSTM_STEP],
-                                            forward_pred=predictX,
-                                            backward_pred=predictX_backward)
+        # else:
+        #     sampling = set_measured_flow_3d(rnn_input=tm_labels[ts:ts + Config.FWBW_CONVLSTM_STEP],
+        #                                     labels=labels[ts:ts + Config.FWBW_CONVLSTM_STEP],
+        #                                     forward_pred=predictX,
+        #                                     backward_pred=predictX_backward)
 
         # Selecting next monitored flows randomly
         inv_sampling = 1 - sampling

@@ -259,7 +259,7 @@ def build_model(input_shape):
                         saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     print(net.model.summary())
-    net.plot_models()
+    # net.plot_models()
 
     return net
 

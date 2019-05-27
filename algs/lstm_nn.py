@@ -210,8 +210,7 @@ def train_lstm_nn(data, experiment):
                 lstm_net.plot_training_history(training_history)
                 experiment.log_parameters(params)
     else:
-        lstm_net.model.load_weights(
-            lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(Config.LSTM_BEST_CHECKPOINT))
+        lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
 

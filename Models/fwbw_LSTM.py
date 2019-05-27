@@ -28,8 +28,8 @@ class fwbw_lstm_model(AbstractModel):
         fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
 
         fw_out = Flatten()(fw_outputs)
-        fw_out = Dense(16, )(fw_out)
-        fw_out = Dense(8, )(fw_out)
+        fw_out = Dense(64, )(fw_out)
+        fw_out = Dense(32, )(fw_out)
         fw_out = Dense(1, name='pred_data')(fw_out)
 
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,

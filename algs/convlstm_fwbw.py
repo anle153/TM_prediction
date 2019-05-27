@@ -198,10 +198,10 @@ def predict_fwbw_convlstm(initial_data, test_data, model):
         # Correcting the imprecise input data
 
         corr_data = np.reshape(corr_data, (Config.FWBW_CONVLSTM_STEP - 2,
-                                           Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH,))
-        _labels = labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
+                                           Config.FWBW_CONVLSTM_WIDE, Config.FWBW_CONVLSTM_HIGH))
+        _labels = 1 - labels[(ts + 1):(ts + Config.FWBW_LSTM_STEP - 1)]
 
-        corr_data = corr_data * (1 - _labels)
+        corr_data = corr_data * _labels
         tm_labels[(ts + 1):(ts + Config.FWBW_CONVLSTM_STEP - 1)] = \
             tm_labels[(ts + 1):(ts + Config.FWBW_CONVLSTM_STEP - 1)] * \
             labels[(ts + 1):(ts + Config.FWBW_CONVLSTM_STEP - 1)] + \

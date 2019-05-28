@@ -124,7 +124,7 @@ HOLT_WINTER_IMS = False
 
 # ----------- CONV_LSTM Config ----------------------
 
-CONV_LSTM_N_EPOCH = 300
+CONV_LSTM_N_EPOCH = 100
 CONV_LSTM_BATCH_SIZE = 256
 
 CONV_LSTM_IMS_STEP = 12

@@ -23,7 +23,7 @@ LSTM_VALID_TEST = True
 # ----------------- FWBW_LSTM Config ---------------
 FWBW_LSTM_N_EPOCH = 100
 FWBW_LSTM_BATCH_SIZE = 512
-FWBW_LSTM_HIDDEN_UNIT = 64
+FWBW_LSTM_HIDDEN_UNIT = 128
 FWBW_LSTM_DROPOUT = 0.5
 
 FWBW_LSTM_DEEP = False
@@ -169,7 +169,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
+ALG = ALGS[6]
 GPU = 0
 SCALER = SCALERS[5]
 

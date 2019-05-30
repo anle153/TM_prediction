@@ -445,13 +445,8 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_net, params,
                            '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
                            index=False)
 
-    metrics = {
-        'err': results_summary['err'],
-        'rmse': results_summary['rmse'],
-        'r2': results_summary['r2'],
-        'err_ims': results_summary['err_ims'],
-        'rmse_ims': results_summary['rmse_ims'],
-        'r2_ims': results_summary['rmse_ims'],
-    }
+    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                           np.mean(np.array(rmse)),
+                                                           np.mean(np.array(r2_score))))
 
     return

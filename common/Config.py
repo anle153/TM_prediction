@@ -125,7 +125,7 @@ HOLT_WINTER_IMS = False
 # ----------- CONV_LSTM Config ----------------------
 
 CONV_LSTM_N_EPOCH = 100
-CONV_LSTM_BATCH_SIZE = 256
+CONV_LSTM_BATCH_SIZE = 512
 
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 26
@@ -179,7 +179,7 @@ DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
 ALG = ALGS[1]
-GPU = 0
+GPU = 1
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

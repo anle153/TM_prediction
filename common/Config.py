@@ -35,7 +35,7 @@ FWBW_LSTM_IMS_STEP = 12
 
 FWBW_LSTM_MON_RAIO = 0.30
 
-FWBW_LSTM_BEST_CHECKPOINT = 10
+FWBW_LSTM_BEST_CHECKPOINT = 25
 FWBW_LSTM_TESTING_TIME = 10
 
 FWBW_LSTM_IMS = False
@@ -174,10 +174,11 @@ RUN_MODES = ['train', 'test', 'plot']
 ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm', 'fwbw-convlstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
 
+
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[1]
+ALG = ALGS[6]
 GPU = 1
 SCALER = SCALERS[5]
 

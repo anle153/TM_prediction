@@ -104,7 +104,7 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, da
     return dataX, dataY
 
 
-def create_offline_cnnstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
+def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
     if data_time is None:
         data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
 

@@ -124,13 +124,13 @@ HOLT_WINTER_IMS = False
 
 # ----------- CONV_LSTM Config ----------------------
 
-CONV_LSTM_N_EPOCH = 200
+CONV_LSTM_N_EPOCH = 300
 CONV_LSTM_BATCH_SIZE = 256
 
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 26
 
-CONV_LSTM_BEST_CHECKPOINT = 200
+CONV_LSTM_BEST_CHECKPOINT = 300
 CONV_LSTM_TESTING_TIME = 10
 
 CONV_LSTM_LAYERS = 2
@@ -178,7 +178,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[6]
+ALG = ALGS[1]
 GPU = 0
 SCALER = SCALERS[5]
 

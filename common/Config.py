@@ -162,7 +162,7 @@ CONV_LSTM_VALID_TEST = True
 # ----------- CONV_LSTM Config ----------------------
 
 CNNLSTM_N_EPOCH = 100
-CNNLSTM_BATCH_SIZE = 128
+CNNLSTM_BATCH_SIZE = 256
 
 CNNLSTM_IMS_STEP = 12
 CNNLSTM_STEP = 26
@@ -210,7 +210,7 @@ DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
 ALG = ALGS[8]
-GPU = 0
+GPU = 1
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

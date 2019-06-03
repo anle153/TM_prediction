@@ -35,19 +35,13 @@ class CnnLSTM(AbstractModel):
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
 
-        convolution_model = Sequential()
+        input_layer = Input(shape=input_shape, name='input')
 
-        convolution_model.add(
-            Reshape((Config['CNN_FEAT'], 1), batch_size=Config['NUM_STEP'], input_shape=(Config['CNN_FEAT'], 1))
-        )
-
-        convolution_model.add(
-            ZeroPadding1D((0, 25))
-        )
-
-        convolution_model.add(
-            Reshape((55, 55, 1))
-        )
+        conv_layer = Conv2D(filters=2,
+                            kernel_size=(3, 3),
+                            strides=(1, 1),
+                            activation='relu',
+                            data_format='channels_last')(input_layer)
 
         convolution_model.add(
             Conv2D(filters=16,

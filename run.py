@@ -39,6 +39,10 @@ def train():
         from algs.convlstm_fwbw import train_fwbw_convlstm
         experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         train_fwbw_convlstm(data=data, experiment=experiment)
+    elif Config.ALG == Config.ALGS[8]:
+        from algs.cnnlstm import train_cnnlstm
+        experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        train_cnnlstm(data=data, experiment=experiment)
     else:
         raise ValueError('Unkown alg!')
 
@@ -68,6 +72,10 @@ def test():
         from algs.convlstm_fwbw import test_fwbw_convlstm
         experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         test_fwbw_convlstm(data=data, experiment=experiment)
+    elif Config.ALG == Config.ALGS[8]:
+        from algs.cnnlstm import test_cnnlstm
+        experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
+        test_cnnlstm(data=data, experiment=experiment)
     # elif Config.ALG == Config.ALGS[5]:
     #     from algs.boosting_based import run_test
     #     test_holt_winter(data=data)

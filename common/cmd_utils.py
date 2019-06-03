@@ -91,6 +91,31 @@ def print_conv_lstm_info():
         raise Exception('Unknown RUN_MODE!')
 
 
+def print_cnnlstm_info():
+    print('|--- MON_RATIO:\t{}'.format(Config.CNNLSTM_MON_RAIO))
+    print('|--- DATA_GENERATE_TIME:\t{}'.format(Config.CNNLSTM_DATA_GENERATE_TIME))
+    print('            -----------            ')
+
+    print('|--- CONV_LAYERS:\t{}'.format(Config.CNNLSTM_LAYERS))
+    print('|--- FILTERS:\t{}'.format(Config.CNNLSTM_FILTERS))
+    print('|--- KERNEL_SIZE:\t{}'.format(Config.CNNLSTM_KERNEL_SIZE))
+    print('|--- STRIDES:\t{}'.format(Config.CNNLSTM_STRIDES))
+    print('|--- DROPOUTS:\t{}'.format(Config.CNNLSTM_DROPOUTS))
+    print('|--- RNN_DROPOUTS:\t{}'.format(Config.CNNLSTM_RNN_DROPOUTS))
+
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+        print('|--- N_EPOCH:\t{}'.format(Config.CNNLSTM_N_EPOCH))
+        print('|--- BATCH_SIZE:\t{}'.format(Config.CNNLSTM_BATCH_SIZE))
+        print('|--- LSTM_STEP:\t{}'.format(Config.CNNLSTM_STEP))
+        if Config.CNNLSTM_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.CNNLSTM_IMS_STEP))
+    elif Config.RUN_MODE == Config.RUN_MODES[1]:
+        print('|--- TESTING_TIME:\t{}'.format(Config.CNNLSTM_TESTING_TIME))
+        print('|--- BEST_CHECKPOINT:\t{}'.format(Config.CNNLSTM_BEST_CHECKPOINT))
+    else:
+        raise Exception('Unknown RUN_MODE!')
+
+
 def print_lstm_info():
     print('|--- MON_RATIO:\t{}'.format(Config.LSTM_MON_RAIO))
     print('            -----------            ')
@@ -132,8 +157,7 @@ def print_fwbw_lstm_info():
             print('|--- IMS_STEP:\t{}'.format(Config.FWBW_LSTM_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_LSTM_TESTING_TIME))
-        print('|--- BEST_CHECKPOINT FW:\t{}'.format(Config.FW_LSTM_BEST_CHECKPOINT))
-        print('|--- BEST_CHECKPOINT BW:\t{}'.format(Config.BW_LSTM_BEST_CHECKPOINT))
+        print('|--- BEST_CHECKPOINT:\t{}'.format(Config.FWBW_LSTM_BEST_CHECKPOINT))
     else:
         raise Exception('Unknown RUN_MODE!')
 
@@ -229,6 +253,8 @@ def print_info():
         print_fwbw_lstm_info()
     elif Config.ALG == Config.ALGS[7]:
         print_fwbw_convlstm_info()
+    elif Config.ALG == Config.ALGS[8]:
+        print_cnnlstm_info()
     else:
         raise ValueError('Unkown alg!')
     print('|--- RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))

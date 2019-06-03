@@ -209,7 +209,8 @@ XGB_FEATURES = 19
 # ----------- RUNNING Config ----------------------
 
 RUN_MODES = ['train', 'test', 'plot']
-ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm', 'fwbw-convlstm']
+ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm', 'fwbw-convlstm',
+        'cnnlstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
 
 
@@ -273,6 +274,18 @@ elif ALG == ALGS[1]:
                                                                                         CONV_LSTM_LAYERS,
                                                                                         filters, kernel,
                                                                                         CONV_LSTM_BATCH_SIZE)
+elif ALG == ALGS[8]:
+    filters = ''
+    kernel = ''
+    for layer in range(CNNLSTM_LAYERS):
+        filters = filters + '{:02d}_'.format(CNNLSTM_FILTERS[layer])
+        kernel = kernel + '{:02d}_'.format(CNNLSTM_KERNEL_SIZE[layer][0])
+
+    TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{}kernel_{}batch_{:03d}'.format(int(CNNLSTM_MON_RAIO * 100),
+                                                                                        CNNLSTM_STEP,
+                                                                                        CNNLSTM_LAYERS,
+                                                                                        filters, kernel,
+                                                                                        CNNLSTM_BATCH_SIZE)
 elif ALG == ALGS[2]:
     TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),
                                                                      LSTM_STEP,

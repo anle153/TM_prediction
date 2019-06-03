@@ -1,7 +1,8 @@
 import os
 
-from keras.layers import *
-from keras.models import Sequential
+from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Input, BatchNormalization, Conv2D
+from keras.models import Model
+from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -28,58 +29,42 @@ class CnnLSTM(AbstractModel):
         self.kernel_sizes = kernel_sizes
 
         self.n_timsteps = input_shape[0]
-        self.height = input_shape[1]
-        self.weight = input_shape[2]
+        self.high = input_shape[1]
+        self.wide = input_shape[2]
         self.depth = input_shape[3]
         self.saving_path = saving_path
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
 
-        input_layer = Input(shape=input_shape, name='input')
+        input = Input(shape=input_shape, name='input')
 
-        conv_layer = Conv2D(filters=2,
-                            kernel_size=(3, 3),
-                            strides=(1, 1),
+        conv_layer = Conv2D(filters=self.a_filters[0],
+                            kernel_size=self.kernel_sizes[0],
+                            strides=self.a_strides[0],
                             activation='relu',
-                            data_format='channels_last')(input_layer)
+                            data_format='channels_last')(input)
 
-        convolution_model.add(
-            Conv2D(filters=16,
-                   kernel_size=(5, 5),
-                   strides=(2, 2),
-                   activation='relu',
-                   input_shape=(55, 55),
-                   data_format='channels_last')
-        )
-        convolution_model.add(
-            MaxPooling2D(
-                pool_size=(2, 2),
-                strides=(2, 2)
-            )
-        )
-        convolution_model.add(
-            Conv2D(filters=32,
-                   kernel_size=(5, 5),
-                   strides=(2, 2),
-                   activation='relu',
-                   data_format='channels_last')
-        )
-        convolution_model.add(
-            MaxPooling2D(
-                pool_size=(2, 2),
-                strides=(2, 2)
-            )
-        )
-        convolution_model.add(
-            Reshape((2 * 2 * 32,))
-        )
-        convolution_model.add(Dense(32, activation='relu'))
+        batch_norm = BatchNormalization()(conv_layer)
 
-        _lstm_model = Sequential()
-        _lstm_model.add(TimeDistributed(convolution_model, input_shape=(Config['NUM_STEP'], Config['CNN_FEAT'], 1)))
-        _lstm_model.add(LSTM(Config['LSTM_HIDDEN_SIZE'], return_sequences=False))
-        _lstm_model.add(Dropout(0.5))
-        _lstm_model.add(Dense(1, activation='relu'))
+        conv_layer = Conv2D(filters=self.a_filters[1],
+                            kernel_size=self.kernel_sizes[1],
+                            strides=self.a_strides[1],
+                            activation='relu',
+                            data_format='channels_last')(batch_norm)
+        batch_norm = BatchNormalization()(conv_layer)
 
-        self.model = _lstm_model
-        self.model.compile(loss='mae', optimizer='adam', metrics=['mae'])
+        dense = Dense(64, activation='relu')(batch_norm)
+
+        dense = TimeDistributed(32, )(dense)
+
+        lstm = LSTM(128, return_sequences=True)(dense)
+
+        lstm = Dropout(0.25)(lstm)
+
+        output = TimeDistributed(Dense(self.wide * self.high, ))(lstm)
+
+        self.model = Model(inputs=input, outputs=output, name='cnnlsmm')
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
+    def plot_models(self):
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

@@ -159,6 +159,44 @@ CONV_LSTM_IMS = False
 CONV_LSTM_DATA_GENERATE_TIME = 3
 CONV_LSTM_VALID_TEST = True
 
+# ----------- CONV_LSTM Config ----------------------
+
+CNNLSTM_N_EPOCH = 100
+CNNLSTM_BATCH_SIZE = 64
+
+CNNLSTM_IMS_STEP = 12
+CNNLSTM_STEP = 26
+
+CNNLSTM_BEST_CHECKPOINT = 95
+CNNLSTM_TESTING_TIME = 10
+
+CNNLSTM_LAYERS = 2
+CNNLSTM_FILTERS = [2, 2]
+CNNLSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
+CNNLSTM_STRIDES = [[1, 1], [1, 1]]
+CNNLSTM_DROPOUTS = [0.25, 0.25]
+CNNLSTM_RNN_DROPOUTS = [0.25, 0.25]
+
+# CONV_LSTM_LAYERS = 1
+# CONV_LSTM_FILTERS = [16]
+# CONV_LSTM_KERNEL_SIZE = [[7, 7]]
+# CONV_LSTM_STRIDES = [[1, 1]]
+# CONV_LSTM_DROPOUTS = [0.25]
+# CONV_LSTM_RNN_DROPOUTS = [0.25]
+#
+
+CNNLSTM_WIDE = 12
+CNNLSTM_HIGH = 12
+CNNLSTM_CHANNEL = 2
+
+CNNLSTM_MON_RAIO = 0.30
+
+CNNLSTM_IMS = False
+
+CNNLSTM_DATA_GENERATE_TIME = 3
+CNNLSTM_VALID_TEST = True
+
+
 # ----------- XGB Config ----------------------
 XGB_STEP = 288 * 2
 XGB_MON_RATIO = 0.3
@@ -312,6 +350,25 @@ def set_comet_params_conv_lstm():
         params['layer{}_stride'.format(i + 1)] = CONV_LSTM_STRIDES[i]
         params['layer{}_dropout'.format(i + 1)] = CONV_LSTM_DROPOUTS[i]
         params['layer{}_rnn_dropout'.format(i + 1)] = CONV_LSTM_RNN_DROPOUTS[i]
+
+    return params
+
+
+def set_comet_params_cnnlstm():
+    params = {
+        'cnn_layers': CNNLSTM_LAYERS,
+        'epochs': CNNLSTM_N_EPOCH,
+        'batch_size': CNNLSTM_BATCH_SIZE,
+        'mon_ratio': CNNLSTM_MON_RAIO,
+        'lstm_step': CNNLSTM_STEP
+    }
+
+    for i in range(CNNLSTM_LAYERS):
+        params['layer{}_filter'.format(i + 1)] = CNNLSTM_FILTERS[i]
+        params['layer{}_kernel_size'.format(i + 1)] = CNNLSTM_KERNEL_SIZE[i]
+        params['layer{}_stride'.format(i + 1)] = CNNLSTM_STRIDES[i]
+        params['layer{}_dropout'.format(i + 1)] = CNNLSTM_DROPOUTS[i]
+        params['layer{}_rnn_dropout'.format(i + 1)] = CNNLSTM_RNN_DROPOUTS[i]
 
     return params
 

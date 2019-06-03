@@ -31,18 +31,19 @@ class CnnLSTM(AbstractModel):
         self.n_timsteps = input_shape[0]
         self.high = input_shape[1]
         self.wide = input_shape[2]
-        self.depth = input_shape[3]
+        self.channel = input_shape[3]
         self.saving_path = saving_path
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
 
-        input = Input(shape=input_shape, name='input')
+        input = Input(shape=(self.wide, self.high, self.channel), name='input')
 
         conv_layer = Conv2D(filters=self.a_filters[0],
                             kernel_size=self.kernel_sizes[0],
                             strides=self.a_strides[0],
                             activation='relu',
-                            data_format='channels_last')(input)
+                            data_format='channels_last',
+                            input_shape=(self.wide, self.high, self.channel))(input)
 
         batch_norm = BatchNormalization()(conv_layer)
 
@@ -53,9 +54,7 @@ class CnnLSTM(AbstractModel):
                             data_format='channels_last')(batch_norm)
         batch_norm = BatchNormalization()(conv_layer)
 
-        dense = Dense(64, activation='relu')(batch_norm)
-
-        dense = TimeDistributed(32, )(dense)
+        dense = TimeDistributed(Dense(64, activation='relu'))(batch_norm)
 
         lstm = LSTM(128, return_sequences=True)(dense)
 

@@ -1,7 +1,7 @@
 import os
 
-from keras.layers import LSTM, Dense, TimeDistributed, Input, BatchNormalization, Conv2D
-from keras.models import Model
+from keras.layers import LSTM, Dense, TimeDistributed, BatchNormalization, Conv2D, Flatten, Dropout
+from keras.models import Sequential
 from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
@@ -36,31 +36,35 @@ class CnnLSTM(AbstractModel):
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
 
-        input = Input(shape=(self.n_timsteps, self.wide, self.high, self.channel), name='input')
+        self.model = Sequential()
 
-        conv_layer = TimeDistributed(Conv2D(filters=self.a_filters[0],
-                                            kernel_size=self.kernel_sizes[0],
-                                            strides=self.a_strides[0],
-                                            activation='relu',
-                                            data_format='channels_last',
-                                            input_shape=(self.wide, self.high, self.channel)))(input)
+        self.model.add(TimeDistributed(Conv2D(filters=self.a_filters[0],
+                                              kernel_size=self.kernel_sizes[0],
+                                              strides=self.a_strides[0],
+                                              activation='relu',
+                                              data_format='channels_last',
+                                              padding='same',
+                                              input_shape=(self.wide, self.high, self.channel)),
+                                       input_shape=(self.n_timsteps, self.wide, self.high, self.channel)))
 
-        batch_norm = TimeDistributed(BatchNormalization())(conv_layer)
+        self.model.add(TimeDistributed(BatchNormalization()))
 
-        conv_layer = TimeDistributed(Conv2D(filters=self.a_filters[1],
-                                            kernel_size=self.kernel_sizes[1],
-                                            strides=self.a_strides[1],
-                                            activation='relu',
-                                            data_format='channels_last'))(batch_norm)
-        batch_norm = TimeDistributed(BatchNormalization())(conv_layer)
+        self.model.add(TimeDistributed(Conv2D(filters=self.a_filters[1],
+                                              kernel_size=self.kernel_sizes[1],
+                                              strides=self.a_strides[1],
+                                              activation='relu',
+                                              padding='same',
+                                              data_format='channels_last',
+                                              input_shape=(self.wide, self.high, self.channel))))
 
-        dense = TimeDistributed(Dense(64, activation='relu'))(batch_norm)
+        self.model.add(TimeDistributed(BatchNormalization()))
 
-        lstm = LSTM(128, return_sequences=True, recurrent_dropout=0.25)(dense)
+        self.model.add(TimeDistributed(Flatten()))
 
-        output = TimeDistributed(Dense(self.wide * self.high, ))(lstm)
+        self.model.add(LSTM(units=128, recurrent_dropout=0.25, return_sequences=True))
+        self.model.add(Dropout(0.25))
+        self.model.add(TimeDistributed(Dense(self.wide * self.high, )))
 
-        self.model = Model(inputs=input, outputs=output, name='cnnlsmm')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):

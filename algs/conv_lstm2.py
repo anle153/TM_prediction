@@ -201,12 +201,12 @@ def train_conv_lstm(data, experiment):
 
             trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
                                                                     input_shape, Config.CONV_LSTM_MON_RAIO,
-                                                                    train_data_normalized.mean())
+                                                                    train_data_normalized.std())
             print('|--- Create offline valid set for conv_lstm net!')
 
             validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
                                                                     input_shape, Config.CONV_LSTM_MON_RAIO,
-                                                                    train_data_normalized.mean(), 1)
+                                                                    train_data_normalized.std(), 1)
             # ----------------------------------------------------------------------------------------------------------
 
             # Load model check point

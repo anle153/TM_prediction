@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.CnnLSTM_model import CnnLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio, data_scalling
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_cnnlstm_data_fix_ratio, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -199,14 +199,14 @@ def train_cnnlstm(data, experiment):
             # -------------------------------- Create offline training and validating dataset --------------------------
             print('|--- Create offline train set for cnnlstm net!')
 
-            trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                    input_shape, Config.CNNLSTM_MON_RAIO,
-                                                                    train_data_normalized.mean())
+            trainX, trainY = create_offline_cnnlstm_data_fix_ratio(train_data_normalized,
+                                                                   input_shape, Config.CNNLSTM_MON_RAIO,
+                                                                   train_data_normalized.std())
             print('|--- Create offline valid set for cnnlstm net!')
 
-            validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                    input_shape, Config.CNNLSTM_MON_RAIO,
-                                                                    train_data_normalized.mean(), 1)
+            validX, validY = create_offline_cnnlstm_data_fix_ratio(valid_data_normalized,
+                                                                   input_shape, Config.CNNLSTM_MON_RAIO,
+                                                                   train_data_normalized.std(), 1)
             # ----------------------------------------------------------------------------------------------------------
 
             # Load model check point

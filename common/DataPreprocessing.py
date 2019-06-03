@@ -104,6 +104,45 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, da
     return dataX, dataY
 
 
+def create_offline_cnnstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
+    if data_time is None:
+        data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
+
+    _tf = np.array([1.0, 0.0])
+
+    ntimesteps = input_shape[0]
+    wide = input_shape[1]
+    high = input_shape[2]
+    channel = input_shape[3]
+    dataX = np.zeros(
+        ((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide, high, channel))
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide * high))
+
+    for time in range(data_time):
+        _labels = np.random.choice(_tf,
+                                   size=data.shape,
+                                   p=(mon_ratio, 1 - mon_ratio))
+        _data = np.copy(data)
+
+        _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+        _traffic_labels = np.zeros((_data.shape[0], wide, high, channel))
+        _traffic_labels[:, :, :, 0] = _data
+        _traffic_labels[:, :, :, 1] = _labels
+
+        for idx in range(_traffic_labels.shape[0] - ntimesteps):
+            _x = _traffic_labels[idx: (idx + ntimesteps)]
+
+            dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
+
+            _y = data[(idx + 1):(idx + ntimesteps + 1)]
+            _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
+
+            dataY[idx + time * (data.shape[0] - ntimesteps)] = _y
+
+    return dataX, dataY
+
+
 def create_offline_fwbw_convlstm_data(data, input_shape, mon_ratio, eps, data_time=None):
     if data_time is None:
         data_time = Config.CONV_LSTM_DATA_GENERATE_TIME

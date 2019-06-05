@@ -202,7 +202,8 @@ def train_cnnlstm(data, experiment):
 
             trainX, trainY = create_offline_cnnlstm_data_fix_ratio(train_data_normalized,
                                                                    input_shape, Config.CNNLSTM_MON_RAIO,
-                                                                   train_data_normalized.std())
+                                                                   train_data_normalized.std(),
+                                                                   Config.CNNLSTM_DATA_GENERATE_TIME)
             print('|--- Create offline valid set for cnnlstm net!')
 
             validX, validY = create_offline_cnnlstm_data_fix_ratio(valid_data_normalized,

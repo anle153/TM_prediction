@@ -12,7 +12,6 @@ def train():
 
     if Config.ALG == Config.ALGS[0]:
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
-        experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         train_fwbw_conv_lstm(data=data)
     elif Config.ALG == Config.ALGS[1]:
         from algs.conv_lstm2 import train_conv_lstm

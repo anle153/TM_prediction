@@ -240,8 +240,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
 
         predict_tm = np.copy(predictX[-1])
 
-        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
+        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, #nflows)
 
         # Flipping the backward prediction
         predictX_backward = np.flip(predictX_backward, axis=0)
@@ -336,10 +335,8 @@ def load_trained_models(input_shape, best_ckp):
     return fwbw_convlstm_net
 
 
-def train_fwbw_conv_lstm(data, experiment):
+def train_fwbw_conv_lstm(data):
     print('|-- Run model training.')
-
-    params = Config.set_comet_params_fwbw_conv_lstm()
 
     gpu = Config.GPU
 
@@ -401,32 +398,32 @@ def train_fwbw_conv_lstm(data, experiment):
         from_epoch = fwbw_convlstm_net.load_model_from_check_point()
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-            training_fw_history = fwbw_convlstm_net.model.fit(x=trainX,
-                                                              y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
-                                                              batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                              epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                              callbacks=fwbw_convlstm_net.callbacks_list,
-                                                              validation_data=(validX, {'fw_outputs': validY_fw,
+            training_history = fwbw_convlstm_net.model.fit(x=trainX,
+                                                           y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                           batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                           callbacks=fwbw_convlstm_net.callbacks_list,
+                                                           validation_data=(validX, {'fw_outputs': validY_fw,
                                                                                         'bw_outputs': validY_bw}),
-                                                              shuffle=True,
-                                                              initial_epoch=from_epoch,
-                                                              verbose=2)
+                                                           shuffle=True,
+                                                           initial_epoch=from_epoch,
+                                                           verbose=2)
         else:
             print('|--- Training new forward model.')
 
-            training_fw_history = fwbw_convlstm_net.model.fit(x=trainX,
-                                                              y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
-                                                              batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                              epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                              callbacks=fwbw_convlstm_net.callbacks_list,
-                                                              validation_data=(validX, {'fw_outputs': validY_fw,
+            training_history = fwbw_convlstm_net.model.fit(x=trainX,
+                                                           y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                           batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                           epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                           callbacks=fwbw_convlstm_net.callbacks_list,
+                                                           validation_data=(validX, {'fw_outputs': validY_fw,
                                                                                         'bw_outputs': validY_bw}),
-                                                              shuffle=True,
-                                                              verbose=2)
+                                                           shuffle=True,
+                                                           verbose=2)
 
         # Plot the training history
-        if training_fw_history is not None:
-            fwbw_convlstm_net.plot_training_history(training_fw_history)
+        if training_history is not None:
+            fwbw_convlstm_net.plot_training_history(training_history)
 
     # --------------------------------------------------------------------------------------------------------------
     run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
@@ -445,7 +442,7 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def test_fwbw_conv_lstm(data, experiment):
+def test_fwbw_conv_lstm(data):
     print('|-- Run model testing.')
     gpu = Config.GPU
 

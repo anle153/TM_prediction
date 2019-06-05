@@ -65,7 +65,7 @@ def prepare_train_valid_test_2d(data, day_size):
 ########################################################################################################################
 #                                        Generator training data                                                       #
 
-def create_offline_fwbw_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
+def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
     if data_time is None:
         data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
 

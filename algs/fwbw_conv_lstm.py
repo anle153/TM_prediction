@@ -5,9 +5,9 @@ import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 
-from Models.FWBW_ConvLSTM import FWBW_ConvLSTM
+from Models.FWBW_CONV_LSTM import FWBW_CONV_LSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_convlstm_data_fix_ratio, \
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_conv_lstm_data_fix_ratio, \
     data_scalling
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
@@ -309,30 +309,30 @@ def build_model(input_shape):
     tag = Config.TAG
     data_name = Config.DATA_NAME
 
-    fwbw_convlstm_net = FWBW_ConvLSTM(input_shape=input_shape,
-                                      cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
-                                      a_filters=Config.FWBW_CONV_LSTM_FILTERS,
-                                      a_strides=Config.FWBW_CONV_LSTM_STRIDES,
-                                      dropouts=Config.FWBW_CONV_LSTM_DROPOUTS,
-                                      kernel_sizes=Config.FWBW_CONV_LSTM_KERNEL_SIZE,
-                                      rnn_dropouts=Config.FWBW_CONV_LSTM_RNN_DROPOUTS,
-                                      alg_name=alg_name,
-                                      tag=tag,
-                                      check_point=True,
-                                      saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
-                                                                                            Config.SCALER))
+    fwbw_conv_lstm_net = FWBW_CONV_LSTM(input_shape=input_shape,
+                                        cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
+                                        a_filters=Config.FWBW_CONV_LSTM_FILTERS,
+                                        a_strides=Config.FWBW_CONV_LSTM_STRIDES,
+                                        dropouts=Config.FWBW_CONV_LSTM_DROPOUTS,
+                                        kernel_sizes=Config.FWBW_CONV_LSTM_KERNEL_SIZE,
+                                        rnn_dropouts=Config.FWBW_CONV_LSTM_RNN_DROPOUTS,
+                                        alg_name=alg_name,
+                                        tag=tag,
+                                        check_point=True,
+                                        saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
+                                                                                              Config.SCALER))
 
-    print(fwbw_convlstm_net.model.summary())
-    fwbw_convlstm_net.plot_models()
-    return fwbw_convlstm_net
+    print(fwbw_conv_lstm_net.model.summary())
+    fwbw_conv_lstm_net.plot_models()
+    return fwbw_conv_lstm_net
 
 
 def load_trained_models(input_shape, best_ckp):
-    fwbw_convlstm_net = build_model(input_shape)
-    print('|--- Load trained model from: {}'.format(fwbw_convlstm_net.checkpoints_path))
-    fwbw_convlstm_net.model.load_weights(fwbw_convlstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
+    fwbw_conv_lstm_net = build_model(input_shape)
+    print('|--- Load trained model from: {}'.format(fwbw_conv_lstm_net.checkpoints_path))
+    fwbw_conv_lstm_net.model.load_weights(fwbw_conv_lstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
 
-    return fwbw_convlstm_net
+    return fwbw_conv_lstm_net
 
 
 def train_fwbw_conv_lstm(data):
@@ -368,66 +368,69 @@ def train_fwbw_conv_lstm(data):
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fwbw_convlstm_net = build_model(input_shape)
+        fwbw_conv_lstm_net = build_model(input_shape)
 
     # --------------------------------------------------------------------------------------------------------------
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    if os.path.isfile(
-            path=fwbw_convlstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
-        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FWBW_CONVLSTM_BEST_CHECKPOINT))
-        fwbw_convlstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONVLSTM_BEST_CHECKPOINT)
-    else:
-        print('|--- Compile model. Saving path %s --- ' % fwbw_convlstm_net.saving_path)
+    if not Config.FWBW_CONV_LSTM_VALID_TEST or \
+            not os.path.isfile(
+                fwbw_conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(
+                    Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)):
+        print('|--- Compile model. Saving path %s --- ' % fwbw_conv_lstm_net.saving_path)
         # -------------------------------- Create offline training and validating dataset ------------------------------
 
         print('|--- Create offline train set for forward net!')
 
-        trainX, trainY_fw, trainY_bw = create_offline_fwbw_convlstm_data_fix_ratio(train_data_normalized,
-                                                                                   input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                                   train_data_normalized.std(), 3)
+        trainX, trainY_fw, trainY_bw = create_offline_fwbw_conv_lstm_data_fix_ratio(train_data_normalized,
+                                                                                    input_shape,
+                                                                                    Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                                    train_data_normalized.std(), 3)
         print('|--- Create offline valid set for forward net!')
 
-        validX, validY_fw, validY_bw = create_offline_fwbw_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                                   input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                                   train_data_normalized.std(),
-                                                                                   1)
+        validX, validY_fw, validY_bw = create_offline_fwbw_conv_lstm_data_fix_ratio(valid_data_normalized,
+                                                                                    input_shape,
+                                                                                    Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                                    train_data_normalized.std(),
+                                                                                    1)
 
         # Load model check point
-        from_epoch = fwbw_convlstm_net.load_model_from_check_point()
+        from_epoch = fwbw_conv_lstm_net.load_model_from_check_point()
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-            training_history = fwbw_convlstm_net.model.fit(x=trainX,
-                                                           y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
-                                                           batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                           epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                           callbacks=fwbw_convlstm_net.callbacks_list,
-                                                           validation_data=(validX, {'fw_outputs': validY_fw,
-                                                                                        'bw_outputs': validY_bw}),
-                                                           shuffle=True,
-                                                           initial_epoch=from_epoch,
-                                                           verbose=2)
+            training_history = fwbw_conv_lstm_net.model.fit(x=trainX,
+                                                            y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                            batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                            epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                            callbacks=fwbw_conv_lstm_net.callbacks_list,
+                                                            validation_data=(validX, {'fw_outputs': validY_fw,
+                                                                                      'bw_outputs': validY_bw}),
+                                                            shuffle=True,
+                                                            initial_epoch=from_epoch,
+                                                            verbose=2)
         else:
             print('|--- Training new forward model.')
 
-            training_history = fwbw_convlstm_net.model.fit(x=trainX,
-                                                           y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
-                                                           batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                           epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                           callbacks=fwbw_convlstm_net.callbacks_list,
-                                                           validation_data=(validX, {'fw_outputs': validY_fw,
-                                                                                        'bw_outputs': validY_bw}),
-                                                           shuffle=True,
-                                                           verbose=2)
+            training_history = fwbw_conv_lstm_net.model.fit(x=trainX,
+                                                            y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                            batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                            epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                            callbacks=fwbw_conv_lstm_net.callbacks_list,
+                                                            validation_data=(validX, {'fw_outputs': validY_fw,
+                                                                                      'bw_outputs': validY_bw}),
+                                                            shuffle=True,
+                                                            verbose=2)
 
         # Plot the training history
         if training_history is not None:
-            fwbw_convlstm_net.plot_training_history(training_history)
+            fwbw_conv_lstm_net.plot_training_history(training_history)
+    else:
+        fwbw_conv_lstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
     # --------------------------------------------------------------------------------------------------------------
     run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fwbw_convlstm_net, scalers)
+             fwbw_conv_lstm_net, scalers)
 
     return
 
@@ -445,8 +448,6 @@ def ims_tm_test_data(test_data):
 def test_fwbw_conv_lstm(data):
     print('|-- Run model testing.')
     gpu = Config.GPU
-
-    params = Config.set_comet_params_fwbw_conv_lstm()
 
     data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
@@ -472,15 +473,15 @@ def test_fwbw_conv_lstm(data):
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fwbw_convlstm_net = load_trained_models(input_shape, Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
+        fwbw_conv_lstm_net = load_trained_models(input_shape, Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
     run_test(test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fwbw_convlstm_net, scalers)
+             fwbw_conv_lstm_net, scalers)
 
     return
 
 
-def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_convlstm_net, scalers):
+def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_net, scalers):
     alg_name = Config.ALG
     tag = Config.TAG
     data_name = Config.DATA_NAME
@@ -517,7 +518,7 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_convlstm_net
 
         pred_tm, measured_matrix, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
                                                                   test_data=test_data_normalized,
-                                                                  model=fwbw_convlstm_net.model)
+                                                                  model=fwbw_conv_lstm_net.model)
 
         pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
         measured_matrix2d = np.reshape(np.copy(measured_matrix),

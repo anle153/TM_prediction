@@ -7,7 +7,7 @@ from keras.utils import plot_model
 from Models.AbstractModel import AbstractModel
 
 
-class FWBW_ConvLSTM(AbstractModel):
+class FWBW_CONV_LSTM(AbstractModel):
 
     def __init__(self, saving_path, input_shape,
                  cnn_layers, a_filters, a_strides, dropouts, kernel_sizes, rnn_dropouts,

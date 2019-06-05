@@ -70,6 +70,7 @@ FWBW_CONV_LSTM_RANDOM_ACTION = True
 FWBW_CONV_LSTM_HYPERPARAMS = [2.0, 0.1, 5.0, 0.4]
 
 FWBW_IMS = False
+FWBW_CONV_LSTM_VALID_TEST = True
 
 # ----------------------------------------------
 # ------------- FWBW_CONVLSTM Config ----------

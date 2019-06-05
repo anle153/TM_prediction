@@ -63,6 +63,8 @@ class CnnLSTM(AbstractModel):
 
         self.model.add(LSTM(units=64, recurrent_dropout=0.25, return_sequences=True))
         self.model.add(Dropout(0.25))
+        self.model.add(TimeDistributed(Dense(256, )))
+        self.model.add(Dropout(0.25))
         self.model.add(TimeDistributed(Dense(self.wide * self.high, )))
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

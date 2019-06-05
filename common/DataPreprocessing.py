@@ -95,7 +95,7 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
         for idx in range(1, _traffic_labels.shape[0] - ntimesteps, 1):
             _x = _traffic_labels[idx: (idx + ntimesteps)]
 
-            dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
+            dataX[idx - 1 + time * (data.shape[0] - ntimesteps)] = _x
 
             _y = data[(idx + 1):(idx + ntimesteps + 1)]
             _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
@@ -103,9 +103,9 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
             _y_2 = data[(idx - 1):(idx + ntimesteps - 1)]
             _y_2 = np.reshape(np.flip(_y_2, axis=0), newshape=(ntimesteps, wide * high))
 
-            dataY_1[idx + time * (data.shape[0] - ntimesteps)] = _y
+            dataY_1[idx - 1 + time * (data.shape[0] - ntimesteps)] = _y
 
-            dataY_2[idx + time * (data.shape[0] - ntimesteps)] = _y_2
+            dataY_2[idx - 1 + time * (data.shape[0] - ntimesteps)] = _y_2
 
     return dataX, dataY_1, dataY_2
 

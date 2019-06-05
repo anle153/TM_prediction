@@ -5,9 +5,10 @@ import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 
-from Models.ConvLSTM_model import ConvLSTM
+from Models.FWBW_ConvLSTM import FWBW_ConvLSTM
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio, data_scalling
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_convlstm_data_fix_ratio, \
+    data_scalling
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -154,7 +155,7 @@ def updating_historical_data_3d(rnn_input, pred_forward, pred_backward, labels):
     return rnn_pred_value
 
 
-def ims_tm_prediction(init_data_labels, forward_model, backward_model):
+def ims_tm_prediction(init_data_labels, model):
     multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.FWBW_CONV_LSTM_IMS_STEP,
                                      init_data_labels.shape[1], init_data_labels.shape[2], init_data_labels.shape[3]))
 
@@ -169,13 +170,10 @@ def ims_tm_prediction(init_data_labels, forward_model, backward_model):
         rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
 
         # Prediction results from forward network
-        predictX = forward_model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
+        predictX, predictX_backward = model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
 
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
         predictX = np.squeeze(predictX, axis=3)  # shape(timesteps, od, od)
-
-        # Prediction results from backward network
-        predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
 
         predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
         predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
@@ -202,7 +200,7 @@ def ims_tm_prediction(init_data_labels, forward_model, backward_model):
     return multi_steps_tm[-1, :, :, 0]
 
 
-def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_model):
+def predict_fwbw_conv_lstm(initial_data, test_data, model):
     tf_a = np.array([1.0, 0.0])
 
     tm_labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
@@ -226,33 +224,26 @@ def predict_fwbw_conv_lstm(initial_data, test_data, forward_model, backward_mode
 
         if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP, :, :, :],
-                                           forward_model=forward_model,
-                                           backward_model=backward_model)
+                                           model=model)
         rnn_input = np.zeros(
             shape=(Config.FWBW_CONV_LSTM_STEP, Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, 2))
 
         rnn_input[:, :, :, 0] = tm_labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]
         rnn_input[:, :, :, 1] = labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]
 
-        rnn_input_backward = np.flip(np.copy(rnn_input), axis=0)
-
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)
-        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)
 
         # Prediction results from forward network
-        predictX = forward_model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
+        predictX, predictX_backward = model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
         predictX = np.reshape(predictX, newshape=(predictX.shape[0], test_data.shape[1], test_data.shape[2]))
 
         predict_tm = np.copy(predictX[-1])
 
-        # Prediction results from backward network
-        predictX_backward = backward_model.predict(rnn_input_backward)  # shape(1, timesteps, od, od , 1)
-
         predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
-        predictX_backward = np.reshape(predictX_backward, newshape=(predictX_backward.shape[0],
-                                                                    test_data.shape[1],
-                                                                    test_data.shape[2]))
+        predictX_backward = np.squeeze(predictX_backward, axis=3)  # shape(timesteps, od, od)
+
+        # Flipping the backward prediction
         predictX_backward = np.flip(predictX_backward, axis=0)
 
         # if ts == 20:
@@ -319,43 +310,30 @@ def build_model(input_shape):
     tag = Config.TAG
     data_name = Config.DATA_NAME
 
-    fw_net = ConvLSTM(input_shape=input_shape,
-                      cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
-                      a_filters=Config.FWBW_CONV_LSTM_FILTERS,
-                      a_strides=Config.FWBW_CONV_LSTM_STRIDES,
-                      dropouts=Config.FWBW_CONV_LSTM_DROPOUTS,
-                      kernel_sizes=Config.FWBW_CONV_LSTM_KERNEL_SIZE,
-                      rnn_dropouts=Config.FWBW_CONV_LSTM_RNN_DROPOUTS,
-                      alg_name=alg_name,
-                      tag=tag,
-                      check_point=True,
-                      saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/fw/'.format(data_name, alg_name, tag, Config.SCALER))
+    fwbw_convlstm_net = FWBW_ConvLSTM(input_shape=input_shape,
+                                      cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
+                                      a_filters=Config.FWBW_CONV_LSTM_FILTERS,
+                                      a_strides=Config.FWBW_CONV_LSTM_STRIDES,
+                                      dropouts=Config.FWBW_CONV_LSTM_DROPOUTS,
+                                      kernel_sizes=Config.FWBW_CONV_LSTM_KERNEL_SIZE,
+                                      rnn_dropouts=Config.FWBW_CONV_LSTM_RNN_DROPOUTS,
+                                      alg_name=alg_name,
+                                      tag=tag,
+                                      check_point=True,
+                                      saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
+                                                                                            Config.SCALER))
 
-    bw_net = ConvLSTM(input_shape=input_shape,
-                      cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
-                      a_filters=Config.FWBW_CONV_LSTM_FILTERS,
-                      a_strides=Config.FWBW_CONV_LSTM_STRIDES,
-                      dropouts=Config.FWBW_CONV_LSTM_DROPOUTS,
-                      kernel_sizes=Config.FWBW_CONV_LSTM_KERNEL_SIZE,
-                      rnn_dropouts=Config.FWBW_CONV_LSTM_RNN_DROPOUTS,
-                      alg_name=alg_name,
-                      tag=tag,
-                      check_point=True,
-                      saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/bw/'.format(data_name, alg_name, tag, Config.SCALER))
-
-    print(fw_net.model.summary())
-    print(bw_net.model.summary())
-
-    return fw_net, bw_net
+    print(fwbw_convlstm_net.model.summary())
+    fwbw_convlstm_net.plot_models()
+    return fwbw_convlstm_net
 
 
-def load_trained_models(input_shape, fw_ckp, bw_ckp):
-    fw_net, bw_net = build_model(input_shape)
-    print('|--- Load trained model from: {}'.format(fw_net.checkpoints_path))
-    fw_net.model.load_weights(fw_net.checkpoints_path + "weights-{:02d}.hdf5".format(fw_ckp))
-    bw_net.model.load_weights(bw_net.checkpoints_path + "weights-{:02d}.hdf5".format(bw_ckp))
+def load_trained_models(input_shape, best_ckp):
+    fwbw_convlstm_net = build_model(input_shape)
+    print('|--- Load trained model from: {}'.format(fwbw_convlstm_net.checkpoints_path))
+    fwbw_convlstm_net.model.load_weights(fwbw_convlstm_net.checkpoints_path + "weights-{:02d}.hdf5".format(best_ckp))
 
-    return fw_net, bw_net
+    return fwbw_convlstm_net
 
 
 def train_fwbw_conv_lstm(data, experiment):
@@ -393,115 +371,66 @@ def train_fwbw_conv_lstm(data, experiment):
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fw_net, bw_net = build_model(input_shape)
+        fwbw_convlstm_net = build_model(input_shape)
 
     # --------------------------------------------------------------------------------------------------------------
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    if os.path.isfile(path=fw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
-        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FW_BEST_CHECKPOINT))
-        fw_net.load_model_from_check_point(_from_epoch=Config.FW_BEST_CHECKPOINT)
+    if os.path.isfile(
+            path=fwbw_convlstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
+        print('|--- Forward model exist! Load model from epoch: {}'.format(Config.FWBW_CONVLSTM_BEST_CHECKPOINT))
+        fwbw_convlstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONVLSTM_BEST_CHECKPOINT)
     else:
-        print('|--- Compile model. Saving path %s --- ' % fw_net.saving_path)
+        print('|--- Compile model. Saving path %s --- ' % fwbw_convlstm_net.saving_path)
         # -------------------------------- Create offline training and validating dataset ------------------------------
 
         print('|--- Create offline train set for forward net!')
 
-        trainX_fw, trainY_fw = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      train_data_normalized.mean())
+        trainX, trainY_fw, trainY_bw = create_offline_fwbw_convlstm_data_fix_ratio(train_data_normalized,
+                                                                                   input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                                   train_data_normalized.std(), 3)
         print('|--- Create offline valid set for forward net!')
 
-        validX_fw, validY_fw = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      train_data_normalized.mean(),
-                                                                      1)
+        validX, validY_fw, validY_bw = create_offline_fwbw_convlstm_data_fix_ratio(valid_data_normalized,
+                                                                                   input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
+                                                                                   train_data_normalized.std(),
+                                                                                   1)
 
         # Load model check point
-        from_epoch = fw_net.load_model_from_check_point()
+        from_epoch = fwbw_convlstm_net.load_model_from_check_point()
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-            training_fw_history = fw_net.model.fit(x=trainX_fw,
-                                                   y=trainY_fw,
-                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                   callbacks=fw_net.callbacks_list,
-                                                   validation_data=(validX_fw, validY_fw),
-                                                   shuffle=True,
-                                                   initial_epoch=from_epoch,
-                                                   verbose=2)
+            training_fw_history = fwbw_convlstm_net.model.fit(x=trainX,
+                                                              y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                              batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                              epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                              callbacks=fwbw_convlstm_net.callbacks_list,
+                                                              validation_data=(validX, {'fw_outputs': validY_fw,
+                                                                                        'bw_outputs': validY_bw}),
+                                                              shuffle=True,
+                                                              initial_epoch=from_epoch,
+                                                              verbose=2)
         else:
             print('|--- Training new forward model.')
 
-            training_fw_history = fw_net.model.fit(x=trainX_fw,
-                                                   y=trainY_fw,
-                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                   callbacks=fw_net.callbacks_list,
-                                                   validation_data=(validX_fw, validY_fw),
-                                                   shuffle=True,
-                                                   verbose=2)
+            training_fw_history = fwbw_convlstm_net.model.fit(x=trainX,
+                                                              y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                              batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                              epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                              callbacks=fwbw_convlstm_net.callbacks_list,
+                                                              validation_data=(validX, {'fw_outputs': validY_fw,
+                                                                                        'bw_outputs': validY_bw}),
+                                                              shuffle=True,
+                                                              verbose=2)
 
         # Plot the training history
         if training_fw_history is not None:
-            fw_net.plot_training_history(training_fw_history)
-    # --------------------------------------------------------------------------------------------------------------
-
-    train_data_bw_normalized = np.flip(np.copy(train_data_normalized), axis=0)
-    valid_data_bw_normalized = np.flip(np.copy(valid_data_normalized), axis=0)
-
-    # --------------------------------------------Training bw model-------------------------------------------------
-
-    if os.path.isfile(path=bw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_CONV_LSTM_N_EPOCH)):
-        print('|--- Backward model exist! Load model from epoch: {}'.format(Config.BW_BEST_CHECKPOINT))
-        bw_net.load_model_from_check_point(_from_epoch=Config.BW_BEST_CHECKPOINT)
-    else:
-        print('|---Compile model. Saving path: %s' % bw_net.saving_path)
-        print('|--- Create offline train set for backward net!')
-
-        trainX_bw, trainY_bw = create_offline_convlstm_data_fix_ratio(train_data_bw_normalized,
-                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      train_data_bw_normalized.mean())
-
-        print('|--- Create offline valid set for backward net!')
-
-        validX_bw, validY_bw = create_offline_convlstm_data_fix_ratio(valid_data_bw_normalized,
-                                                                      input_shape, Config.FWBW_CONV_LSTM_MON_RAIO,
-                                                                      train_data_bw_normalized.mean(),
-                                                                      1)
-
-        from_epoch_bw = bw_net.load_model_from_check_point()
-        if from_epoch_bw > 0:
-            training_bw_history = bw_net.model.fit(x=trainX_bw,
-                                                   y=trainY_bw,
-                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                   callbacks=bw_net.callbacks_list,
-                                                   validation_data=(validX_bw, validY_bw),
-                                                   shuffle=True,
-                                                   initial_epoch=from_epoch_bw,
-                                                   verbose=2)
-
-        else:
-            print('|--- Training new backward model.')
-
-            training_bw_history = bw_net.model.fit(x=trainX_bw,
-                                                   y=trainY_bw,
-                                                   batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                   epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                   callbacks=bw_net.callbacks_list,
-                                                   validation_data=(validX_bw, validY_bw),
-                                                   shuffle=True,
-                                                   verbose=2)
-        if training_bw_history is not None:
-            bw_net.plot_training_history(training_bw_history)
-
-        # experiment.log_parameters(params)
+            fwbw_convlstm_net.plot_training_history(training_fw_history)
 
     # --------------------------------------------------------------------------------------------------------------
-    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fw_net, bw_net, params, scalers)
+    run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+             fwbw_convlstm_net, scalers)
 
     return
 
@@ -546,15 +475,15 @@ def test_fwbw_conv_lstm(data, experiment):
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fw_net, bw_net = load_trained_models(input_shape, Config.FW_BEST_CHECKPOINT, Config.BW_BEST_CHECKPOINT)
+        fwbw_convlstm_net = load_trained_models(input_shape, Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
-    run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fw_net, bw_net, params, scalers)
+    run_test(test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+             fwbw_convlstm_net, scalers)
 
     return
 
 
-def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_net, bw_net, params, scalers):
+def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_convlstm_net, scalers):
     alg_name = Config.ALG
     tag = Config.TAG
     data_name = Config.DATA_NAME
@@ -567,109 +496,98 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, fw_ne
 
     measured_matrix_ims2d = np.zeros((test_data2d.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1,
                                       Config.FWBW_CONV_LSTM_WIDE * Config.FWBW_CONV_LSTM_HIGH))
-    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
-                test_data2d)
-
-    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
-                test_data_normalized2d)
+    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
+    #     np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
+    #             test_data2d)
+    #
+    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
+    #     np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
+    #             test_data_normalized2d)
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
                                                                       alg_name, tag, Config.SCALER)):
         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
-    with experiment.test():
-        for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
-            print('|--- Run time {}'.format(i))
+    for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
+        print('|--- Run time {}'.format(i))
 
-            init_data = np.reshape(init_data2d, newshape=(init_data2d.shape[0],
-                                                          Config.FWBW_CONV_LSTM_WIDE,
-                                                          Config.FWBW_CONV_LSTM_HIGH))
-            test_data_normalized = np.reshape(test_data_normalized2d, newshape=(test_data_normalized2d.shape[0],
-                                                                                Config.FWBW_CONV_LSTM_WIDE,
-                                                                                Config.FWBW_CONV_LSTM_HIGH))
+        init_data = np.reshape(init_data2d, newshape=(init_data2d.shape[0],
+                                                      Config.FWBW_CONV_LSTM_WIDE,
+                                                      Config.FWBW_CONV_LSTM_HIGH))
+        test_data_normalized = np.reshape(test_data_normalized2d, newshape=(test_data_normalized2d.shape[0],
+                                                                            Config.FWBW_CONV_LSTM_WIDE,
+                                                                            Config.FWBW_CONV_LSTM_HIGH))
 
-            pred_tm, measured_matrix, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
-                                                                      test_data=test_data_normalized,
-                                                                      forward_model=fw_net.model,
-                                                                      backward_model=bw_net.model)
+        pred_tm, measured_matrix, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
+                                                                  test_data=test_data_normalized,
+                                                                  model=fwbw_convlstm_net.model)
 
-            pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
-            measured_matrix2d = np.reshape(np.copy(measured_matrix),
-                                           newshape=(measured_matrix.shape[0],
-                                                     measured_matrix.shape[1] * measured_matrix.shape[2]))
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-                                                                                  Config.SCALER, i),
-                    pred_tm2d)
+        pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
+        measured_matrix2d = np.reshape(np.copy(measured_matrix),
+                                       newshape=(measured_matrix.shape[0],
+                                                 measured_matrix.shape[1] * measured_matrix.shape[2]))
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                       Config.SCALER, i),
+        #         pred_tm2d)
 
-            pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
+        pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
-            if np.any(np.isinf(pred_tm_invert2d)):
-                raise ValueError('Value is infinity!')
-            elif np.any(np.isnan(pred_tm_invert2d)):
-                raise ValueError('Value is NaN!')
+        if np.any(np.isinf(pred_tm_invert2d)):
+            raise ValueError('Value is infinity!')
+        elif np.any(np.isnan(pred_tm_invert2d)):
+            raise ValueError('Value is NaN!')
 
-            err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-            r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-            rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
+        err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+        r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
-            if Config.FWBW_IMS:
-                # Calculate error for multistep-ahead-prediction
+        if Config.FWBW_IMS:
+            # Calculate error for multistep-ahead-prediction
 
-                ims_tm2d = np.reshape(np.copy(ims_tm), newshape=(ims_tm.shape[0], ims_tm.shape[1] * ims_tm.shape[2]))
+            ims_tm2d = np.reshape(np.copy(ims_tm), newshape=(ims_tm.shape[0], ims_tm.shape[1] * ims_tm.shape[2]))
 
-                ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
+            ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
-                ims_ytrue2d = ims_tm_test_data(test_data=test_data2d)
+            ims_ytrue2d = ims_tm_test_data(test_data=test_data2d)
 
-                err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                           y_true=ims_ytrue2d,
-                                           measured_matrix=measured_matrix_ims2d))
+            err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+                                       y_true=ims_ytrue2d,
+                                       measured_matrix=measured_matrix_ims2d))
 
-                r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue2d, y_pred=ims_tm_invert2d))
-                rmse_ims.append(calculate_rmse(y_true=ims_ytrue2d / 1000000, y_pred=ims_tm_invert2d / 1000000))
-            else:
-                err_ims.append(0)
-                r2_score_ims.append(0)
-                rmse_ims.append(0)
+            r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue2d, y_pred=ims_tm_invert2d))
+            rmse_ims.append(calculate_rmse(y_true=ims_ytrue2d / 1000000, y_pred=ims_tm_invert2d / 1000000))
+        else:
+            err_ims.append(0)
+            r2_score_ims.append(0)
+            rmse_ims.append(0)
 
-            print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-            print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
-                                                              err_ims[i], rmse_ims[i],
-                                                              r2_score_ims[i]))
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-                                                                           Config.SCALER, i),
-                    pred_tm_invert2d)
-            np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-                                                                              Config.SCALER, i),
-                    measured_matrix2d)
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
+                                                          r2_score_ims[i]))
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                Config.SCALER, i),
+        #         pred_tm_invert2d)
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                   Config.SCALER, i),
+        #         measured_matrix2d)
 
-        results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
-        results_summary['err'] = err
-        results_summary['r2'] = r2_score
-        results_summary['rmse'] = rmse
-        results_summary['err_ims'] = err_ims
-        results_summary['r2_ims'] = r2_score_ims
-        results_summary['rmse_ims'] = rmse_ims
+    results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
+    results_summary['err'] = err
+    results_summary['r2'] = r2_score
+    results_summary['rmse'] = rmse
+    results_summary['err_ims'] = err_ims
+    results_summary['r2_ims'] = r2_score_ims
+    results_summary['rmse_ims'] = rmse_ims
 
-        results_summary.to_csv(Config.RESULTS_PATH +
-                               '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
-                               index=False)
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
+                           index=False)
 
-        metrics = {
-            'err': results_summary['err'],
-            'rmse': results_summary['rmse'],
-            'r2': results_summary['r2'],
-            'err_ims': results_summary['err_ims'],
-            'rmse_ims': results_summary['rmse_ims'],
-            'r2_ims': results_summary['rmse_ims'],
-        }
+    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
 
-        # experiment.log_metrics(metrics)
-        # experiment.log_parameters(params)
-        print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-                                                               np.mean(np.array(rmse)),
-                                                               np.mean(np.array(r2_score))))
+    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                           np.mean(np.array(rmse)),
+                                                           np.mean(np.array(r2_score))))
 
     return

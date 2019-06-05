@@ -44,7 +44,8 @@ class CnnLSTM(AbstractModel):
                                               activation='relu',
                                               data_format='channels_last',
                                               padding='same',
-                                              input_shape=(self.wide, self.high, self.channel)),
+                                              input_shape=(self.wide, self.high, self.channel),
+                                              dropouts=0.2),
                                        input_shape=(self.n_timsteps, self.wide, self.high, self.channel)))
 
         self.model.add(TimeDistributed(BatchNormalization()))
@@ -55,7 +56,8 @@ class CnnLSTM(AbstractModel):
                                               activation='relu',
                                               padding='same',
                                               data_format='channels_last',
-                                              input_shape=(self.wide, self.high, self.channel))))
+                                              input_shape=(self.wide, self.high, self.channel),
+                                              dropouts=0.2)))
 
         self.model.add(TimeDistributed(BatchNormalization()))
 

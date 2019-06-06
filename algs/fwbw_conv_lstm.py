@@ -303,7 +303,8 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
 
     print('Err_w: {} -- Err_wo: {}'.format(_err_1, _err_2))
 
-    return tm_labels[Config.FWBW_CONV_LSTM_STEP:], labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm
+    return tm_labels[Config.FWBW_CONV_LSTM_STEP:], labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm, _tm_labels[
+                                                                                                Config.FWBW_CONV_LSTM_STEP:]
 
 
 def build_model(input_shape):
@@ -519,11 +520,13 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
                                                                             Config.FWBW_CONV_LSTM_WIDE,
                                                                             Config.FWBW_CONV_LSTM_HIGH))
 
-        pred_tm, measured_matrix, ims_tm = predict_fwbw_conv_lstm(initial_data=init_data,
-                                                                  test_data=test_data_normalized,
-                                                                  model=fwbw_conv_lstm_net.model)
+        pred_tm, measured_matrix, ims_tm, pred_tm_wo_corr = predict_fwbw_conv_lstm(initial_data=init_data,
+                                                                                   test_data=test_data_normalized,
+                                                                                   model=fwbw_conv_lstm_net.model)
 
         pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
+        pred_tm2d_wo = np.reshape(np.copy(pred_tm_wo_corr), newshape=(
+        pred_tm_wo_corr.shape[0], pred_tm_wo_corr.shape[1] * pred_tm_wo_corr.shape[2]))
         measured_matrix2d = np.reshape(np.copy(measured_matrix),
                                        newshape=(measured_matrix.shape[0],
                                                  measured_matrix.shape[1] * measured_matrix.shape[2]))
@@ -532,15 +535,25 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
         #         pred_tm2d)
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
+        pred_tm_wo_invert2d = scalers.inverse_transform(pred_tm2d_wo)
 
         if np.any(np.isinf(pred_tm_invert2d)):
             raise ValueError('Value is infinity!')
         elif np.any(np.isnan(pred_tm_invert2d)):
             raise ValueError('Value is NaN!')
 
+        if np.any(np.isinf(pred_tm_wo_invert2d)):
+            raise ValueError('Value is infinity!')
+        elif np.any(np.isnan(pred_tm_wo_invert2d)):
+            raise ValueError('Value is NaN!')
+
         err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
         r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
         rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
+
+        err_wo = error_ratio(y_true=test_data2d, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
+        r2_score_wo = calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_wo_invert2d)
+        rmse_wo = calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
 
         if Config.FWBW_IMS:
             # Calculate error for multistep-ahead-prediction
@@ -566,6 +579,8 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
                                                           err_ims[i], rmse_ims[i],
                                                           r2_score_ims[i]))
+        print('Result without data correction: err\trmse\tr2')
+        print('        {}\t{}\t{}'.format(err_wo, rmse_wo, r2_score_wo))
         # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
         #                                                                Config.SCALER, i),
         #         pred_tm_invert2d)

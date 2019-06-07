@@ -105,7 +105,7 @@ FWBW_CONVLSTM_IMS = False
 # ----------- ARIMA Config ----------------------
 ARIMA_UPDATE = 7
 ARIMA_TESTING_TIME = 1
-ARIMA_MON_RATIO = 0.3
+ARIMA_MON_RATIO = 0.2
 
 ARIMA_IMS_STEP = 12
 ARIMA_IMS = False

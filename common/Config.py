@@ -78,7 +78,7 @@ FWBW_CONVLSTM_N_EPOCH = 20
 FWBW_CONVLSTM_BATCH_SIZE = 256
 
 FWBW_CONVLSTM_LAYERS = 2
-FWBW_CONVLSTM_FILTERS = [2, 4]
+FWBW_CONVLSTM_FILTERS = [2, 2]
 FWBW_CONVLSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
 FWBW_CONVLSTM_STRIDES = [[1, 1], [1, 1]]
 FWBW_CONVLSTM_DROPOUTS = [0.25, 0.25]
@@ -209,9 +209,9 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_NAME = 'Abilene2d'
 
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[0]
-GPU = 1
-SCALER = SCALERS[1]
+ALG = ALGS[7]
+GPU = 0
+SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------
 

@@ -114,10 +114,12 @@ class ConvLSTM_FWBW(AbstractModel):
 
         input_concate = Concatenate(axis=1)([input_flatten, fw_outputs_flatten, bw_outputs_flatten])
 
-        corr_data = Dense(2048, )(input_concate)
-        corr_data = Dense(1024, )(corr_data)
+        corr_data = Dense(1024, )(input_concate)
+        corr_data = Dropout(0.2)(corr_data)
         corr_data = Dense(512, )(corr_data)
+        corr_data = Dropout(0.2)(corr_data)
         corr_data = Dense(256, )(corr_data)
+        corr_data = Dropout(0.2)(corr_data)
         corr_data = Dense(self.wide * self.high * (self.n_timsteps - 2), )(corr_data)
 
         corr_data = Reshape((self.n_timsteps - 2, self.wide * self.high), name='corr_data')(corr_data)

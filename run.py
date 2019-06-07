@@ -36,8 +36,7 @@ def train():
         train_fwbw_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[7]:
         from algs.convlstm_fwbw import train_fwbw_convlstm
-        experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
-        train_fwbw_convlstm(data=data, experiment=experiment)
+        train_fwbw_convlstm(data=data)
     elif Config.ALG == Config.ALGS[8]:
         from algs.cnnlstm import train_cnnlstm
         experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')

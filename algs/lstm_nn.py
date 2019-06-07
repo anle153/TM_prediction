@@ -355,6 +355,8 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
     results_summary.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/results.csv'.format(data_name,
                                                                                   alg_name, tag, Config.SCALER),
                            index=False)
+    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
+
     print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
                                                            np.mean(np.array(rmse)),
                                                            np.mean(np.array(r2_score))))

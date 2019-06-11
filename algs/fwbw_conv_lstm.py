@@ -167,9 +167,6 @@ def ims_tm_prediction(init_data_labels, model):
 
         rnn_input_forward = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
-        rnn_input_backward = np.flip(rnn_input, axis=0)
-        rnn_input_backward = np.expand_dims(rnn_input_backward, axis=0)  # shape(1, timesteps, od, od , 2)
-
         # Prediction results from forward network
         predictX, predictX_backward = model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
 
@@ -223,7 +220,7 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
 
     for ts in tqdm(range(test_data.shape[0])):
 
-        if Config.FWBW_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP):
+        if Config.FWBW_CONV_LSTM_IMS and (ts <= test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP):
             ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.FWBW_CONV_LSTM_STEP, :, :, :],
                                            model=model)
         rnn_input = np.zeros(
@@ -232,10 +229,10 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
         rnn_input[:, :, :, 0] = tm_labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]
         rnn_input[:, :, :, 1] = labels[ts:(ts + Config.FWBW_CONV_LSTM_STEP)]
 
-        rnn_input_forward = np.expand_dims(rnn_input, axis=0)
+        rnn_input = np.expand_dims(rnn_input, axis=0)
 
         # Prediction results from forward network
-        predictX, predictX_backward = model.predict(rnn_input_forward)  # shape(1, timesteps, od, od , 1)
+        predictX, predictX_backward = model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
         predictX = np.reshape(predictX, newshape=(predictX.shape[0], test_data.shape[1], test_data.shape[2]))
 
@@ -456,11 +453,13 @@ def test_fwbw_conv_lstm(data):
     data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
+        assert Config.FWBW_CONV_LSTM_HIGH == 12
+        assert Config.FWBW_CONV_LSTM_WIDE == 12
+
     else:
         day_size = Config.GEANT_DAY_SIZE
-
-    if not Config.ALL_DATA:
-        data = data[0:Config.NUM_DAYS * day_size]
+        assert Config.FWBW_CONV_LSTM_HIGH == 23
+        assert Config.FWBW_CONV_LSTM_WIDE == 23
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)

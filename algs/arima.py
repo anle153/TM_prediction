@@ -193,7 +193,7 @@ def test_arima(data):
                 if (ts % (day_size * Config.ARIMA_UPDATE) == 0) and ts != 0:
                     print('|--- Update arima model at ts: {}'.format(ts))
                     try:
-                        model = build_auto_arima(history[-day_size * 30:])
+                        model = build_auto_arima(history[-day_size * Config.ARIMA_UPDATE:])
                     except:
                         pass
                 if Config.ARIMA_IMS:
@@ -275,3 +275,7 @@ def test_arima(data):
     print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
                                                            np.mean(np.array(rmse)),
                                                            np.mean(np.array(r2_score))))
+
+
+def run_prediction(test_data2d, test_data_normalized2d, init_data2d, model, scalers):
+    pass

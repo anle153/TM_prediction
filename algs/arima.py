@@ -104,9 +104,6 @@ def test_arima(data):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    if not Config.ALL_DATA:
-        data = data[0:day_size * Config.NUM_DAYS, :]
-
     train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
     if 'Abilene' in data_name:
         print('|--- Remove last 3 days in test data.')
@@ -121,7 +118,7 @@ def test_arima(data):
         flow_frame = pd.Series(train_data_normalized2d[:, flow_id])
         training_set_series.append(flow_frame)
 
-    tf = np.array([True, False])
+    tf = np.array([1.0, 0.0])
 
     results_summary = pd.DataFrame(index=range(Config.ARIMA_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
@@ -146,9 +143,9 @@ def test_arima(data):
     ims_pred_tm2d = np.zeros(
         (test_data_normalized2d.shape[0] - Config.ARIMA_IMS_STEP + 1, test_data_normalized2d.shape[1]))
 
-    if not os.path.isfile(
-            Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name, alg_name, tag, Config.SCALER, 0)):
-        train_arima(data)
+    # if not os.path.isfile(
+    #         Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name, alg_name, tag, Config.SCALER, 0)):
+    #     train_arima(data)
 
     # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
     #     np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
@@ -182,20 +179,19 @@ def test_arima(data):
             flow_ims_pred = np.zeros(shape=(test_data_normalized2d.shape[0] - Config.ARIMA_IMS_STEP + 1))
 
             # Load trained arima model
-            saved_model = open(Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name,
-                                                                                 alg_name,
-                                                                                 tag,
-                                                                                 Config.SCALER, flow_id), 'rb')
-            model = pickle.load(saved_model)
+            # saved_model = open(Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name,
+            #                                                                      alg_name,
+            #                                                                      tag,
+            #                                                                      Config.SCALER, flow_id), 'rb')
+            # model = pickle.load(saved_model)
 
             for ts in range(test_data_normalized2d.shape[0]):
 
-                if (ts % (day_size * Config.ARIMA_UPDATE) == 0) and ts != 0:
-                    print('|--- Update arima model at ts: {}'.format(ts))
-                    try:
-                        model = build_auto_arima(history[-day_size * Config.ARIMA_UPDATE:])
-                    except:
-                        pass
+                try:
+                    model = build_auto_arima(history[-Config.ARIMA_STEP:])
+                except:
+                    pass
+
                 if Config.ARIMA_IMS:
                     output = model.predict(n_periods=Config.ARIMA_IMS_STEP)
                     if ts <= (test_data_normalized2d.shape[0] - Config.ARIMA_IMS_STEP):
@@ -276,6 +272,3 @@ def test_arima(data):
                                                            np.mean(np.array(rmse)),
                                                            np.mean(np.array(r2_score))))
 
-
-def run_prediction(test_data2d, test_data_normalized2d, init_data2d, model, scalers):
-    pass

@@ -22,12 +22,11 @@ def print_fwbw_conv_lstm_info():
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_CONV_LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.FWBW_CONV_LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_STEP))
-        if Config.FWBW_IMS:
+        if Config.FWBW_CONV_LSTM_IMS:
             print('|--- IMS_STEP:\t{}'.format(Config.FWBW_CONV_LSTM_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_CONV_LSTM_TESTING_TIME))
-        print('|--- FW_BEST_CHECKPOINT:\t{}'.format(Config.FW_BEST_CHECKPOINT))
-        print('|--- BW_BEST_CHECKPOINT:\t{}'.format(Config.BW_BEST_CHECKPOINT))
+        print('|--- FWBW_BEST_CHECKPOINT:\t{}'.format(Config.FWBW_CONV_LSTM_BEST_CHECKPOINT))
         if not Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             print('|--- HYPERPARAMS:\t{}'.format(Config.FWBW_CONV_LSTM_HYPERPARAMS))
     else:

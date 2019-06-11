@@ -559,7 +559,7 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
         r2_score_wo = calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_wo_invert2d)
         rmse_wo = calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
 
-        if Config.FWBW_IMS:
+        if Config.FWBW_CONV_LSTM_IMS:
             # Calculate error for multistep-ahead-prediction
 
             ims_tm2d = np.reshape(np.copy(ims_tm), newshape=(ims_tm.shape[0], ims_tm.shape[1] * ims_tm.shape[2]))

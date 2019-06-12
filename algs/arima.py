@@ -204,9 +204,10 @@ def test_arima(data):
                 obs = test_data_normalized2d[ts, flow_id]
 
                 if np.any(np.isinf(yhat)):
-                    raise ValueError('Value is infinity!')
+                    yhat = np.max(training_set_series[flow_id].values)
+                    pass
                 elif np.any(np.isnan(yhat)):
-                    raise ValueError('Value is NaN!')
+                    yhat = np.min(training_set_series[flow_id].values)
 
                 # Semi-recursive predicting
                 if measured_flow[ts]:

@@ -157,13 +157,21 @@ def updating_historical_data_3d(rnn_input, pred_forward, pred_backward, labels):
 
 
 def ims_tm_prediction(init_data, init_labels, model):
-    multi_steps_tm = np.zeros(shape=(init_data_labels.shape[0] + Config.FWBW_CONV_LSTM_IMS_STEP,
-                                     init_data_labels.shape[1], init_data_labels.shape[2]))
+    multi_steps_tm = np.zeros(shape=(init_data.shape[0] + Config.FWBW_CONV_LSTM_IMS_STEP,
+                                     init_data.shape[1], init_data.shape[2]))
 
-    multi_steps_tm[0:init_data_labels.shape[0], :, :, :] = init_data_labels
+    multi_steps_tm[0:init_data.shape[0]] = init_data
+
+    labels = np.zeros(shape=(init_labels.shape[0] + Config.FWBW_CONV_LSTM_IMS_STEP,
+                             init_labels.shape[1], init_labels.shape[2]))
+    labels[0:init_labels.shape[0]] = init_labels
 
     for ts_ahead in range(Config.FWBW_CONV_LSTM_IMS_STEP):
-        rnn_input = multi_steps_tm[-Config.FWBW_CONV_LSTM_STEP:]  # shape(timesteps, od, od , 2)
+        rnn_input = np.zeros(
+            shape=(Config.FWBW_CONV_LSTM_STEP, Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, 2))
+
+        rnn_input[:, :, :, 0] = multi_steps_tm[ts_ahead:(ts_ahead + Config.FWBW_CONV_LSTM_STEP)]
+        rnn_input[:, :, :, 1] = labels[ts_ahead:(ts_ahead + Config.FWBW_CONV_LSTM_STEP)]
 
         rnn_input = np.expand_dims(rnn_input, axis=0)  # shape(1, timesteps, od, od , 2)
 
@@ -171,35 +179,35 @@ def ims_tm_prediction(init_data, init_labels, model):
         predictX, predictX_backward = model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
 
         predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, od, od , 1)
+        predictX = np.reshape(predictX, newshape=(predictX.shape[0],
+                                                  Config.FWBW_CONV_LSTM_WIDE,
+                                                  Config.FWBW_CONV_LSTM_HIGH))
 
-        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, od, od , 1)
+        predict_tm = np.copy(predictX[-1])
+
+        predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, #nflows)
 
         # Flipping the backward prediction
         predictX_backward = np.flip(predictX_backward, axis=0)
-        predictX_backward = np.reshape(predictX_backward,
-                                       newshape=(predictX_backward.shape[0], init_data_labels.shape[1],
-                                                 init_data_labels.shape[2]))
+        predictX_backward = np.reshape(predictX_backward, newshape=(predictX_backward.shape[0],
+                                                                    Config.FWBW_CONV_LSTM_WIDE,
+                                                                    Config.FWBW_CONV_LSTM_HIGH))
 
         # Correcting the imprecise input data
         rnn_pred_value = updating_historical_data_3d(
-            rnn_input=multi_steps_tm[ts_ahead:ts_ahead + Config.FWBW_CONV_LSTM_STEP, ],
+            rnn_input=multi_steps_tm[ts_ahead:ts_ahead + Config.FWBW_CONV_LSTM_STEP],
             pred_forward=predictX,
             pred_backward=predictX_backward,
-            labels=multi_steps_tm[ts_ahead:ts_ahead + Config.FWBW_CONV_LSTM_STEP, :, :, 1])
+            labels=labels[ts_ahead:ts_ahead + Config.FWBW_CONV_LSTM_STEP])
 
-        predict_tm = predictX[-1, :, :]
+        multi_steps_tm[(ts_ahead + 1):(ts_ahead + Config.FWBW_CONV_LSTM_STEP - 1)] = \
+            multi_steps_tm[(ts_ahead + 1):(ts_ahead + Config.FWBW_CONV_LSTM_STEP - 1)] * \
+            labels[(ts_ahead + 1):(ts_ahead + Config.FWBW_CONV_LSTM_STEP - 1)] + \
+            rnn_pred_value
 
-        sampling = np.zeros(shape=(Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, 1))
+        multi_steps_tm[ts_ahead + Config.FWBW_CONV_LSTM_STEP] = predict_tm
 
-        # Calculating the true value for the TM
-        new_input = predict_tm
-
-        # Concaternating the new tm to the final results
-        # Shape = (12, 12, 2)
-        new_input = np.concatenate([np.expand_dims(new_input, axis=2), sampling], axis=2)
-        multi_steps_tm[ts_ahead + Config.FWBW_CONV_LSTM_STEP] = new_input  # Shape = (timestep, 12, 12, 2)
-
-    return multi_steps_tm[-1, :, :, 0]
+    return multi_steps_tm[-1]
 
 
 def predict_fwbw_conv_lstm(initial_data, test_data, model):

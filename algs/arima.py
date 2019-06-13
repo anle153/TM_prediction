@@ -7,7 +7,7 @@ from pmdarima.arima import auto_arima
 from tqdm import tqdm
 
 from common import Config
-from common.DataPreprocessing import prepare_train_test_2d, data_scalling
+from common.DataPreprocessing import data_scalling, prepare_test_one_week
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 matplotlib.use('Agg')
@@ -53,7 +53,7 @@ def train_arima(data):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
+    train_data2d, test_data2d = prepare_test_one_week(data=data, day_size=day_size)
     if 'Abilene' in data_name:
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
@@ -104,15 +104,15 @@ def test_arima(data):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
     if 'Abilene' in data_name:
-        print('|--- Remove last 3 days in test data.')
-        test_data2d = test_data2d[0:-day_size * 3]
+        print('|--- Remove last 3 days in data.')
+        data = data[0:-day_size * 3]
+
+    train_data2d, test_data2d = prepare_test_one_week(data=data, day_size=day_size)
 
     train_data_normalized2d, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
                                                                                 [],
                                                                                 test_data2d)
-
     training_set_series = []
     for flow_id in range(train_data_normalized2d.shape[1]):
         flow_frame = pd.Series(train_data_normalized2d[:, flow_id])

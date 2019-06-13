@@ -47,6 +47,18 @@ def prepare_train_test_2d(data, day_size):
     return train_set, test_set
 
 
+def prepare_test_one_week(data, day_size):
+    n_timeslots = data.shape[0]
+    n_days = n_timeslots / day_size
+
+    train_size = n_days - 7
+
+    train_set = data[0:train_size * day_size]
+    test_set = data[-7 * day_size:]
+
+    return train_set, test_set
+
+
 def prepare_train_valid_test_2d(data, day_size):
     n_timeslots = data.shape[0]
     n_days = n_timeslots / day_size

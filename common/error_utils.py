@@ -198,6 +198,15 @@ def calculate_r2_score(y_true, y_pred):
     return r2
 
 
+def calculate_mape(y_true, y_pred):
+    y_true_flatten = y_true.flatten()
+    y_pred_flatten = y_pred.flatten()
+
+    mape = (np.abs(np.sum((y_pred_flatten - y_true_flatten) / y_true_flatten))) / y_true_flatten.size()
+
+    return mape
+
+
 def recovery_loss_3d(rnn_input, rnn_updated, measured_matrix):
     labels = measured_matrix.astype(int)
     r_l = []

@@ -66,7 +66,7 @@ class FWBW_CONV_LSTM(AbstractModel):
         fw_outputs = Dropout(0.25)(fw_outputs)
         fw_outputs = TimeDistributed(Dense(256, ))(fw_outputs)
         fw_outputs = Dropout(0.25)(fw_outputs)
-        fw_outputs = TimeDistributed(Dense(144, ), name='fw_outputs')(fw_outputs)
+        fw_outputs = TimeDistributed(Dense(self.wide * self.high, ), name='fw_outputs')(fw_outputs)
 
         bw_lstm_layer1 = ConvLSTM2D(filters=self.a_filters[0],
                                     kernel_size=self.kernel_sizes[0],
@@ -97,7 +97,7 @@ class FWBW_CONV_LSTM(AbstractModel):
         bw_outputs = Dropout(0.25)(bw_outputs)
         bw_outputs = TimeDistributed(Dense(256, ))(bw_outputs)
         bw_outputs = Dropout(0.25)(bw_outputs)
-        bw_outputs = TimeDistributed(Dense(144, ), name='bw_outputs')(bw_outputs)
+        bw_outputs = TimeDistributed(Dense(self.wide * self.high, ), name='bw_outputs')(bw_outputs)
 
         self.model = Model(inputs=input, outputs=[fw_outputs, bw_outputs], name='Model')
         self.model.compile(loss={'fw_outputs': 'mse', 'bw_outputs': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])

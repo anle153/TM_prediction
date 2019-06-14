@@ -204,11 +204,11 @@ RUN_MODES = ['train', 'test', 'plot']
 ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm', 'fwbw-convlstm',
         'cnnlstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
+DATA_SETS = ['Abilene2d', 'Geant2d']
 
-DATA_NAME = 'Geant2d'
-
-RUN_MODE = RUN_MODES[0]
-ALG = ALGS[2]
+DATA_NAME = DATA_SETS[0]
+RUN_MODE = RUN_MODES[1]
+ALG = ALGS[3]
 GPU = 0
 SCALER = SCALERS[5]
 

@@ -14,7 +14,7 @@ LSTM_IMS_STEP = 12
 
 LSTM_MON_RAIO = 0.30
 
-LSTM_BEST_CHECKPOINT = 100
+LSTM_BEST_CHECKPOINT = 3
 LSTM_TESTING_TIME = 10
 
 LSTM_IMS = False
@@ -207,8 +207,8 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 
 DATA_NAME = 'Geant2d'
 
-RUN_MODE = RUN_MODES[1]
-ALG = ALGS[3]
+RUN_MODE = RUN_MODES[0]
+ALG = ALGS[2]
 GPU = 0
 SCALER = SCALERS[5]
 

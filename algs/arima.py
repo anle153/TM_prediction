@@ -188,7 +188,7 @@ def test_arima(data):
             for ts in range(test_data_normalized2d.shape[0]):
 
                 try:
-                    model = build_auto_arima(history[-Config.ARIMA_STEP:])
+                    model = build_auto_arima(history[-day_size:])
                 except:
                     pass
 

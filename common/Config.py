@@ -8,13 +8,13 @@ LSTM_DROPOUT = 0.5
 LSTM_DEEP = False
 LSTM_DEEP_NLAYERS = 3
 
-LSTM_STEP = 26
+LSTM_STEP = 30
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
 LSTM_MON_RAIO = 0.30
 
-LSTM_BEST_CHECKPOINT = 2
+LSTM_BEST_CHECKPOINT = 100
 LSTM_TESTING_TIME = 10
 
 LSTM_IMS = False
@@ -205,11 +205,10 @@ ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb',
         'cnnlstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
 
+DATA_NAME = 'Geant2d'
 
-DATA_NAME = 'Abilene2d'
-
-RUN_MODE = RUN_MODES[1]
-ALG = ALGS[3]
+RUN_MODE = RUN_MODES[0]
+ALG = ALGS[2]
 GPU = 0
 SCALER = SCALERS[5]
 

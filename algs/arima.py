@@ -246,8 +246,7 @@ def test_arima(data):
         print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[running_time], err[running_time],
                                                                   rmse[running_time], r2_score[running_time],
                                                                   mape_ims[running_time], err_ims[running_time],
-                                                                  rmse_ims[running_time],
-                                                          r2_score_ims[running_time]))
+                                                                  rmse_ims[running_time], r2_score_ims[running_time]))
 
     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
     results_summary['mape'] = mape

@@ -8,7 +8,7 @@ LSTM_DROPOUT = 0.5
 LSTM_DEEP = False
 LSTM_DEEP_NLAYERS = 3
 
-LSTM_STEP = 20
+LSTM_STEP = 25
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
@@ -202,7 +202,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
 ALG = ALGS[2]
-GPU = 0
+GPU = 1
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

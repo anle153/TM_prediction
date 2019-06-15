@@ -64,9 +64,9 @@ class ConvLSTM(AbstractModel):
 
         flat_layer = Flatten()(BatchNormalization_layer2)
 
-        outputs = Dense(256, )(flat_layer)
-        outputs = Dropout(0.2)(outputs)
-        outputs = Dense(self.wide * self.high, )(outputs)
+        # outputs = Dense(256, )(flat_layer)
+        # outputs = Dropout(0.2)(outputs)
+        outputs = Dense(self.wide * self.high, )(flat_layer)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

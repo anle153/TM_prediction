@@ -607,8 +607,8 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
         print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
                                                                   mape_ims[i], err_ims[i], rmse_ims[i],
                                                           r2_score_ims[i]))
-        print('Result without data correction: err\trmse\tr2')
-        print('        {}\t{}\t{}'.format(err_wo, rmse_wo, r2_score_wo))
+        print('Result without data correction: mape \t err\trmse\tr2')
+        print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
 
     results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
     results_summary['mape'] = mape

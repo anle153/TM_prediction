@@ -181,7 +181,7 @@ def calculate_mape(y_true, y_pred):
 
     y_true_flatten[y_true_flatten == 0] = 10e-5
 
-    mape = (np.sum(np.abs((y_pred_flatten - y_true_flatten) / y_true_flatten))) / np.size(y_true_flatten)
+    mape = (np.sum(np.abs((y_true_flatten - y_pred_flatten) / y_true_flatten))) / np.size(y_true_flatten)
 
     return mape
 

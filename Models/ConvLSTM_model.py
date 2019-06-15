@@ -62,7 +62,7 @@ class ConvLSTM(AbstractModel):
 
         BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
 
-        flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
+        flat_layer = Flatten()(BatchNormalization_layer2)
 
         outputs = Dense(256, )(flat_layer)
         outputs = Dropout(0.2)(outputs)

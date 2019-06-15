@@ -283,7 +283,7 @@ elif ALG == ALGS[2]:
                                                                      LSTM_BATCH_SIZE,
                                                                      LSTM_HIDDEN_UNIT)
 elif ALG == ALGS[3]:
-    TAG = 'mon_{:2d}_update_{:2d}'.format(int(ARIMA_MON_RATIO * 100), ARIMA_UPDATE)
+    TAG = 'mon_{:2d}_steps_{:2d}'.format(int(ARIMA_MON_RATIO * 100), ARIMA_STEP)
 elif ALG == ALGS[4]:
     TAG = 'mon_{:2d}_update_{:2d}'.format(int(HOLT_WINTER_MON_RATIO * 100), HOLT_WINTER_UPDATE)
 elif ALG == ALGS[5]:

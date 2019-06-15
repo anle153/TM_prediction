@@ -572,9 +572,6 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
         measured_matrix2d = np.reshape(np.copy(measured_matrix),
                                        newshape=(measured_matrix.shape[0],
                                                  measured_matrix.shape[1] * measured_matrix.shape[2]))
-        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-        #                                                                       Config.SCALER, i),
-        #         pred_tm2d)
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
         pred_tm_wo_invert2d = scalers.inverse_transform(pred_tm2d_wo)
@@ -626,12 +623,6 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
                                                           r2_score_ims[i]))
         print('Result without data correction: err\trmse\tr2')
         print('        {}\t{}\t{}'.format(err_wo, rmse_wo, r2_score_wo))
-        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-        #                                                                Config.SCALER, i),
-        #         pred_tm_invert2d)
-        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-        #                                                                   Config.SCALER, i),
-        #         measured_matrix2d)
 
     results_summary['No.'] = range(Config.FWBW_CONV_LSTM_TESTING_TIME)
     results_summary['mape'] = mape

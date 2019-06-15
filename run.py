@@ -58,8 +58,7 @@ def test():
         test_conv_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import test_lstm_nn
-        experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
-        test_lstm_nn(data=data, experiment=experiment)
+        test_lstm_nn(data=data)
     elif Config.ALG == Config.ALGS[3]:
         from algs.arima import test_arima
         test_arima(data=data)

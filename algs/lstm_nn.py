@@ -214,8 +214,7 @@ def train_lstm_nn(data, experiment):
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
 
-    run_test(experiment, valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.LSTM_STEP:],
-             lstm_net, params, scalers)
+    run_test(valid_data2d, valid_data_normalized2d, lstm_net, scalers)
 
     return
 
@@ -237,13 +236,11 @@ def load_trained_model(input_shape, best_ckp):
     return lstm_net
 
 
-def test_lstm_nn(data, experiment):
+def test_lstm_nn(data):
     print('|-- Run model testing.')
     gpu = Config.GPU
 
-    params = Config.set_comet_params_lstm_nn()
-
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
     else:
         day_size = Config.GEANT_DAY_SIZE
@@ -253,7 +250,7 @@ def test_lstm_nn(data, experiment):
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
@@ -269,9 +266,10 @@ def test_lstm_nn(data, experiment):
 
         lstm_net = load_trained_model(input_shape, Config.LSTM_BEST_CHECKPOINT)
 
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
-                                                                      alg_name, tag, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                      Config.ALG, Config.TAG, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                Config.ALG, Config.TAG, Config.SCALER))
 
     results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
                                    columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
@@ -279,7 +277,8 @@ def test_lstm_nn(data, experiment):
 
     results_summary = run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary)
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results.csv'.format(data_name, alg_name, tag, Config.SCALER),
+                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME,
+                                                                 Config.ALG, Config.TAG, Config.SCALER),
                            index=False)
 
     return
@@ -301,34 +300,28 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
 
 
 def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary):
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
-
 
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
-    ims_test_set = ims_tm_test_data(test_data=test_data2d)
-    measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
-
-
     for i in range(Config.LSTM_TESTING_TIME):
         print('|--- Running time: {}'.format(i))
-        pred_tm2d, measured_matrix2d, ims_tm2d = predict_lstm_nn(init_data=init_data2d,
-                                                                 test_data=test_data_normalized2d,
+
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+
+        ims_test_set = ims_tm_test_data(test_data=test_data)
+        measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
+
+        pred_tm2d, measured_matrix2d, ims_tm2d = predict_lstm_nn(init_data=init_data_normalize,
+                                                                 test_data=test_data_normalize,
                                                                  model=lstm_net.model)
 
-        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-        #                                                                       Config.SCALER, i),
-        #         pred_tm2d)
-
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-        mape.append(calculate_mape(y_true=test_data2d, y_pred=pred_tm_invert2d))
+        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
 
-        err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-        r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-        rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
         if Config.LSTM_IMS:
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
@@ -362,8 +355,7 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-
-    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
+    print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
     print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
                                                                           np.mean(np.array(err)),

@@ -213,8 +213,21 @@ def train_lstm_nn(data, experiment):
         lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
     print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                      Config.ALG, Config.TAG, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                Config.ALG, Config.TAG, Config.SCALER))
 
-    run_test(valid_data2d, valid_data_normalized2d, lstm_net, scalers)
+    results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
+                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                            'rmse_ims'])
+
+    results_summary = run_test(valid_data2d, valid_data_normalized2d, lstm_net, scalers, results_summary)
+
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME,
+                                                                  Config.ALG, Config.TAG, Config.SCALER),
+                           index=False)
 
     return
 
@@ -255,9 +268,9 @@ def test_lstm_nn(data):
         test_data2d = test_data2d[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
-                                                                                valid_data2d,
-                                                                                test_data2d)
+    _, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
+                                                          valid_data2d,
+                                                          test_data2d)
 
     print("|--- Create LSTM model.")
     input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
@@ -300,7 +313,6 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
 
 
 def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary):
-
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
@@ -309,30 +321,30 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
 
         test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
 
-        ims_test_set = ims_tm_test_data(test_data=test_data)
-        measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
+        ims_test_data = ims_tm_test_data(test_data=test_data)
+        measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 
         pred_tm2d, measured_matrix2d, ims_tm2d = predict_lstm_nn(init_data=init_data_normalize,
                                                                  test_data=test_data_normalize,
                                                                  model=lstm_net.model)
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
 
+        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
         err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
         rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
         if Config.LSTM_IMS:
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
-            mape_ims.append(calculate_mape(y_true=ims_test_set, y_pred=ims_tm_invert2d))
+            mape_ims.append(calculate_mape(y_true=ims_test_data, y_pred=ims_tm_invert2d))
 
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                       y_true=ims_test_set,
+                                       y_true=ims_test_data,
                                        measured_matrix=measured_matrix_ims))
 
-            r2_score_ims.append(calculate_r2_score(y_true=ims_test_set, y_pred=ims_tm_invert2d))
-            rmse_ims.append(calculate_rmse(y_true=ims_test_set / 1000000, y_pred=ims_tm_invert2d / 1000000))
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_data, y_pred=ims_tm_invert2d))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_data / 1000000, y_pred=ims_tm_invert2d / 1000000))
 
         else:
             err_ims.append(0)

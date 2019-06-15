@@ -66,7 +66,7 @@ class ConvLSTM(AbstractModel):
 
         outputs = Dense(1024, )(flat_layer)
         outputs = Dropout(0.2)(outputs)
-        outputs = Dense(self.wide * self.high, )(flat_layer)
+        outputs = Dense(self.wide * self.high, )(outputs)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

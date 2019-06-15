@@ -343,7 +343,7 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
         print('Result: mape\terr\trmse\tr2 \t\t mape_ims\terr_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
                                                                   mape_ims[i], err_ims[i], rmse_ims[i],
-                                                          r2_score_ims[i]))
+                                                                  r2_score_ims[i]))
 
     results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
     results_summary['mape'] = mape

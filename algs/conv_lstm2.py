@@ -100,8 +100,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predictX = conv_lstm_model.predict(rnn_input)  # shape(1, timesteps, #nflows)
 
-        predictX = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
-        predict_tm = predictX[-1]
+        predict_tm = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
 
         predict_tm = np.reshape(predict_tm, newshape=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 

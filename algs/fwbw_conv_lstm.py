@@ -140,8 +140,8 @@ def updating_historical_data_3d(rnn_input, pred_forward, pred_backward, labels):
     considered_forward = pred_forward[0:-2, :, :]
     considered_backward = pred_backward[2:, :, :]
 
-    # updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
-    updated_rnn_input = (considered_rnn_input + considered_forward + considered_backward) / 3.0
+    updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
+    # updated_rnn_input = (considered_rnn_input + considered_forward + considered_backward) / 3.0
 
     sampling_measured_matrix = measured_block[1:-1]
     inv_sampling_measured_matrix = 1 - sampling_measured_matrix

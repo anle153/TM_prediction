@@ -2,6 +2,7 @@ import os
 
 from keras.layers import *
 from keras.models import Model
+from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -67,7 +68,10 @@ class ConvLSTM(AbstractModel):
         outputs = Dropout(0.25)(outputs)
         outputs = TimeDistributed(Dense(256, ))(outputs)
         outputs = Dropout(0.25)(outputs)
-        outputs = TimeDistributed(Dense(144, ))(outputs)
+        outputs = TimeDistributed(Dense(self.wide * self.high, ))(outputs)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
+    def plot_models(self):
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

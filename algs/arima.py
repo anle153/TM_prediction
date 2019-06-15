@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from common import Config
 from common.DataPreprocessing import data_scalling, prepare_test_one_week
-from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 matplotlib.use('Agg')
 
@@ -120,11 +120,12 @@ def test_arima(data):
 
     tf = np.array([1.0, 0.0])
 
-    results_summary = pd.DataFrame(index=range(Config.ARIMA_TESTING_TIME),
-                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
+    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
+                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                            'rmse_ims'])
 
-    err, r2_score, rmse = [], [], []
-    err_ims, r2_score_ims, rmse_ims = [], [], []
+    mape, err, r2_score, rmse = [], [], [], []
+    mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
     import os
     if not os.path.exists(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
@@ -230,6 +231,8 @@ def test_arima(data):
         measured_matrix2d = measured_matrix2d.astype(bool)
 
         # Calculate error
+        mape.append(calculate_mape(y_true=test_data2d, y_pred=pred_tm_invert2d))
+
         err.append(error_ratio(y_true=test_data2d,
                                y_pred=pred_tm_invert2d,
                                measured_matrix=measured_matrix2d))
@@ -240,6 +243,8 @@ def test_arima(data):
         if Config.ARIMA_IMS:
             ims_tm_invert2d = scalers.inverse_transform(ims_pred_tm2d)
 
+            mape_ims.append(calculate_mape(y_true=ims_test_set2d, y_pred=ims_tm_invert2d))
+
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
                                        y_true=ims_test_set2d,
                                        measured_matrix=measured_matrix_ims))
@@ -249,23 +254,28 @@ def test_arima(data):
             err_ims.append(0)
             r2_score_ims.append(0)
             rmse_ims.append(0)
+            mape_ims.append(0)
 
-        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time], rmse[running_time], r2_score[running_time],
-                                                          err_ims[running_time], rmse_ims[running_time],
+        print('Result: mape\terr\trmse\tr2 \t\t mape_ims\terr_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[running_time], err[running_time],
+                                                                  rmse[running_time], r2_score[running_time],
+                                                                  mape_ims[running_time], err_ims[running_time],
+                                                                  rmse_ims[running_time],
                                                           r2_score_ims[running_time]))
 
-        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-                                                                       Config.SCALER, running_time),
-                pred_tm_invert2d)
-        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-                                                                          Config.SCALER, running_time),
-                measured_matrix2d)
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                Config.SCALER, running_time),
+        #         pred_tm_invert2d)
+        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
+        #                                                                   Config.SCALER, running_time),
+        #         measured_matrix2d)
 
     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
+    results_summary['mape'] = mape
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse
+    results_summary['mape_ims'] = mape_ims
     results_summary['err_ims'] = err_ims
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
@@ -273,8 +283,10 @@ def test_arima(data):
     results_summary.to_csv(Config.RESULTS_PATH +
                            '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
                            index=False)
-    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
-    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-                                                           np.mean(np.array(rmse)),
-                                                           np.mean(np.array(r2_score))))
 
+    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
+
+    print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
+                                                                          np.mean(np.array(err)),
+                                                                          np.mean(np.array(rmse)),
+                                                                          np.mean(np.array(r2_score))))

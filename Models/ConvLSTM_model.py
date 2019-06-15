@@ -62,10 +62,10 @@ class ConvLSTM(AbstractModel):
 
         BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
 
-        flat_layer = Flatten()(BatchNormalization_layer2)
+        outputs = Flatten()(BatchNormalization_layer2)
 
-        outputs = Dense(1024, )(flat_layer)
-        outputs = Dropout(0.2)(outputs)
+        # outputs = Dense(1024, )(outputs)
+        # outputs = Dropout(0.2)(outputs)
         outputs = Dense(self.wide * self.high, )(outputs)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')

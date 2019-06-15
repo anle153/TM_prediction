@@ -189,7 +189,7 @@ def test_arima(data):
             for ts in range(test_data_normalized2d.shape[0]):
 
                 try:
-                    model = build_auto_arima(history[-day_size:])
+                    model = build_auto_arima(history[-Config.ARIMA_STEP:])
                 except:
                     pass
 
@@ -281,7 +281,7 @@ def test_arima(data):
     results_summary['rmse_ims'] = rmse_ims
 
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
+                           '{}-{}-{}-{}/Test_results.csv'.format(data_name, alg_name, tag, Config.SCALER),
                            index=False)
 
     print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))

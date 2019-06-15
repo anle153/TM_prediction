@@ -9,7 +9,7 @@ from Models.ConvLSTM_model import ConvLSTM
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, \
-    calculate_rmse
+    calculate_rmse, calculate_mape
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True

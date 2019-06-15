@@ -4,7 +4,10 @@ from math import sqrt
 
 import matplotlib as plt
 import numpy as np
+from scipy.stats import sem, t
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+CONFIDENCE = 0.95
 
 
 def plot_errors(x_axis, xlabel, errors, filename, title='', saving_path='/home/anle/TM_estimation_figures/'):
@@ -285,6 +288,15 @@ def error_ratio(y_true, y_pred, measured_matrix):
         return 0
     else:
         return e1 / e2
+
+
+def calculate_confident_interval(data):
+    n = len(data)
+    std_err = sem(data)
+
+    h = std_err * t.ppf((1 + CONFIDENCE) / 2, n - 1)
+
+    return h
 
 
 def normalized_mean_absolute_error(y_true, y_hat):

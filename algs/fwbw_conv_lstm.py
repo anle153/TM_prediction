@@ -443,8 +443,18 @@ def train_fwbw_conv_lstm(data):
         fwbw_conv_lstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
     # --------------------------------------------------------------------------------------------------------------
-    run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fwbw_conv_lstm_net, scalers)
+    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
+                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                            'rmse_ims'])
+
+    results_summary = run_test(valid_data2d, valid_data_normalized2d,
+                               train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+                               fwbw_conv_lstm_net, scalers, results_summary)
+
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                 Config.SCALER),
+                           index=False)
 
     return
 
@@ -461,7 +471,6 @@ def ims_tm_test_data(test_data):
 
 def test_fwbw_conv_lstm(data):
     print('|-- Run model testing.')
-    gpu = Config.GPU
 
     data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
@@ -488,40 +497,41 @@ def test_fwbw_conv_lstm(data):
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
+    with tf.device('/device:GPU:{}'.format(Config.GPU)):
         fwbw_conv_lstm_net = load_trained_models(input_shape, Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
-    run_test(test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-             fwbw_conv_lstm_net, scalers)
-
-    return
-
-
-def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_net, scalers):
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                      Config.ALG, Config.TAG, Config.SCALER)):
+        os.makedirs(
+            Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
     results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
+
+    results_summary = run_test(test_data2d, test_data_normalized2d,
+                               valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
+                               fwbw_conv_lstm_net, scalers, results_summary)
+
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                 Config.SCALER),
+                           index=False)
+
+    return
+
+
+def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_net, scalers, results_summary):
+    alg_name = Config.ALG
+    tag = Config.TAG
+    data_name = Config.DATA_NAME
 
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
     measured_matrix_ims2d = np.zeros((test_data2d.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1,
                                       Config.FWBW_CONV_LSTM_WIDE * Config.FWBW_CONV_LSTM_HIGH))
-    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
-    #     np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
-    #             test_data2d)
-    #
-    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-    #     np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
-    #             test_data_normalized2d)
 
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
-                                                                      alg_name, tag, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
@@ -614,10 +624,6 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
-                           index=False)
-
     print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
 
     print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
@@ -625,4 +631,4 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
                                                                           np.mean(np.array(rmse)),
                                                                           np.mean(np.array(r2_score))))
 
-    return
+    return results_summary

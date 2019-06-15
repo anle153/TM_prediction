@@ -64,9 +64,7 @@ class ConvLSTM(AbstractModel):
 
         flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
 
-        outputs = Dense(1024, )(flat_layer)
-        outputs = Dropout(0.5)(outputs)
-        outputs = Dense(512, )(outputs)
+        outputs = Dense(256, )(flat_layer)
         outputs = Dropout(0.5)(outputs)
         outputs = Dense(self.wide * self.high, )(outputs)
 

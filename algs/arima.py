@@ -101,7 +101,7 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    idx = np.random.random_integers(Config.ARIMA_STEP, test_data2d.shape[0] - day_size * 2 - 10)
+    idx = np.random.random_integers(Config.ARIMA_STEP, test_data2d.shape[0] - day_size * Config.ARIMA_TEST_DAYS - 10)
 
     test_data_normalize = test_data_normalized2d[idx:idx + day_size * 2]
     init_data_normalize = test_data_normalized2d[idx - Config.ARIMA_STEP: idx]
@@ -130,7 +130,7 @@ def test_arima(data):
 
     tf = np.array([1.0, 0.0])
 
-    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
+    results_summary = pd.DataFrame(index=range(Config.ARIMA_TESTING_TIME),
                                    columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 

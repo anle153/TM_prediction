@@ -1,38 +1,11 @@
-import datetime
-import os
 from math import sqrt
 
-import matplotlib as plt
 import numpy as np
 from scipy.stats import sem, t
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 CONFIDENCE = 0.95
 
-
-def plot_errors(x_axis, xlabel, errors, filename, title='', saving_path='/home/anle/TM_estimation_figures/'):
-    now = datetime.datetime.now()
-
-    if not os.path.exists(saving_path):
-        os.makedirs(saving_path)
-
-    plt.title('Errors\n' + title)
-    plt.plot(x_axis, errors[:, 0], label='NMAE')
-    plt.plot(x_axis, errors[:, 1], label='NMSE')
-    plt.xlabel(xlabel)
-    if errors.shape[1] == 4:
-        plt.plot(x_axis, errors[:, 3], label='Error_ratio')
-    plt.legend()
-
-    plt.savefig(saving_path + str(now) + '_Errors_' + filename)
-    plt.close()
-
-    plt.title('R2-Score')
-    plt.plot(x_axis, errors[:, 2])
-    plt.xlabel(xlabel)
-    plt.savefig(saving_path + str(now) + '_R2_Score_' + filename)
-    plt.close()
-    print('--- Saving figures at %s ---' % saving_path)
 
 
 def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_matrix, hyperparams):
@@ -205,7 +178,7 @@ def calculate_mape(y_true, y_pred):
     y_true_flatten = y_true.flatten()
     y_pred_flatten = y_pred.flatten()
 
-    mape = (np.abs(np.sum((y_pred_flatten - y_true_flatten) / y_true_flatten))) / y_true_flatten.size()
+    mape = (np.sum(np.abs((y_pred_flatten - y_true_flatten) / y_true_flatten))) / np.size(y_true_flatten)
 
     return mape
 

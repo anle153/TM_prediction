@@ -148,7 +148,7 @@ def load_trained_models(input_shape, best_ckp):
     return conv_lstm_net
 
 
-def train_conv_lstm(data, experiment):
+def train_conv_lstm(data):
     print('|-- Run model training.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:
@@ -257,7 +257,7 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def test_conv_lstm(data, experiment):
+def test_conv_lstm(data):
     print('|-- Run model testing.')
     if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE

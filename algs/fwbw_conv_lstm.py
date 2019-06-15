@@ -477,8 +477,7 @@ def ims_tm_test_data(test_data):
 def test_fwbw_conv_lstm(data):
     print('|-- Run model testing.')
 
-    data_name = Config.DATA_NAME
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
         assert Config.FWBW_CONV_LSTM_HIGH == 12
         assert Config.FWBW_CONV_LSTM_WIDE == 12
@@ -492,7 +491,7 @@ def test_fwbw_conv_lstm(data):
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
@@ -540,9 +539,6 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
 
 
 def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, results_summary):
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
 
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
@@ -634,7 +630,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
+    print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
     print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
                                                                           np.mean(np.array(err)),

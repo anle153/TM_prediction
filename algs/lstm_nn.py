@@ -24,7 +24,7 @@ def plot_test_data(prefix, raw_data, pred, current_data):
     from matplotlib import pyplot as plt
     for flow_x in range(raw_data.shape[1]):
         plt.plot(raw_data[:, flow_x], label='Actual')
-        plt.plot(pred[:, flow_x], label='Pred_fw')
+        plt.plot(pred[:, flow_x], label='Pred')
         plt.plot(current_data[:, flow_x], label='Current_pred')
 
         plt.legend()
@@ -243,7 +243,6 @@ def test_lstm_nn(data, experiment):
 
     params = Config.set_comet_params_lstm_nn()
 
-    data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
         day_size = Config.ABILENE_DAY_SIZE
     else:
@@ -270,19 +269,42 @@ def test_lstm_nn(data, experiment):
 
         lstm_net = load_trained_model(input_shape, Config.LSTM_BEST_CHECKPOINT)
 
-    run_test(experiment, test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.LSTM_STEP:],
-             lstm_net, params, scalers)
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
+                                                                      alg_name, tag, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
+
+    results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
+                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                            'rmse_ims'])
+
+    results_summary = run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary)
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/Test_results.csv'.format(data_name, alg_name, tag, Config.SCALER),
+                           index=False)
+
     return
 
 
-def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_net, params, scalers):
+def prepare_test_set(test_data2d, test_data_normalized2d):
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    idx = np.random.random_integers(Config.LSTM_STEP, test_data2d.shape[0] - day_size * 2 - 10)
+
+    test_data_normalize = test_data_normalized2d[idx:idx + day_size * 2]
+    init_data_normalize = test_data_normalized2d[idx - Config.LSTM_STEP: idx]
+    test_data = test_data2d[idx:idx + day_size * 2]
+
+    return test_data_normalize, init_data_normalize, test_data
+
+
+def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary):
     alg_name = Config.ALG
     tag = Config.TAG
     data_name = Config.DATA_NAME
 
-    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
-                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
-                                            'rmse_ims'])
 
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
@@ -290,17 +312,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
     ims_test_set = ims_tm_test_data(test_data=test_data2d)
     measured_matrix_ims = np.zeros(shape=ims_test_set.shape)
 
-    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
-    #     np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
-    #             test_data2d)
-    #
-    # if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-    #     np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
-    #             test_data_normalized2d)
-
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
-                                                                      alg_name, tag, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
 
     for i in range(Config.LSTM_TESTING_TIME):
         print('|--- Running time: {}'.format(i))
@@ -341,13 +352,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
                                                                   mape_ims[i], err_ims[i], rmse_ims[i],
                                                           r2_score_ims[i]))
 
-        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-        #                                                                Config.SCALER, i),
-        #         pred_tm_invert2d)
-        # np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-        #                                                                   Config.SCALER, i),
-        #         measured_matrix2d)
-
     results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
     results_summary['mape'] = mape
     results_summary['err'] = err
@@ -358,9 +362,6 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
-                           index=False)
 
     print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
 
@@ -368,3 +369,4 @@ def run_test(experiment, test_data2d, test_data_normalized2d, init_data2d, lstm_
                                                                           np.mean(np.array(err)),
                                                                           np.mean(np.array(rmse)),
                                                                           np.mean(np.array(r2_score))))
+    return results_summary

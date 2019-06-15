@@ -1,5 +1,6 @@
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed
 from keras.models import Sequential
+from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -78,3 +79,6 @@ class lstm(AbstractModel):
             Bidirectional(LSTM(self.hidden, return_sequences=True), input_shape=input_shape))
         self.model.add(Dropout(drop_out))
         self.model.add(TimeDistributed(Dense(1)))
+
+    def plot_models(self):
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

@@ -19,8 +19,7 @@ def train():
         train_conv_lstm(data=data, experiment=experiment)
     elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import train_lstm_nn
-        experiment = Experiment(project_name='tmp-lstm-nn', api_key='RzFughRSAY2raEySCf69bjiFn')
-        train_lstm_nn(data=data, experiment=experiment)
+        train_lstm_nn(data=data)
     elif Config.ALG == Config.ALGS[3]:
         from algs.arima import train_arima
         train_arima(data=data)

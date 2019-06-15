@@ -15,23 +15,6 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
-def plot_test_data(prefix, raw_data, pred, current_data):
-    saving_path = Config.RESULTS_PATH + 'plot_check_lstm/'
-
-    if not os.path.exists(saving_path):
-        os.makedirs(saving_path)
-
-    from matplotlib import pyplot as plt
-    for flow_x in range(raw_data.shape[1]):
-        plt.plot(raw_data[:, flow_x], label='Actual')
-        plt.plot(pred[:, flow_x], label='Pred')
-        plt.plot(current_data[:, flow_x], label='Current_pred')
-
-        plt.legend()
-        plt.savefig(saving_path + '{}_flow_{:02d}.png'.format(prefix, flow_x))
-        plt.close()
-
-
 def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
     dataX = np.zeros(shape=(data.shape[1], Config.LSTM_STEP, 2))
@@ -123,32 +106,28 @@ def predict_lstm_nn(init_data, test_data, model):
 
 def build_model(input_shape):
     print('|--- Build models.')
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
 
     net = lstm(input_shape=input_shape,
                hidden=Config.LSTM_HIDDEN_UNIT,
                drop_out=Config.LSTM_DROPOUT,
-               alg_name=alg_name, tag=tag, check_point=True,
-               saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
+               alg_name=Config.ALG, tag=Config.TAG, check_point=True,
+               saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                     Config.SCALER))
 
     if Config.LSTM_DEEP:
         net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
     else:
         net.seq2seq_model_construction()
 
+    net.plot_models()
+
     return net
 
 
-def train_lstm_nn(data, experiment):
+def train_lstm_nn(data):
     print('|-- Run model training.')
-    gpu = Config.GPU
 
-    params = Config.set_comet_params_lstm_nn()
-
-    data_name = Config.DATA_NAME
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
     else:
         day_size = Config.GEANT_DAY_SIZE
@@ -162,7 +141,7 @@ def train_lstm_nn(data, experiment):
 
     input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
+    with tf.device('/device:GPU:{}'.format(Config.GPU)):
         lstm_net = build_model(input_shape)
 
     if not Config.LSTM_VALID_TEST or \
@@ -208,11 +187,10 @@ def train_lstm_nn(data, experiment):
 
             if training_history is not None:
                 lstm_net.plot_training_history(training_history)
-                experiment.log_parameters(params)
     else:
         lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
-    print('---------------------------------LSTM_NET SUMMARY---------------------------------')
     print(lstm_net.model.summary())
+
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
                                                                       Config.ALG, Config.TAG, Config.SCALER)):
         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
@@ -251,15 +229,11 @@ def load_trained_model(input_shape, best_ckp):
 
 def test_lstm_nn(data):
     print('|-- Run model testing.')
-    gpu = Config.GPU
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
     else:
         day_size = Config.GEANT_DAY_SIZE
-
-    if not Config.ALL_DATA:
-        data = data[0:Config.NUM_DAYS * day_size]
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
@@ -275,7 +249,7 @@ def test_lstm_nn(data):
     print("|--- Create LSTM model.")
     input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
+    with tf.device('/device:GPU:{}'.format(Config.GPU)):
 
         lstm_net = load_trained_model(input_shape, Config.LSTM_BEST_CHECKPOINT)
 

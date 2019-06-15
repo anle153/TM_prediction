@@ -52,7 +52,7 @@ class ConvLSTM(AbstractModel):
 
         lstm_layer2 = ConvLSTM2D(filters=self.a_filters[1],
                                  kernel_size=self.kernel_sizes[1],
-                                 strides=[2, 2],
+                                 strides=[1, 1],
                                  padding='same',
                                  dropout=self.dropout[1],
                                  return_sequences=True,

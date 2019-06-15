@@ -520,8 +520,8 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
 
     idx = np.random.random_integers(Config.FWBW_CONV_LSTM_STEP, test_data2d.shape[0] - day_size * 2 - 10)
 
-    test_data_normalize = test_data_normalized2d[idx:idx + day_size * 2]
-    init_data_normalize = test_data_normalized2d[idx - Config.FWBW_CONV_LSTM_STEP: idx]
+    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 2])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.FWBW_CONV_LSTM_STEP: idx])
     test_data = test_data2d[idx:idx + day_size * 2]
 
     return test_data_normalize, init_data_normalize, test_data

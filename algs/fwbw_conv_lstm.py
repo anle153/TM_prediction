@@ -576,6 +576,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
         rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
+        mape_wo = calculate_mape(y_true=test_data, y_pred=pred_tm_wo_invert2d)
         err_wo = error_ratio(y_true=test_data, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
         r2_score_wo = calculate_r2_score(y_true=test_data, y_pred=pred_tm_wo_invert2d)
         rmse_wo = calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)

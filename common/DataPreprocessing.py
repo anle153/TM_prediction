@@ -135,7 +135,7 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, da
     channel = input_shape[3]
     dataX = np.zeros(
         ((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide, high, channel))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide * high))
+    dataY = np.zeros(((data.shape[0] - ntimesteps) * data_time, wide * high))
 
     for time in range(data_time):
         _labels = np.random.choice(_tf,
@@ -154,8 +154,8 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, da
 
             dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
 
-            _y = data[(idx + 1):(idx + ntimesteps + 1)]
-            _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
+            _y = data[idx + ntimesteps]
+            _y = np.reshape(_y, newshape=(wide * high))
 
             dataY[idx + time * (data.shape[0] - ntimesteps)] = _y
 

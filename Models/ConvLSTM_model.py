@@ -64,11 +64,11 @@ class ConvLSTM(AbstractModel):
 
         flat_layer = TimeDistributed(Flatten())(BatchNormalization_layer2)
 
-        outputs = TimeDistributed(Dense(1024, ))(flat_layer)
+        outputs = Dense(1024, )(flat_layer)
         outputs = Dropout(0.5)(outputs)
-        outputs = TimeDistributed(Dense(512, ))(outputs)
+        outputs = Dense(512, )(outputs)
         outputs = Dropout(0.5)(outputs)
-        outputs = TimeDistributed(Dense(self.wide * self.high, ))(outputs)
+        outputs = Dense(self.wide * self.high, )(outputs)
 
         self.model = Model(inputs=input, outputs=outputs, name='Model')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

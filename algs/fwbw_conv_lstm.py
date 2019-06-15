@@ -443,12 +443,17 @@ def train_fwbw_conv_lstm(data):
         fwbw_conv_lstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
     # --------------------------------------------------------------------------------------------------------------
+
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                      Config.ALG, Config.TAG, Config.SCALER)):
+        os.makedirs(
+            Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
+
     results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
                                    columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
     results_summary = run_test(valid_data2d, valid_data_normalized2d,
-                               train_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
                                fwbw_conv_lstm_net, scalers, results_summary)
 
     results_summary.to_csv(Config.RESULTS_PATH +
@@ -509,9 +514,7 @@ def test_fwbw_conv_lstm(data):
                                    columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
-    results_summary = run_test(test_data2d, test_data_normalized2d,
-                               valid_data_normalized2d[-Config.FWBW_CONV_LSTM_STEP:],
-                               fwbw_conv_lstm_net, scalers, results_summary)
+    results_summary = run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, results_summary)
 
     results_summary.to_csv(Config.RESULTS_PATH +
                            '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
@@ -521,7 +524,22 @@ def test_fwbw_conv_lstm(data):
     return
 
 
-def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_net, scalers, results_summary):
+def prepare_test_set(test_data2d, test_data_normalized2d):
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    idx = np.random.random_integers(Config.FWBW_CONV_LSTM_STEP, test_data2d.shape[0] - day_size * 2 - 10)
+
+    test_data_normalize = test_data_normalized2d[idx:idx + day_size * 2]
+    init_data_normalize = test_data_normalized2d[idx - Config.FWBW_CONV_LSTM_STEP: idx]
+    test_data = test_data2d[idx:idx + day_size * 2]
+
+    return test_data_normalize, init_data_normalize, test_data
+
+
+def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, results_summary):
     alg_name = Config.ALG
     tag = Config.TAG
     data_name = Config.DATA_NAME
@@ -529,22 +547,23 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
-    measured_matrix_ims2d = np.zeros((test_data2d.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1,
-                                      Config.FWBW_CONV_LSTM_WIDE * Config.FWBW_CONV_LSTM_HIGH))
-
-
     for i in range(Config.FWBW_CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
 
-        init_data = np.reshape(init_data2d, newshape=(init_data2d.shape[0],
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+
+        init_data_normalize = np.reshape(init_data_normalize, newshape=(init_data_normalize.shape[0],
                                                       Config.FWBW_CONV_LSTM_WIDE,
                                                       Config.FWBW_CONV_LSTM_HIGH))
-        test_data_normalized = np.reshape(test_data_normalized2d, newshape=(test_data_normalized2d.shape[0],
-                                                                            Config.FWBW_CONV_LSTM_WIDE,
-                                                                            Config.FWBW_CONV_LSTM_HIGH))
+        test_data_normalize = np.reshape(test_data_normalize, newshape=(test_data_normalize.shape[0],
+                                                                        Config.FWBW_CONV_LSTM_WIDE,
+                                                                        Config.FWBW_CONV_LSTM_HIGH))
 
-        pred_tm, measured_matrix, ims_tm, pred_tm_wo_corr = predict_fwbw_conv_lstm(initial_data=init_data,
-                                                                                   test_data=test_data_normalized,
+        measured_matrix_ims2d = np.zeros((test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1,
+                                          Config.FWBW_CONV_LSTM_WIDE * Config.FWBW_CONV_LSTM_HIGH))
+
+        pred_tm, measured_matrix, ims_tm, pred_tm_wo_corr = predict_fwbw_conv_lstm(initial_data=init_data_normalize,
+                                                                                   test_data=test_data_normalize,
                                                                                    model=fwbw_conv_lstm_net.model)
 
         pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
@@ -570,14 +589,14 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
         elif np.any(np.isnan(pred_tm_wo_invert2d)):
             raise ValueError('Value is NaN!')
 
-        mape.append(calculate_mape(y_true=test_data2d, y_pred=pred_tm_invert2d))
-        err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-        r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-        rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
+        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
-        err_wo = error_ratio(y_true=test_data2d, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
-        r2_score_wo = calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_wo_invert2d)
-        rmse_wo = calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
+        err_wo = error_ratio(y_true=test_data, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
+        r2_score_wo = calculate_r2_score(y_true=test_data, y_pred=pred_tm_wo_invert2d)
+        rmse_wo = calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
 
         if Config.FWBW_CONV_LSTM_IMS:
             # Calculate error for multistep-ahead-prediction
@@ -586,7 +605,7 @@ def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_conv_lstm_ne
 
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
-            ims_ytrue2d = ims_tm_test_data(test_data=test_data2d)
+            ims_ytrue2d = ims_tm_test_data(test_data=test_data)
 
             mape_ims.append(calculate_mape(y_true=ims_ytrue2d, y_pred=ims_tm_invert2d))
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,

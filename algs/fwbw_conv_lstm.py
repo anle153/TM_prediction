@@ -143,12 +143,7 @@ def updating_historical_data_3d(rnn_input, pred_forward, pred_backward, labels):
     updated_rnn_input = considered_rnn_input * alpha + considered_forward * beta + considered_backward * gamma
     # updated_rnn_input = (considered_rnn_input + considered_forward + considered_backward) / 3.0
 
-    sampling_measured_matrix = measured_block[1:-1]
-    inv_sampling_measured_matrix = 1 - sampling_measured_matrix
-
-    rnn_pred_value = updated_rnn_input * inv_sampling_measured_matrix
-
-    return rnn_pred_value
+    return updated_rnn_input
 
 
 def ims_tm_prediction(init_data, init_labels, model):
@@ -271,15 +266,15 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
                                        newshape=(predictX_backward.shape[0], test_data.shape[1], test_data.shape[2]))
 
         # Correcting the imprecise input data
-        rnn_pred_value = updating_historical_data_3d(rnn_input=tm[ts:ts + Config.FWBW_CONV_LSTM_STEP],
+        corrected_data = updating_historical_data_3d(rnn_input=tm[ts:ts + Config.FWBW_CONV_LSTM_STEP],
                                                      pred_forward=predictX,
                                                      pred_backward=predictX_backward,
                                                      labels=labels[ts:ts + Config.FWBW_CONV_LSTM_STEP])
 
-        tm[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] = \
-            tm[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] * \
-            labels[(ts + 1):(ts + Config.FWBW_CONV_LSTM_STEP - 1)] + \
-            rnn_pred_value
+        measured_data = tm[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] * labels[
+                                                                         ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1]
+        pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1])
+        tm[ts + 1:ts + Config.FWBW_CONV_LSTM_STEP - 1] = measured_data + pred_data
 
         if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1], test_data.shape[2]),

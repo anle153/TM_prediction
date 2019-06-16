@@ -254,17 +254,19 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
 
         predict_tm = np.copy(predictX[-1])
 
-        predictX_no_update, _ = model.predict(rnn_input)  # shape(1, timesteps, od, od , 1)
+        predictX_no_update, _ = model.predict(rnn_input_no_update)  # shape(1, timesteps, od, od , 1)
         predictX_no_update = np.squeeze(predictX_no_update, axis=0)  # shape(timesteps, #nflows)
         predictX_no_update = np.reshape(predictX_no_update, newshape=(predictX_no_update.shape[0],
                                                                       test_data.shape[1], test_data.shape[2]))
 
         predict_tm_no_update = np.copy(predictX_no_update[-1])
 
+        # --------------------------------------------------------------------------------------------------------------
+
         predictX_backward = np.squeeze(predictX_backward, axis=0)  # shape(timesteps, #nflows)
 
         # Flipping the backward prediction
-        predictX_backward = np.flip(predictX_backward, axis=0)
+        # predictX_backward = np.flip(predictX_backward, axis=0)
         predictX_backward = np.reshape(predictX_backward,
                                        newshape=(predictX_backward.shape[0], test_data.shape[1], test_data.shape[2]))
 
@@ -553,8 +555,10 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
                                                                                    model=fwbw_conv_lstm_net.model)
 
         pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
-        pred_tm2d_wo = np.reshape(np.copy(pred_tm_wo_corr), newshape=(
-        pred_tm_wo_corr.shape[0], pred_tm_wo_corr.shape[1] * pred_tm_wo_corr.shape[2]))
+        pred_tm2d_wo = np.reshape(np.copy(pred_tm_wo_corr),
+                                  newshape=(pred_tm_wo_corr.shape[0],
+                                            pred_tm_wo_corr.shape[1] * pred_tm_wo_corr.shape[2]))
+
         measured_matrix2d = np.reshape(np.copy(measured_matrix),
                                        newshape=(measured_matrix.shape[0],
                                                  measured_matrix.shape[1] * measured_matrix.shape[2]))

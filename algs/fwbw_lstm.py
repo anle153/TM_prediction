@@ -8,8 +8,7 @@ from tqdm import tqdm
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
-from common.error_utils import error_ratio, calculate_r2_score, \
-    calculate_rmse
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -100,8 +99,9 @@ def calculate_confident_factors(measured_block, forward_loss, backward_loss):
     return alpha, beta, gamma
 
 
-def data_correction(tm_pred, pred_forward, pred_backward, measured_block):
-    rnn_input = np.copy(tm_pred).T  # shape = (#step, #nflows)
+def data_correction(rnn_input, pred_forward, pred_backward, labels):
+    rnn_input = np.copy(rnn_input).T  # shape = (#step, #nflows)
+    labels = np.copy(labels)
 
     forward_loss, backward_loss = calculate_forward_backward_loss(measured_block=measured_block,
                                                                   pred_forward=pred_forward,
@@ -157,8 +157,12 @@ def predict_fwbw_lstm(initial_data, test_data, model):
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
+        rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
+                                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+
         # Get the TM prediction of next time slot
-        pred_data, corr_data = model.predict(rnn_input)
+        fw_outputs, bw_outputs = model.predict(rnn_input)
+        _fw_outputs, _ = model.predict(rnn_input)
 
         # Data Correction
         updated_data = corr_data.T
@@ -212,6 +216,7 @@ def build_model(input_shape):
                                alg_name=alg_name, tag=tag, check_point=True,
                                saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
                                                                                      Config.SCALER))
+    fwbw_net.construct_fwbw_lstm()
     print(fwbw_net.model.summary())
     fwbw_net.plot_models()
     return fwbw_net
@@ -276,12 +281,12 @@ def train_fwbw_lstm(data, experiment):
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
             training_fw_history = fwbw_net.model.fit(x=trainX,
-                                                     y={'pred_data': trainY_1, 'corr_data': trainY_2},
+                                                     y={'fw_output': trainY_1, 'bw_output': trainY_2},
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=(
-                                                     validX, {'pred_data': validY_1, 'corr_data': validY_2}),
+                                                         validX, {'fw_output': validY_1, 'bw_output': validY_2}),
                                                      shuffle=True,
                                                      initial_epoch=from_epoch,
                                                      verbose=2)
@@ -289,12 +294,12 @@ def train_fwbw_lstm(data, experiment):
             print('|--- Training new forward model.')
 
             training_fw_history = fwbw_net.model.fit(x=trainX,
-                                                     y={'pred_data': trainY_1, 'corr_data': trainY_2},
+                                                     y={'fw_output': trainY_1, 'bw_output': trainY_2},
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=(
-                                                     validX, {'pred_data': validY_1, 'corr_data': validY_2}),
+                                                         validX, {'fw_output': validY_1, 'bw_output': validY_2}),
                                                      shuffle=True,
                                                      verbose=2)
 
@@ -307,6 +312,20 @@ def train_fwbw_lstm(data, experiment):
     # --------------------------------------------------------------------------------------------------------------
     run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_LSTM_STEP:],
              fwbw_net, params, scalers)
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                      Config.ALG, Config.TAG, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                Config.ALG, Config.TAG, Config.SCALER))
+    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
+                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                            'rmse_ims'])
+
+    results_summary = run_test(valid_data2d, valid_data_normalized2d, fwbw_net, scalers, results_summary)
+
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                  Config.SCALER),
+                           index=False)
 
     return
 
@@ -324,8 +343,6 @@ def ims_tm_test_data(test_data):
 def test_fwbw_lstm(data, experiment):
     print('|-- Run model testing.')
     gpu = Config.GPU
-
-    params = Config.set_comet_params_fwbw_lstm()
 
     data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
@@ -352,102 +369,109 @@ def test_fwbw_lstm(data, experiment):
     with tf.device('/device:GPU:{}'.format(gpu)):
         fwbw_net = load_trained_models(input_shape, Config.FWBW_LSTM_BEST_CHECKPOINT)
 
-    run_test(test_data2d, test_data_normalized2d, valid_data_normalized2d[-Config.FWBW_LSTM_STEP:],
-             fwbw_net, params, scalers)
+    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                      Config.ALG, Config.TAG, Config.SCALER)):
+        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                Config.ALG, Config.TAG, Config.SCALER))
+    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
+                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                            'rmse_ims'])
+
+    results_summary = run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary)
+
+    results_summary.to_csv(Config.RESULTS_PATH +
+                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                 Config.SCALER),
+                           index=False)
 
     return
 
 
-def run_test(test_data2d, test_data_normalized2d, init_data2d, fwbw_net, params, scalers):
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
+def prepare_test_set(test_data2d, test_data_normalized2d):
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
 
-    results_summary = pd.DataFrame(index=range(Config.FWBW_LSTM_TESTING_TIME),
-                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims', 'rmse_ims'])
+    idx = np.random.random_integers(Config.FWBW_CONV_LSTM_STEP, test_data2d.shape[0] - day_size * 2 - 10)
 
-    err, r2_score, rmse = [], [], []
-    err_ims, r2_score_ims, rmse_ims = [], [], []
+    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 2])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.FWBW_CONV_LSTM_STEP: idx])
+    test_data = test_data2d[idx:idx + day_size * 2]
 
-    measured_matrix_ims2d = np.zeros((test_data2d.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1,
-                                      test_data2d.shape[1]))
-    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name)):
-        np.save(Config.RESULTS_PATH + 'ground_true_{}.npy'.format(data_name),
-                test_data2d)
+    return test_data_normalize, init_data_normalize, test_data
 
-    if not os.path.isfile(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER)):
-        np.save(Config.RESULTS_PATH + 'ground_true_scaled_{}_{}.npy'.format(data_name, Config.SCALER),
-                test_data_normalized2d)
 
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name,
-                                                                      alg_name, tag, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(data_name, alg_name, tag, Config.SCALER))
+def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary):
+    mape, err, r2_score, rmse = [], [], [], []
+    mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
     for i in range(Config.FWBW_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+        ims_test_data = ims_tm_test_data(test_data=test_data)
+        measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 
-        pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm(initial_data=init_data2d,
-                                                                   test_data=test_data_normalized2d,
-                                                                   model=fwbw_net.model)
-
-        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred_scaled-{}.npy'.format(data_name, alg_name, tag,
-                                                                              Config.SCALER, i),
-                pred_tm2d)
+        pred_tm2d, measured_matrix2d, ims_tm2d, pred_tm2d_wo = predict_fwbw_lstm(initial_data=init_data_normalize,
+                                                                                 test_data=test_data_normalize,
+                                                                                 model=fwbw_net.model)
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-
+        pred_tm_wo_invert2d = scalers.inverse_transform(pred_tm2d_wo)
         if np.any(np.isinf(pred_tm_invert2d)):
             raise ValueError('Value is infinity!')
         elif np.any(np.isnan(pred_tm_invert2d)):
             raise ValueError('Value is NaN!')
 
-        err.append(error_ratio(y_true=test_data2d, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-        r2_score.append(calculate_r2_score(y_true=test_data2d, y_pred=pred_tm_invert2d))
-        rmse.append(calculate_rmse(y_true=test_data2d / 1000000, y_pred=pred_tm_invert2d / 1000000))
+        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
+        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
+
+        mape_wo = calculate_mape(y_true=test_data, y_pred=pred_tm_wo_invert2d)
+        err_wo = error_ratio(y_true=test_data, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
+        r2_score_wo = calculate_r2_score(y_true=test_data, y_pred=pred_tm_wo_invert2d)
+        rmse_wo = calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
 
         if Config.FWBW_IMS:
             # Calculate error for multistep-ahead-prediction
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
-            ims_ytrue2d = ims_tm_test_data(test_data=test_data2d)
-
+            mape_ims.append(calculate_mape(y_true=ims_test_data, y_pred=ims_tm_invert2d))
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                       y_true=ims_ytrue2d,
-                                       measured_matrix=measured_matrix_ims2d))
+                                       y_true=ims_test_data,
+                                       measured_matrix=measured_matrix_ims))
 
-            r2_score_ims.append(calculate_r2_score(y_true=ims_ytrue2d, y_pred=ims_tm_invert2d))
-            rmse_ims.append(calculate_rmse(y_true=ims_ytrue2d / 1000000, y_pred=ims_tm_invert2d / 1000000))
+            r2_score_ims.append(calculate_r2_score(y_true=ims_test_data, y_pred=ims_tm_invert2d))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_data / 1000000, y_pred=ims_tm_invert2d / 1000000))
         else:
             err_ims.append(0)
             r2_score_ims.append(0)
             rmse_ims.append(0)
+            mape_ims.append(0)
 
-        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
-                                                          err_ims[i], rmse_ims[i],
-                                                          r2_score_ims[i]))
-        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/pred-{}.npy'.format(data_name, alg_name, tag,
-                                                                       Config.SCALER, i),
-                pred_tm_invert2d)
-        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/measure-{}.npy'.format(data_name, alg_name, tag,
-                                                                          Config.SCALER, i),
-                measured_matrix2d)
+        print('Result: mape\terr\trmse\tr2 \t\t mape_ims\terr_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
+                                                                  mape_ims[i], err_ims[i], rmse_ims[i],
+                                                                  r2_score_ims[i]))
+        print('Result without data correction: mape \t err\trmse\tr2')
+        print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
 
     results_summary['No.'] = range(Config.FWBW_LSTM_TESTING_TIME)
+    results_summary['mape'] = mape
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse
+    results_summary['mape_ims'] = mape_ims
     results_summary['err_ims'] = err_ims
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/results.csv'.format(data_name, alg_name, tag, Config.SCALER),
-                           index=False)
+    print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
-    print('Test: {}-{}-{}-{}'.format(data_name, alg_name, tag, Config.SCALER))
-    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-                                                           np.mean(np.array(rmse)),
-                                                           np.mean(np.array(r2_score))))
+    print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
+                                                                          np.mean(np.array(err)),
+                                                                          np.mean(np.array(rmse)),
+                                                                          np.mean(np.array(r2_score))))
 
-    return
+    return results_summary

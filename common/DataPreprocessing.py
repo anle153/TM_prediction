@@ -275,7 +275,41 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
     return dataX, dataY
 
 
-def create_offline_fwbw_lstm_data(data, input_shape, mon_ratio, eps):
+def create_offline_fwbw_lstm_data_correction(data, input_shape, mon_ratio, eps):
+    ntimesteps = input_shape[0]
+    features = input_shape[1]
+
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf,
+                               size=data.shape,
+                               p=(mon_ratio, 1 - mon_ratio))
+    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    dataY_2 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps - 2))
+    dataY_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], 1))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(_data.shape[0] - ntimesteps):
+            _x = _data[idx: (idx + ntimesteps), flow]
+            _label = _labels[idx: (idx + ntimesteps), flow]
+
+            dataX[i, :, 0] = _x
+            dataX[i, :, 1] = _label
+
+            _y = data[(idx + 1):(idx + ntimesteps - 1), flow]
+
+            dataY_1[i] = data[idx + ntimesteps, flow]
+            dataY_2[i] = _y
+            i += 1
+
+    return dataX, dataY_1, dataY_2
+
+
+def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
     ntimesteps = input_shape[0]
     features = input_shape[1]
 

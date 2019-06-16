@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
+from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm_data
 from common.error_utils import error_ratio, calculate_r2_score, \
     calculate_rmse
 
@@ -152,7 +152,6 @@ def predict_fwbw_lstm(initial_data, test_data, model):
 
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
-
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
@@ -262,14 +261,14 @@ def train_fwbw_lstm(data, experiment):
 
         print('|--- Create offline train set for forward net!')
 
-        trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                              train_data_normalized2d.std())
+        trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm_data(train_data_normalized2d,
+                                                                   input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                   train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
-        validX, validY_1, validY_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                              train_data_normalized2d.std())
+        validX, validY_1, validY_2 = create_offline_fwbw_lstm_data(valid_data_normalized2d,
+                                                                   input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                   train_data_normalized2d.std())
 
         # Load model check point
         from_epoch = fwbw_net.load_model_from_check_point()
@@ -281,7 +280,7 @@ def train_fwbw_lstm(data, experiment):
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=(
-                                                     validX, {'pred_data': validY_1, 'corr_data': validY_2}),
+                                                         validX, {'pred_data': validY_1, 'corr_data': validY_2}),
                                                      shuffle=True,
                                                      initial_epoch=from_epoch,
                                                      verbose=2)
@@ -294,7 +293,7 @@ def train_fwbw_lstm(data, experiment):
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=(
-                                                     validX, {'pred_data': validY_1, 'corr_data': validY_2}),
+                                                         validX, {'pred_data': validY_1, 'corr_data': validY_2}),
                                                      shuffle=True,
                                                      verbose=2)
 

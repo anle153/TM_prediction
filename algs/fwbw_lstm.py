@@ -160,20 +160,12 @@ def predict_fwbw_lstm(initial_data, test_data, model):
         rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
                                                             labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
-        # Get the TM prediction of next time slot
         fw_outputs, bw_outputs = model.predict(rnn_input)
-        _fw_outputs, _ = model.predict(rnn_input)
 
+        _fw_outputs, _ = model.predict(rnn_input_wo_corr)
+        _fw_outputs = _fw_outputs[-1]
         # Data Correction
-        updated_data = corr_data.T
-        _labels = labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
-        updated_data = updated_data * (1 - _labels)
-        tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = tm_pred[
-                                                         ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * _labels + updated_data
 
-        # _err_2 = error_ratio(y_pred=tm_pred[0:ts + Config.FWBW_CONV_LSTM_STEP],
-        #                      y_true=raw_data[0:ts + Config.FWBW_CONV_LSTM_STEP],
-        #                      measured_matrix=labels[0: ts + Config.FWBW_CONV_LSTM_STEP])
 
         # Sampling data
         sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
@@ -188,6 +180,7 @@ def predict_fwbw_lstm(initial_data, test_data, model):
 
         # Merge value from pred_input and measured_input
         new_input = pred_input + measured_input
+
         tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
         tm_pred_no_updated[ts + Config.FWBW_LSTM_STEP] = new_input
 
@@ -230,15 +223,10 @@ def load_trained_models(input_shape, fw_ckp):
     return fwbw_net
 
 
-def train_fwbw_lstm(data, experiment):
+def train_fwbw_lstm(data):
     print('|-- Run model training fwbw_lstm.')
 
-    params = Config.set_comet_params_fwbw_lstm()
-
-    gpu = Config.GPU
-
-    data_name = Config.DATA_NAME
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
     else:
         day_size = Config.GEANT_DAY_SIZE
@@ -252,7 +240,7 @@ def train_fwbw_lstm(data, experiment):
 
     input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
+    with tf.device('/device:GPU:{}'.format(Config.GPU)):
         fwbw_net = build_model(input_shape)
 
     # --------------------------------------------------------------------------------------------------------------
@@ -281,12 +269,11 @@ def train_fwbw_lstm(data, experiment):
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
             training_fw_history = fwbw_net.model.fit(x=trainX,
-                                                     y={'fw_output': trainY_1, 'bw_output': trainY_2},
+                                                     y=[trainY_1, trainY_2],
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(
-                                                         validX, {'fw_output': validY_1, 'bw_output': validY_2}),
+                                                     validation_data=(validX, [validY_1, validY_2]),
                                                      shuffle=True,
                                                      initial_epoch=from_epoch,
                                                      verbose=2)
@@ -294,12 +281,11 @@ def train_fwbw_lstm(data, experiment):
             print('|--- Training new forward model.')
 
             training_fw_history = fwbw_net.model.fit(x=trainX,
-                                                     y={'fw_output': trainY_1, 'bw_output': trainY_2},
+                                                     y=[trainY_1, trainY_2],
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(
-                                                         validX, {'fw_output': validY_1, 'bw_output': validY_2}),
+                                                     validation_data=(validX, [validY_1, validY_2]),
                                                      shuffle=True,
                                                      verbose=2)
 
@@ -310,22 +296,21 @@ def train_fwbw_lstm(data, experiment):
     else:
         fwbw_net.load_model_from_check_point(_from_epoch=Config.FWBW_LSTM_BEST_CHECKPOINT)
     # --------------------------------------------------------------------------------------------------------------
-    run_test(valid_data2d, valid_data_normalized2d, train_data_normalized2d[-Config.FWBW_LSTM_STEP:],
-             fwbw_net, params, scalers)
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-                                                                      Config.ALG, Config.TAG, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-                                                                Config.ALG, Config.TAG, Config.SCALER))
-    results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
-                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
-                                            'rmse_ims'])
 
-    results_summary = run_test(valid_data2d, valid_data_normalized2d, fwbw_net, scalers, results_summary)
-
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                                  Config.SCALER),
-                           index=False)
+    # if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+    #                                                                   Config.ALG, Config.TAG, Config.SCALER)):
+    #     os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+    #                                                             Config.ALG, Config.TAG, Config.SCALER))
+    # results_summary = pd.DataFrame(index=range(Config.FWBW_CONV_LSTM_TESTING_TIME),
+    #                                columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+    #                                         'rmse_ims'])
+    #
+    # results_summary = run_test(valid_data2d, valid_data_normalized2d, fwbw_net, scalers, results_summary)
+    #
+    # results_summary.to_csv(Config.RESULTS_PATH +
+    #                        '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+    #                                                               Config.SCALER),
+    #                        index=False)
 
     return
 

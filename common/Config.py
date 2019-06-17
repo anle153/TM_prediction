@@ -141,7 +141,7 @@ ARIMA_MON_RATIO = 0.3
 ARIMA_STEP = 30
 ARIMA_IMS_STEP = 12
 ARIMA_IMS = False
-ARIMA_TEST_DAYS = 0.5
+ARIMA_TEST_DAYS = 2
 # ----------------------------------------------
 
 # -------- HOLT_WINTERS Config -----------------
@@ -233,7 +233,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[9]
+ALG = ALGS[3]
 GPU = 1
 SCALER = SCALERS[5]
 

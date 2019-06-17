@@ -147,6 +147,7 @@ def print_fwbw_lstm_info():
         print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.FWBW_LSTM_DEEP_NLAYERS))
     print('|--- LSTM_DROPOUT:\t{}'.format(Config.FWBW_LSTM_DROPOUT))
     print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.FWBW_LSTM_HIDDEN_UNIT))
+    print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONV_LSTM_RANDOM_ACTION))
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_LSTM_N_EPOCH))
@@ -256,7 +257,6 @@ def print_info():
         print_cnnlstm_info()
     else:
         raise ValueError('Unkown alg!')
-    print('|--- RESULT_NAME:\t{}'.format(Config.ADDED_RESULT_NAME))
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
     if infor_correct != 'y' and infor_correct != 'yes':

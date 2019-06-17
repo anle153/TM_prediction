@@ -164,6 +164,32 @@ def print_fwbw_lstm_info():
         raise Exception('Unknown RUN_MODE!')
 
 
+def print_fwbw_lstm_2_info():
+    print('|--- MON_RATIO:\t{}'.format(Config.FWBW_LSTM_2_MON_RAIO))
+    print('            -----------            ')
+
+    print('|--- LSTM_DEEP:\t{}'.format(Config.FWBW_LSTM_2_DEEP))
+    if Config.FWBW_LSTM_2_DEEP:
+        print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.FWBW_LSTM_2_DEEP_NLAYERS))
+    print('|--- LSTM_DROPOUT:\t{}'.format(Config.FWBW_LSTM_2_DROPOUT))
+    print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.FWBW_LSTM_2_HIDDEN_UNIT))
+    print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_LSTM_2_RANDOM_ACTION))
+    if not Config.FWBW_LSTM_2_RANDOM_ACTION:
+        print('|--- FWBW_LSTM_HYPERPARAMS:\t{}'.format(Config.FWBW_LSTM_2_HYPERPARAMS))
+
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+        print('|--- N_EPOCH:\t{}'.format(Config.FWBW_LSTM_2_N_EPOCH))
+        print('|--- BATCH_SIZE:\t{}'.format(Config.FWBW_LSTM_2_BATCH_SIZE))
+        print('|--- LSTM_STEP:\t{}'.format(Config.FWBW_LSTM_2_STEP))
+        if Config.FWBW_LSTM_2_IMS:
+            print('|--- IMS_STEP:\t{}'.format(Config.FWBW_LSTM_2_IMS_STEP))
+    elif Config.RUN_MODE == Config.RUN_MODES[1]:
+        print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_LSTM_2_TESTING_TIME))
+        print('|--- BEST_CHECKPOINT:\t{}'.format(Config.FWBW_LSTM_2_BEST_CHECKPOINT))
+    else:
+        raise Exception('Unknown RUN_MODE!')
+
+
 def print_arima_info():
     print('|--- MON_RATIO:\t{}'.format(Config.ARIMA_MON_RATIO))
     print('            -----------            ')
@@ -257,6 +283,9 @@ def print_info():
         print_fwbw_convlstm_info()
     elif Config.ALG == Config.ALGS[8]:
         print_cnnlstm_info()
+    elif Config.ALG == Config.ALGS[9]:
+        print_fwbw_lstm_2_info()
+
     else:
         raise ValueError('Unkown alg!')
     print('----------------------------------------------------')

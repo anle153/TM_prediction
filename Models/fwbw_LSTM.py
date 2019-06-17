@@ -46,11 +46,11 @@ class fwbw_lstm_model(AbstractModel):
         _input = Flatten()(_input)
         x = Dense(256, )(_input)
         x = Dense(128, )(x)
-        outputs = Dense(self.n_timestep - 2, name='corr_data')(x)
+        corr_data = Dense(self.n_timestep - 2, name='corr_data')(x)
 
-        self.model = Model(inputs=input_tensor, outputs=[fw_outputs, outputs], name='fwbw-lstm')
+        self.model = Model(inputs=input_tensor, outputs=[fw_outputs, corr_data], name='fwbw-lstm')
 
-        self.model.compile(loss={'fw_outputs': 'mse', 'corr_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def construct_fwbw_lstm(self):
         # Input

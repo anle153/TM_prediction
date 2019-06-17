@@ -372,10 +372,11 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_2_STEP],
         #                                                     labels=labels[ts: ts + Config.FWBW_LSTM_2_STEP])
 
-        fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step, 1)
+        # fw_outputs: shape(#n_flows, #time-step, 1)
+        # corrected_data: shape(#n_flows, #time-step-2)
+        fw_outputs, corrected_data = model.predict(rnn_input)
 
         fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
-        bw_outputs = np.squeeze(bw_outputs, axis=2)
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
 
@@ -389,13 +390,10 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         #                    bw_outputs.T, tm_pred[ts: ts + Config.FWBW_LSTM_2_STEP])
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_2_STEP - 1]
-        corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_2_STEP]),
-                                            pred_backward=bw_outputs,
-                                            labels=labels[ts: ts + Config.FWBW_LSTM_2_STEP])
 
         measured_data = tm_pred[ts + 1:ts + Config.FWBW_LSTM_2_STEP - 1] * labels[
                                                                            ts + 1:ts + Config.FWBW_LSTM_2_STEP - 1]
-        pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.FWBW_LSTM_2_STEP - 1])
+        pred_data = corrected_data.T * (1.0 - labels[ts + 1:ts + Config.FWBW_LSTM_2_STEP - 1])
         tm_pred[ts + 1:ts + Config.FWBW_LSTM_2_STEP - 1] = measured_data + pred_data
 
         # Partial monitoring

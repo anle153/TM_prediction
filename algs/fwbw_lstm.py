@@ -8,8 +8,7 @@ from tqdm import tqdm
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
-from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape, \
-    calculate_confident_interval
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -617,12 +616,12 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         ims_test_data = ims_tm_test_data(test_data=test_data)
         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 
-        pred_tm2d, measured_matrix2d, ims_tm2d, pred_tm2d_wo = predict_fwbw_lstm_v2(initial_data=init_data_normalize,
-                                                                                    test_data=test_data_normalize,
-                                                                                    model=fwbw_net.model)
+        pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm_v2(initial_data=init_data_normalize,
+                                                                      test_data=test_data_normalize,
+                                                                      model=fwbw_net.model)
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-        pred_tm_wo_invert2d = scalers.inverse_transform(pred_tm2d_wo)
+        # pred_tm_wo_invert2d = scalers.inverse_transform(pred_tm2d_wo)
         if np.any(np.isinf(pred_tm_invert2d)):
             raise ValueError('Value is infinity!')
         elif np.any(np.isnan(pred_tm_invert2d)):
@@ -633,10 +632,10 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
         rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
-        mape_wo = calculate_mape(y_true=test_data, y_pred=pred_tm_wo_invert2d)
-        err_wo = error_ratio(y_true=test_data, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
-        r2_score_wo = calculate_r2_score(y_true=test_data, y_pred=pred_tm_wo_invert2d)
-        rmse_wo = calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
+        # mape_wo = calculate_mape(y_true=test_data, y_pred=pred_tm_wo_invert2d)
+        # err_wo = error_ratio(y_true=test_data, y_pred=pred_tm_wo_invert2d, measured_matrix=measured_matrix2d)
+        # r2_score_wo = calculate_r2_score(y_true=test_data, y_pred=pred_tm_wo_invert2d)
+        # rmse_wo = calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
 
         if Config.FWBW_LSTM_IMS:
             # Calculate error for multistep-ahead-prediction
@@ -659,16 +658,15 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
                                                                   mape_ims[i], err_ims[i], rmse_ims[i],
                                                                   r2_score_ims[i]))
-        print('Result without data correction: mape \t err\trmse\tr2')
-        print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
-
-        if err[i] < err_wo:
-            per_gain.append(np.abs(err[i] - err_wo) * 100.0 / err_wo)
-            print('|-----> Performance gain: {}'.format(np.abs(err[i] - err_wo) * 100.0 / err_wo))
-        else:
-            per_gain.append(-np.abs(err[i] - err_wo) * 100.0 / err[i])
-            print('|-----> Performance gain: {}'.format(-np.abs(err[i] - err_wo) * 100.0 / err[i]))
-
+        # print('Result without data correction: mape \t err\trmse\tr2')
+        # print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
+        #
+        # if err[i] < err_wo:
+        #     per_gain.append(np.abs(err[i] - err_wo) * 100.0 / err_wo)
+        #     print('|-----> Performance gain: {}'.format(np.abs(err[i] - err_wo) * 100.0 / err_wo))
+        # else:
+        #     per_gain.append(-np.abs(err[i] - err_wo) * 100.0 / err[i])
+        #     print('|-----> Performance gain: {}'.format(-np.abs(err[i] - err_wo) * 100.0 / err[i]))
 
     results_summary['No.'] = range(Config.FWBW_LSTM_TESTING_TIME)
     results_summary['mape'] = mape
@@ -687,7 +685,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
                                                                           np.mean(np.array(rmse)),
                                                                           np.mean(np.array(r2_score))))
 
-    print('Avg_per_gain: {} - Confidence: {}'.format(np.mean(np.array(per_gain)),
-                                                     calculate_confident_interval(per_gain)))
+    # print('Avg_per_gain: {} - Confidence: {}'.format(np.mean(np.array(per_gain)),
+    #                                                  calculate_confident_interval(per_gain)))
 
     return results_summary

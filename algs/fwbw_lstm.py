@@ -16,7 +16,7 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
-def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
+def plot_test_data(prefix, raw_data, pred_bw, current_data):
     saving_path = Config.RESULTS_PATH + 'plot_check_fwbw_lstm/'
 
     if not os.path.exists(saving_path):
@@ -25,7 +25,6 @@ def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
     from matplotlib import pyplot as plt
     for flow_id in range(raw_data.shape[1]):
         plt.plot(raw_data[:, flow_id], label='Actual')
-        plt.plot(pred_fw[:, flow_id], label='Pred_fw')
         plt.plot(pred_bw[:, flow_id], label='Pred_bw')
         plt.plot(current_data[:, flow_id], label='Current_pred')
 
@@ -122,7 +121,7 @@ def data_correction(rnn_input, pred_forward, pred_backward, labels):
     return updated_rnn_input.T
 
 
-def data_correction_v2(rnn_input, pred_forward, pred_backward, labels, pre_fw_losses):
+def data_correction_v2(rnn_input, pred_backward, labels, pre_fw_losses):
     # Shape = (#n_flows, #time-steps)
     _rnn_input = np.copy(rnn_input.T)
     _labels = np.copy(labels.T)
@@ -133,16 +132,6 @@ def data_correction_v2(rnn_input, pred_forward, pred_backward, labels, pre_fw_lo
         _b = np.arange(1, _rnn_input.shape[1] - i + 1)
         beta[:, i] = (np.sum(_labels[:, i:], axis=1) / (_rnn_input.shape[1] - i)) * \
                      (np.sum(np.power((_labels[:, i:] / (_rnn_input.shape[1] - i)), _b), axis=1))
-
-    fw_loss, bw_loss = calculate_forward_backward_loss(labels=_labels,
-                                                       pred_forward=pred_forward,
-                                                       pred_backward=pred_backward,
-                                                       rnn_input=_rnn_input)
-
-    bw_loss = np.tile(np.expand_dims(bw_loss, axis=1), (1, Config.FWBW_LSTM_STEP))
-
-    # beta = (1 - alpha) * bw_loss / (_pre_fw_losses + bw_loss)
-    # gamma = (1 - alpha) * _pre_fw_losses / (_pre_fw_losses + bw_loss)
 
     considered_backward = pred_backward[:, 2:]
     considered_rnn_input = _rnn_input[:, 1:-1]
@@ -156,7 +145,7 @@ def data_correction_v2(rnn_input, pred_forward, pred_backward, labels, pre_fw_lo
     # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
     corrected_data = considered_rnn_input * alpha + considered_backward * beta
 
-    return corrected_data.T, fw_loss
+    return corrected_data.T
 
 
 def predict_fwbw_lstm_ims(initial_data, initial_labels, model):
@@ -266,6 +255,85 @@ def predict_fwbw_lstm(initial_data, test_data, model):
            tm_pred_no_updated[Config.FWBW_LSTM_STEP:]
 
 
+def calculate_consecutive_loss(measured_matrix):
+    """
+
+    :param measured_matrix: shape(#n_flows, #time-steps)
+    :return: consecutive_losses: shape(#n_flows)
+    """
+
+    consecutive_losses = []
+    for flow_id in range(measured_matrix.shape[0]):
+        flows_labels = measured_matrix[flow_id, :]
+        if flows_labels[-1] == 1:
+            consecutive_losses.append(1)
+        else:
+            measured_idx = np.argwhere(flows_labels == 1)
+            if measured_idx.size == 0:
+                consecutive_losses.append(measured_matrix.shape[1])
+            else:
+                consecutive_losses.append(measured_matrix.shape[1] - measured_idx[-1][0])
+
+    consecutive_losses = np.asarray(consecutive_losses)
+    return consecutive_losses
+
+
+def set_measured_flow(rnn_input, pred_forward, labels, ):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param pred_forward: shape(#n_flows, #time-steps)
+    :param labels: shape(n_flows, #time-steps)
+    :return:
+    """
+
+    n_flows = rnn_input.shape[0]
+
+    fw_losses = []
+    for flow_id in range(rnn_input.shape[0]):
+        idx_fw = labels[flow_id, 1:]
+
+        fw_losses.append(error_ratio(y_true=rnn_input[flow_id, 1:][idx_fw == 1.0],
+                                     y_pred=pred_forward[flow_id, :-1][idx_fw == 1.0],
+                                     measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
+
+    fw_losses = np.array(fw_losses)
+    fw_losses[fw_losses == 0.] = np.max(fw_losses)
+
+    w = calculate_flows_weights(rnn_input=rnn_input,
+                                fw_losses=fw_losses,
+                                measured_matrix=labels)
+
+    sampling = np.zeros(shape=n_flows)
+    m = int(Config.FWBW_LSTM_MON_RAIO * n_flows)
+
+    w = w.flatten()
+    sorted_idx_w = np.argsort(w)
+    sampling[sorted_idx_w[:m]] = 1
+
+    return sampling
+
+
+def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param fw_losses: shape(#n_flows)
+    :param measured_matrix: shape(#n_flows, #time-steps)
+    :return: w: flow weight shape(#n_flows)
+    """
+
+    cl = calculate_consecutive_loss(measured_matrix).astype(float)
+
+    flows_stds = np.std(rnn_input, axis=1)
+
+    w = 1 / (fw_losses * Config.FWBW_LSTM_HYPERPARAMS[0] +
+             cl * Config.FWBW_LSTM_HYPERPARAMS[1] +
+             flows_stds * Config.FWBW_LSTM_HYPERPARAMS[2])
+
+    return w
+
+
 def predict_fwbw_lstm_v2(initial_data, test_data, model):
     tf_a = np.array([1.0, 0.0])
 
@@ -319,26 +387,28 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         _fw_outputs = np.squeeze(_fw_outputs, axis=2)
         pred_next_tm_wo_corr = np.copy(_fw_outputs[:, -1])
 
-        # if ts == 20:
+        # if ts == 100:
         #     plot_test_data('fwbw-lstm', raw_data[ts: ts + Config.FWBW_LSTM_STEP],
-        #                    fw_outputs.T, bw_outputs.T, tm_pred[ts: ts + Config.FWBW_LSTM_STEP])
+        #                    bw_outputs.T, tm_pred[ts: ts + Config.FWBW_LSTM_STEP])
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_STEP - 1]
-        corrected_data, fw_loss = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
-                                                     pred_forward=fw_outputs,
-                                                     pred_backward=bw_outputs,
-                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
-                                                     pre_fw_losses=fw_losses[ts: ts + Config.FWBW_LSTM_STEP])
+        corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
+                                            pred_backward=bw_outputs,
+                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
+                                            pre_fw_losses=fw_losses[ts: ts + Config.FWBW_LSTM_STEP])
 
         measured_data = tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
         pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1])
         tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
-        fw_losses[ts] = fw_loss
-
         # Partial monitoring
-        sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                    p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+        if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
+            sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
+                                        p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+        else:
+            sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
+                                         pred_forward=fw_outputs,
+                                         labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
         _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
@@ -600,6 +670,10 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         if err[i] < err_wo:
             per_gain.append(np.abs(err[i] - err_wo) * 100.0 / err_wo)
             print('|-----> Performance gain: {}'.format(np.abs(err[i] - err_wo) * 100.0 / err_wo))
+        else:
+            per_gain.append(-np.abs(err[i] - err_wo) * 100.0 / err[i])
+            print('|-----> Performance gain: {}'.format(-np.abs(err[i] - err_wo) * 100.0 / err[i]))
+
 
     results_summary['No.'] = range(Config.FWBW_LSTM_TESTING_TIME)
     results_summary['mape'] = mape

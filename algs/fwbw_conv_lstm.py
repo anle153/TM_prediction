@@ -73,7 +73,7 @@ def set_measured_flow_3d(rnn_input, labels, forward_pred, backward_pred):
 
     w = w.flatten()
     sorted_idx_w = np.argpartition(w, m)
-    sampling[sorted_idx_w[:m]] = 1
+    sampling[sorted_idx_w[:m]] = 1.0
 
     sampling = np.expand_dims(sampling, axis=0)
 

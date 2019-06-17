@@ -41,9 +41,9 @@ FWBW_LSTM_TESTING_TIME = 50
 FWBW_LSTM_IMS = False
 
 FWBW_LSTM_VALID_TEST = True
-
+FWBW_LSTM_RANDOM_ACTION = False
 FWBW_LSTM_TEST_DAYS = 10
-FWBW_LSTM_HYPERPARAMS = [1.0, 1.0, 1.0]
+FWBW_LSTM_HYPERPARAMS = [1.5, 2.0, 1.0]
 
 # ----------------------------------------------
 
@@ -204,7 +204,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
-ALG = ALGS[6]
+ALG = ALGS[2]
 GPU = 0
 SCALER = SCALERS[5]
 

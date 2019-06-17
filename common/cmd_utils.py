@@ -147,7 +147,9 @@ def print_fwbw_lstm_info():
         print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.FWBW_LSTM_DEEP_NLAYERS))
     print('|--- LSTM_DROPOUT:\t{}'.format(Config.FWBW_LSTM_DROPOUT))
     print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.FWBW_LSTM_HIDDEN_UNIT))
-    print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_CONV_LSTM_RANDOM_ACTION))
+    print('|--- RANDOM_ACTION:\t{}'.format(Config.FWBW_LSTM_RANDOM_ACTION))
+    if not Config.FWBW_LSTM_RANDOM_ACTION:
+        print('|--- FWBW_LSTM_HYPERPARAMS:\t{}'.format(Config.FWBW_LSTM_HYPERPARAMS))
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_LSTM_N_EPOCH))

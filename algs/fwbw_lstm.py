@@ -121,11 +121,10 @@ def data_correction(rnn_input, pred_forward, pred_backward, labels):
     return updated_rnn_input.T
 
 
-def data_correction_v2(rnn_input, pred_backward, labels, pre_fw_losses):
+def data_correction_v2(rnn_input, pred_backward, labels):
     # Shape = (#n_flows, #time-steps)
     _rnn_input = np.copy(rnn_input.T)
     _labels = np.copy(labels.T)
-    _pre_fw_losses = np.copy(pre_fw_losses.T)
 
     beta = np.zeros(_rnn_input.shape)
     for i in range(_rnn_input.shape[1]):
@@ -342,16 +341,14 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     tm_pred[0:initial_data.shape[0]] = initial_data
 
     # Initialize traffic matrix data w/o data correction
-    tm_pred_no_updated = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
-    tm_pred_no_updated[0:initial_data.shape[0]] = initial_data
+    # tm_pred_no_updated = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+    # tm_pred_no_updated[0:initial_data.shape[0]] = initial_data
 
     # Initialize measurement matrix
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
     labels[0:initial_data.shape[0]] = np.ones(shape=initial_data.shape)
 
     # Forward losses
-    fw_losses = np.ones(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
-
     ims_tm = np.zeros(shape=(test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
 
     raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -372,8 +369,8 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
-        rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
-                                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+        # rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
+        #                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
         fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step, 1)
 
@@ -383,9 +380,9 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         pred_next_tm = np.copy(fw_outputs[:, -1])
 
         # For comparing tm prediction w/o data correction
-        _fw_outputs, _ = model.predict(rnn_input_wo_corr)
-        _fw_outputs = np.squeeze(_fw_outputs, axis=2)
-        pred_next_tm_wo_corr = np.copy(_fw_outputs[:, -1])
+        # _fw_outputs, _ = model.predict(rnn_input_wo_corr)
+        # _fw_outputs = np.squeeze(_fw_outputs, axis=2)
+        # pred_next_tm_wo_corr = np.copy(_fw_outputs[:, -1])
 
         # if ts == 100:
         #     plot_test_data('fwbw-lstm', raw_data[ts: ts + Config.FWBW_LSTM_STEP],
@@ -394,15 +391,14 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_STEP - 1]
         corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
                                             pred_backward=bw_outputs,
-                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
-                                            pre_fw_losses=fw_losses[ts: ts + Config.FWBW_LSTM_STEP])
+                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
         measured_data = tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
         pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1])
         tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
         # Partial monitoring
-        if Config.FWBW_CONV_LSTM_RANDOM_ACTION:
+        if Config.FWBW_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
                                         p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
         else:
@@ -411,14 +407,13 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
                                          labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
-        _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
+        # _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
 
         tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
-        tm_pred_no_updated[ts + Config.FWBW_LSTM_STEP] = _new_input
+        # tm_pred_no_updated[ts + Config.FWBW_LSTM_STEP] = _new_input
         labels[ts + Config.FWBW_LSTM_STEP] = sampling
 
-    return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm, \
-           tm_pred_no_updated[Config.FWBW_LSTM_STEP:]
+    return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm
 
 
 def build_model(input_shape):

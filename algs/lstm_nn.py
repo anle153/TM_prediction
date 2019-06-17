@@ -277,11 +277,11 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    idx = np.random.random_integers(Config.LSTM_STEP, test_data2d.shape[0] - day_size * 2 - 10)
+    idx = np.random.random_integers(Config.LSTM_STEP, test_data2d.shape[0] - day_size * Config.LSTM_TEST_DAYS - 10)
 
-    test_data_normalize = test_data_normalized2d[idx:idx + day_size * 2]
+    test_data_normalize = test_data_normalized2d[idx:idx + day_size * Config.LSTM_TEST_DAYS]
     init_data_normalize = test_data_normalized2d[idx - Config.LSTM_STEP: idx]
-    test_data = test_data2d[idx:idx + day_size * 2]
+    test_data = test_data2d[idx:idx + day_size * Config.LSTM_TEST_DAYS]
 
     return test_data_normalize, init_data_normalize, test_data
 

@@ -20,6 +20,8 @@ LSTM_TESTING_TIME = 50
 LSTM_IMS = False
 LSTM_VALID_TEST = True
 
+LSTM_TEST_DAYS = 10
+
 # ----------------- FWBW_LSTM Config ---------------
 FWBW_LSTM_N_EPOCH = 20
 FWBW_LSTM_BATCH_SIZE = 512

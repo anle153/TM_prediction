@@ -12,25 +12,23 @@ class fwbw_lstm_model(AbstractModel):
         super().__init__(alg_name=alg_name, tag=tag, early_stopping=early_stopping, check_point=check_point,
                          saving_path=saving_path)
 
+        self.n_timestep = input_shape[0]
+
         self.hidden = hidden
         self.input_shape = input_shape
         self.drop_out = drop_out
         self.model = None
 
-    def construct_fwbw_lstm_data_correction(self):
+    def construct_fwbw_lstm_2(self):
         input_tensor = Input(shape=self.input_shape, name='input')
 
-        fw_out = LSTM(self.hidden, input_shape=self.input_shape)(input_tensor)
-        fw_out = Dense(1, name='pred_data')(fw_out)
-
         fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
-
         fw_drop_out = Dropout(self.drop_out)(fw_lstm_layer)
 
         fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
         fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
         fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
-        fw_outputs = TimeDistributed(Dense(1, name='fw_output'))(fw_dense_2)
+        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_2)
 
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)
@@ -43,16 +41,16 @@ class fwbw_lstm_model(AbstractModel):
         bw_outputs = TimeDistributed(Dense(1, ))(bw_dense_2)
 
         input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
-        _input = Concatenate(axis=1)([input_tensor_flatten, fw_outputs, bw_outputs])
+        _input = Concatenate(axis=1)([input_tensor_flatten, bw_outputs])
 
         _input = Flatten()(_input)
-        x = Dense(128, )(_input)
-        x = Dense(64, )(x)
-        outputs = Dense(24, name='corr_data')(x)
+        x = Dense(256, )(_input)
+        x = Dense(128, )(x)
+        outputs = Dense(self.n_timestep - 2, name='corr_data')(x)
 
-        self.model = Model(inputs=input_tensor, outputs=[fw_out, outputs], name='fwbw-lstm')
+        self.model = Model(inputs=input_tensor, outputs=[fw_outputs, outputs], name='fwbw-lstm')
 
-        self.model.compile(loss={'pred_data': 'mse', 'corr_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
+        self.model.compile(loss={'fw_outputs': 'mse', 'corr_data': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
 
     def construct_fwbw_lstm(self):
         # Input

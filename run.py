@@ -36,8 +36,10 @@ def train():
         train_fwbw_convlstm(data=data)
     elif Config.ALG == Config.ALGS[8]:
         from algs.cnnlstm import train_cnnlstm
-        experiment = Experiment(project_name='tmp-fwbw-convlstm', api_key='RzFughRSAY2raEySCf69bjiFn')
-        train_cnnlstm(data=data, experiment=experiment)
+        train_cnnlstm(data=data)
+    elif Config.ALG == Config.ALGS[9]:
+        from algs.fwbw_lstm_2 import train_fwbw_lstm_2
+        train_fwbw_lstm_2(data=data)
     else:
         raise ValueError('Unkown alg!')
 

@@ -275,7 +275,7 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
     return dataX, dataY
 
 
-def create_offline_fwbw_lstm_data_correction(data, input_shape, mon_ratio, eps):
+def create_offline_fwbw_lstm_2(data, input_shape, mon_ratio, eps):
     ntimesteps = input_shape[0]
     features = input_shape[1]
 
@@ -284,8 +284,8 @@ def create_offline_fwbw_lstm_data_correction(data, input_shape, mon_ratio, eps):
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
     dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    dataY_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, 1))
     dataY_2 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps - 2))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], 1))
 
     _data = np.copy(data)
 
@@ -300,10 +300,10 @@ def create_offline_fwbw_lstm_data_correction(data, input_shape, mon_ratio, eps):
             dataX[i, :, 0] = _x
             dataX[i, :, 1] = _label
 
-            _y = data[(idx + 1):(idx + ntimesteps - 1), flow]
+            _y = data[(idx + 1):(idx + ntimesteps + 1), flow]
 
-            dataY_1[i] = data[idx + ntimesteps, flow]
-            dataY_2[i] = _y
+            dataY_1[i] = np.reshape(_y, newshape=(ntimesteps, 1))
+            dataY_2[i] = data[(idx + 1):(idx + ntimesteps - 1), flow]
             i += 1
 
     return dataX, dataY_1, dataY_2

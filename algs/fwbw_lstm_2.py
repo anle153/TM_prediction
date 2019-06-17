@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
+from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm_2
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
@@ -425,7 +425,7 @@ def build_model(input_shape):
                                alg_name=Config.ALG, tag=Config.TAG, check_point=True,
                                saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG,
                                                                                      Config.TAG, Config.SCALER))
-    fwbw_net.construct_fwbw_lstm()
+    fwbw_net.construct_fwbw_lstm_2()
     print(fwbw_net.model.summary())
     fwbw_net.plot_models()
     return fwbw_net
@@ -439,7 +439,7 @@ def load_trained_models(input_shape, ckp):
     return fwbw_net
 
 
-def train_fwbw_lstm(data):
+def train_fwbw_lstm_2(data):
     print('|-- Run model training fwbw_lstm.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:
@@ -471,14 +471,14 @@ def train_fwbw_lstm(data):
 
         print('|--- Create offline train set for forward net!')
 
-        trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                              train_data_normalized2d.std())
+        trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm_2(train_data_normalized2d,
+                                                                input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
-        validX, validY_1, validY_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                              train_data_normalized2d.std())
+        validX, validY_1, validY_2 = create_offline_fwbw_lstm_2(valid_data_normalized2d,
+                                                                input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                train_data_normalized2d.std())
 
         # Load model check point
         from_epoch = fwbw_net.load_model_from_check_point()
@@ -653,7 +653,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
                                                           err_ims[i], rmse_ims[i],
-                                                                  r2_score_ims[i]))
+                                                          r2_score_ims[i]))
         # print('Result without data correction: mape \t err\trmse\tr2')
         # print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
         #

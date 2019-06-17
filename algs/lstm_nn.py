@@ -8,7 +8,7 @@ from tqdm import tqdm
 from Models.RNN_LSTM import lstm
 from common import Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_lstm_nn_data, data_scalling
-from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -197,7 +197,7 @@ def train_lstm_nn(data):
                                                                 Config.ALG, Config.TAG, Config.SCALER))
 
     results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
-                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
     results_summary = run_test(valid_data2d, valid_data_normalized2d, lstm_net, scalers, results_summary)
@@ -259,7 +259,7 @@ def test_lstm_nn(data):
                                                                 Config.ALG, Config.TAG, Config.SCALER))
 
     results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
-                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
     results_summary = run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary)
@@ -287,8 +287,8 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
 
 
 def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary):
-    mape, err, r2_score, rmse = [], [], [], []
-    mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
+    err, r2_score, rmse = [], [], []
+    err_ims, r2_score_ims, rmse_ims = [], [], []
 
     for i in range(Config.LSTM_TESTING_TIME):
         print('|--- Running time: {}'.format(i))
@@ -304,14 +304,12 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
-        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
         err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
         rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
 
         if Config.LSTM_IMS:
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
-            mape_ims.append(calculate_mape(y_true=ims_test_data, y_pred=ims_tm_invert2d))
 
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
                                        y_true=ims_test_data,
@@ -324,27 +322,23 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
             err_ims.append(0)
             r2_score_ims.append(0)
             rmse_ims.append(0)
-            mape_ims.append(0)
 
-        print('Result: mape\terr\trmse\tr2 \t\t mape_ims\terr_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
-                                                                  mape_ims[i], err_ims[i], rmse_ims[i],
+        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
                                                                   r2_score_ims[i]))
 
     results_summary['No.'] = range(Config.LSTM_TESTING_TIME)
-    results_summary['mape'] = mape
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse
-    results_summary['mape_ims'] = mape_ims
     results_summary['err_ims'] = err_ims
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
-    print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
-                                                                          np.mean(np.array(err)),
-                                                                          np.mean(np.array(rmse)),
-                                                                          np.mean(np.array(r2_score))))
+    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                           np.mean(np.array(rmse)),
+                                                           np.mean(np.array(r2_score))))
     return results_summary

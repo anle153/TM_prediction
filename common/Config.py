@@ -141,7 +141,7 @@ ARIMA_MON_RATIO = 0.2
 ARIMA_STEP = 30
 ARIMA_IMS_STEP = 12
 ARIMA_IMS = False
-ARIMA_TEST_DAYS = 2
+ARIMA_TEST_DAYS = 0.1
 # ----------------------------------------------
 
 # -------- HOLT_WINTERS Config -----------------

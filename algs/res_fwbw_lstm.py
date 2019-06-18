@@ -6,7 +6,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
-from common import Config
+from common import Config_res_fwbw_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_res_fwbw_lstm
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
@@ -34,15 +34,18 @@ def plot_test_data(prefix, raw_data, pred_bw, current_data):
 
 def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
-    dataX = np.zeros(shape=(data.shape[1], Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES))
+    data_x_1 = np.zeros(shape=(data.shape[1], Config.RES_FWBW_LSTM_STEP, Config.RES_FWBW_LSTM_FEATURES))
+    data_x_2 = np.zeros(shape=(data.shape[1], Config.RES_FWBW_LSTM_STEP, 1))
     for flow_id in range(data.shape[1]):
         x = data[:, flow_id]
         label = labels[:, flow_id]
 
-        dataX[flow_id, :, 0] = x
-        dataX[flow_id, :, 1] = label
+        data_x_1[flow_id, :, 0] = x
+        data_x_1[flow_id, :, 1] = label
 
-    return dataX
+        data_x_2[flow_id] = np.reshape(x, newshape=(Config.RES_FWBW_LSTM_STEP, 1))
+
+    return data_x_1, data_x_2
 
 
 def calculate_forward_backward_loss(labels, pred_forward, pred_backward, rnn_input):
@@ -69,21 +72,21 @@ def calculate_forward_backward_loss(labels, pred_forward, pred_backward, rnn_inp
 
 def calculate_confident_factors(labels, forward_loss, backward_loss):
     measured_count = np.sum(labels, axis=1).astype(float)  # shape = (#n_flows,)
-    _eta = measured_count / Config.FWBW_LSTM_STEP
+    _eta = measured_count / Config.RES_FWBW_LSTM_STEP
 
     alpha = 1.0 - _eta  # shape = (#nflows,)
-    alpha = np.tile(np.expand_dims(alpha, axis=1), (1, Config.FWBW_LSTM_STEP))  # shape = (#nflows, #steps)
+    alpha = np.tile(np.expand_dims(alpha, axis=1), (1, Config.RES_FWBW_LSTM_STEP))  # shape = (#nflows, #steps)
 
-    rho = np.zeros((labels.shape[0], Config.FWBW_LSTM_STEP))
-    mu = np.zeros((labels.shape[0], Config.FWBW_LSTM_STEP))
-    for j in range(0, Config.FWBW_LSTM_STEP):
-        _rho = (np.sum(labels[:, j:], axis=1)) / float(Config.FWBW_LSTM_STEP - j)
+    rho = np.zeros((labels.shape[0], Config.RES_FWBW_LSTM_STEP))
+    mu = np.zeros((labels.shape[0], Config.RES_FWBW_LSTM_STEP))
+    for j in range(0, Config.RES_FWBW_LSTM_STEP):
+        _rho = (np.sum(labels[:, j:], axis=1)) / float(Config.RES_FWBW_LSTM_STEP - j)
         _mu = (np.sum(labels[:, :(j + 1)], axis=1)) / float(j + 1)
         rho[:, j] = _rho
         mu[:, j] = _mu
 
-    forward_loss = np.tile(np.expand_dims(forward_loss, axis=1), (1, Config.FWBW_LSTM_STEP))
-    backward_loss = np.tile(np.expand_dims(backward_loss, axis=1), (1, Config.FWBW_LSTM_STEP))
+    forward_loss = np.tile(np.expand_dims(forward_loss, axis=1), (1, Config.RES_FWBW_LSTM_STEP))
+    backward_loss = np.tile(np.expand_dims(backward_loss, axis=1), (1, Config.RES_FWBW_LSTM_STEP))
 
     beta = (backward_loss + mu) * (1.0 - alpha) / (forward_loss + backward_loss + mu + rho)
 
@@ -147,15 +150,15 @@ def data_correction_v2(rnn_input, pred_backward, labels):
 
 
 def predict_fwbw_lstm_ims(initial_data, initial_labels, model):
-    ims_tm_pred = np.zeros(shape=(initial_data.shape[0] + Config.FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
-    ims_tm_pred[0:Config.FWBW_LSTM_STEP, :] = initial_data
+    ims_tm_pred = np.zeros(shape=(initial_data.shape[0] + Config.RES_FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
+    ims_tm_pred[0:Config.RES_FWBW_LSTM_STEP, :] = initial_data
 
-    labels = np.zeros(shape=(initial_data.shape[0] + Config.FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
+    labels = np.zeros(shape=(initial_data.shape[0] + Config.RES_FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
     labels[0:Config.LSTM_STEP, :] = initial_labels
 
-    for ts_ahead in range(Config.FWBW_LSTM_IMS_STEP):
-        rnn_input = prepare_input_online_prediction(data=ims_tm_pred[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP],
-                                                    labels=labels[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP])
+    for ts_ahead in range(Config.RES_FWBW_LSTM_IMS_STEP):
+        rnn_input = prepare_input_online_prediction(data=ims_tm_pred[ts_ahead:ts_ahead + Config.RES_FWBW_LSTM_STEP],
+                                                    labels=labels[ts_ahead:ts_ahead + Config.RES_FWBW_LSTM_STEP])
         fw_outputs, bw_outputs = model.predict(rnn_input)
 
         fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
@@ -163,17 +166,17 @@ def predict_fwbw_lstm_ims(initial_data, initial_labels, model):
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
 
-        corrected_data = data_correction(rnn_input=np.copy(ims_tm_pred[ts_ahead: ts_ahead + Config.FWBW_LSTM_STEP]),
+        corrected_data = data_correction(rnn_input=np.copy(ims_tm_pred[ts_ahead: ts_ahead + Config.RES_FWBW_LSTM_STEP]),
                                          pred_forward=fw_outputs,
                                          pred_backward=bw_outputs,
-                                         labels=labels[ts_ahead: ts_ahead + Config.FWBW_LSTM_STEP])
+                                         labels=labels[ts_ahead: ts_ahead + Config.RES_FWBW_LSTM_STEP])
 
-        measured_data = ims_tm_pred[ts_ahead + 1:ts_ahead + Config.FWBW_LSTM_STEP - 1] * labels[
-                                                                                         ts_ahead + 1:ts_ahead + Config.FWBW_LSTM_STEP - 1]
-        pred_data = corrected_data * (1.0 - labels[ts_ahead + 1:ts_ahead + Config.FWBW_LSTM_STEP - 1])
-        ims_tm_pred[ts_ahead + 1:ts_ahead + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
+        measured_data = ims_tm_pred[ts_ahead + 1:ts_ahead + Config.RES_FWBW_LSTM_STEP - 1] * labels[
+                                                                                             ts_ahead + 1:ts_ahead + Config.RES_FWBW_LSTM_STEP - 1]
+        pred_data = corrected_data * (1.0 - labels[ts_ahead + 1:ts_ahead + Config.RES_FWBW_LSTM_STEP - 1])
+        ims_tm_pred[ts_ahead + 1:ts_ahead + Config.RES_FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
-        ims_tm_pred[ts_ahead + Config.FWBW_LSTM_STEP] = pred_next_tm
+        ims_tm_pred[ts_ahead + Config.RES_FWBW_LSTM_STEP] = pred_next_tm
 
     return ims_tm_pred[-1, :]
 
@@ -193,7 +196,7 @@ def predict_fwbw_lstm(initial_data, test_data, model):
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
     labels[0:initial_data.shape[0]] = np.ones(shape=initial_data.shape)
 
-    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
+    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.RES_FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
 
     raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
@@ -203,18 +206,18 @@ def predict_fwbw_lstm(initial_data, test_data, model):
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
 
-        if Config.FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP):
-            ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
-                                               initial_labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
+        if Config.RES_FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.RES_FWBW_LSTM_IMS_STEP):
+            ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP],
+                                               initial_labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP],
                                                model=model)
 
         # Create 3D input for rnn
         # Shape(#n_flows, #time-steps, #features)
-        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
-                                                    labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP],
+                                                    labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP])
 
-        rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
-                                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+        rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.RES_FWBW_LSTM_STEP],
+                                                            labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP])
 
         fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step, 1)
 
@@ -228,29 +231,30 @@ def predict_fwbw_lstm(initial_data, test_data, model):
         _fw_outputs = np.squeeze(_fw_outputs, axis=2)
         pred_next_tm_wo_corr = np.copy(_fw_outputs[:, -1])
 
-        # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_STEP - 1]
-        corrected_data = data_correction(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
+        # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.RES_FWBW_LSTM_STEP - 1]
+        corrected_data = data_correction(rnn_input=np.copy(tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP]),
                                          pred_forward=fw_outputs,
                                          pred_backward=bw_outputs,
-                                         labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+                                         labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP])
 
-        measured_data = tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
-        pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1])
-        tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
+        measured_data = tm_pred[ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1] * labels[
+                                                                             ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1]
+        pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1])
+        tm_pred[ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
         # Partial monitoring
         sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                    p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+                                    p=[Config.RES_FWBW_LSTM_MON_RAIO, 1 - Config.RES_FWBW_LSTM_MON_RAIO])
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
         _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
 
-        tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
-        tm_pred_no_updated[ts + Config.FWBW_LSTM_STEP] = _new_input
-        labels[ts + Config.FWBW_LSTM_STEP] = sampling
+        tm_pred[ts + Config.RES_FWBW_LSTM_STEP] = new_input
+        tm_pred_no_updated[ts + Config.RES_FWBW_LSTM_STEP] = _new_input
+        labels[ts + Config.RES_FWBW_LSTM_STEP] = sampling
 
-    return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm, \
-           tm_pred_no_updated[Config.FWBW_LSTM_STEP:]
+    return tm_pred[Config.RES_FWBW_LSTM_STEP:], labels[Config.RES_FWBW_LSTM_STEP:], ims_tm, \
+           tm_pred_no_updated[Config.RES_FWBW_LSTM_STEP:]
 
 
 def calculate_consecutive_loss(measured_matrix):
@@ -303,7 +307,7 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
                                 measured_matrix=labels)
 
     sampling = np.zeros(shape=n_flows)
-    m = int(Config.FWBW_LSTM_MON_RAIO * n_flows)
+    m = int(Config.RES_FWBW_LSTM_MON_RAIO * n_flows)
 
     w = w.flatten()
     sorted_idx_w = np.argsort(w)
@@ -325,9 +329,9 @@ def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
 
     flows_stds = np.std(rnn_input, axis=1)
 
-    w = 1 / (fw_losses * Config.FWBW_LSTM_HYPERPARAMS[0] +
-             cl * Config.FWBW_LSTM_HYPERPARAMS[1] +
-             flows_stds * Config.FWBW_LSTM_HYPERPARAMS[2])
+    w = 1 / (fw_losses * Config.RES_FWBW_LSTM_HYPERPARAMS[0] +
+             cl * Config.RES_FWBW_LSTM_HYPERPARAMS[1] +
+             flows_stds * Config.RES_FWBW_LSTM_HYPERPARAMS[2])
 
     return w
 
@@ -348,7 +352,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     labels[0:initial_data.shape[0]] = np.ones(shape=initial_data.shape)
 
     # Forward losses
-    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
+    ims_tm = np.zeros(shape=(test_data.shape[0] - Config.RES_FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
 
     raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
@@ -358,20 +362,17 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
 
-        if Config.FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP):
-            ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
-                                               initial_labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
+        if Config.RES_FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.RES_FWBW_LSTM_IMS_STEP):
+            ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP],
+                                               initial_labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP],
                                                model=model)
 
         # Create 3D input for rnn
         # Shape(#n_flows, #time-steps, #features)
-        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
-                                                    labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+        rnn_input_1, rnn_input_2 = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP],
+                                                                   labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP])
 
-        # rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
-        #                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
-
-        fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step)
+        fw_outputs, bw_outputs = model.predict([rnn_input_1, rnn_input_2])  # Shape(#n_flows, #time-step)
 
         # fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
         # bw_outputs = np.squeeze(bw_outputs, axis=2)
@@ -384,35 +385,36 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # pred_next_tm_wo_corr = np.copy(_fw_outputs[:, -1])
 
         # if ts == 100:
-        #     plot_test_data('fwbw-lstm', raw_data[ts: ts + Config.FWBW_LSTM_STEP],
-        #                    bw_outputs.T, tm_pred[ts: ts + Config.FWBW_LSTM_STEP])
+        #     plot_test_data('fwbw-lstm', raw_data[ts: ts + Config.RES_FWBW_LSTM_STEP],
+        #                    bw_outputs.T, tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP])
 
-        # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_STEP - 1]
-        corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
+        # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.RES_FWBW_LSTM_STEP - 1]
+        corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP]),
                                             pred_backward=bw_outputs,
-                                            labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
+                                            labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP])
 
-        measured_data = tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] * labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1]
-        pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.FWBW_LSTM_STEP - 1])
-        tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
+        measured_data = tm_pred[ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1] * labels[
+                                                                             ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1]
+        pred_data = corrected_data * (1.0 - labels[ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1])
+        tm_pred[ts + 1:ts + Config.RES_FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
         # Partial monitoring
-        if Config.FWBW_LSTM_RANDOM_ACTION:
+        if Config.RES_FWBW_LSTM_RANDOM_ACTION:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                        p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+                                        p=[Config.RES_FWBW_LSTM_MON_RAIO, 1 - Config.RES_FWBW_LSTM_MON_RAIO])
         else:
-            sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
+            sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + Config.RES_FWBW_LSTM_STEP].T),
                                          pred_forward=fw_outputs,
-                                         labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
+                                         labels=labels[ts: ts + Config.RES_FWBW_LSTM_STEP].T)
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
         # _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
 
-        tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
-        # tm_pred_no_updated[ts + Config.FWBW_LSTM_STEP] = _new_input
-        labels[ts + Config.FWBW_LSTM_STEP] = sampling
+        tm_pred[ts + Config.RES_FWBW_LSTM_STEP] = new_input
+        # tm_pred_no_updated[ts + Config.RES_FWBW_LSTM_STEP] = _new_input
+        labels[ts + Config.RES_FWBW_LSTM_STEP] = sampling
 
-    return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm
+    return tm_pred[Config.RES_FWBW_LSTM_STEP:], labels[Config.RES_FWBW_LSTM_STEP:], ims_tm
 
 
 def build_model(input_shape):
@@ -420,8 +422,8 @@ def build_model(input_shape):
 
     # fwbw-lstm model
     fwbw_net = fwbw_lstm_model(input_shape=input_shape,
-                               hidden=Config.FWBW_LSTM_HIDDEN_UNIT,
-                               drop_out=Config.FWBW_LSTM_DROPOUT,
+                               hidden=Config.RES_FWBW_LSTM_HIDDEN_UNIT,
+                               drop_out=Config.RES_FWBW_LSTM_DROPOUT,
                                alg_name=Config.ALG, tag=Config.TAG, check_point=True,
                                saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG,
                                                                                      Config.TAG, Config.SCALER))
@@ -454,7 +456,7 @@ def train_res_fwbw_lstm(data):
                                                                                  valid_data2d,
                                                                                  test_data2d)
 
-    input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
+    input_shape = (Config.RES_FWBW_LSTM_STEP, Config.RES_FWBW_LSTM_FEATURES)
 
     with tf.device('/device:GPU:{}'.format(Config.GPU)):
         fwbw_net = build_model(input_shape)
@@ -463,21 +465,23 @@ def train_res_fwbw_lstm(data):
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    if not Config.FWBW_LSTM_VALID_TEST or \
+    if not Config.RES_FWBW_LSTM_VALID_TEST or \
             not os.path.isfile(
-                fwbw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_LSTM_BEST_CHECKPOINT)):
+                fwbw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.RES_FWBW_LSTM_BEST_CHECKPOINT)):
         print('|--- Compile model. Saving path %s --- ' % fwbw_net.saving_path)
         # -------------------------------- Create offline training and validating dataset --------------------------
 
         print('|--- Create offline train set for forward net!')
 
         trainX_1, trainX_2, trainY_1, trainY_2 = create_offline_res_fwbw_lstm(train_data_normalized2d,
-                                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                              input_shape,
+                                                                              Config.RES_FWBW_LSTM_MON_RAIO,
                                                                               train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
         validX_1, validX_2, validY_1, validY_2 = create_offline_res_fwbw_lstm(valid_data_normalized2d,
-                                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                              input_shape,
+                                                                              Config.RES_FWBW_LSTM_MON_RAIO,
                                                                               train_data_normalized2d.std())
 
         # Load model check point
@@ -487,7 +491,7 @@ def train_res_fwbw_lstm(data):
             training_fw_history = fwbw_net.model.fit(x=[trainX_1, trainX_2],
                                                      y=[trainY_1, trainY_2],
                                                      batch_size=1024,
-                                                     epochs=Config.FWBW_LSTM_N_EPOCH,
+                                                     epochs=Config.RES_FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=([validX_1, validX_2], [validY_1, validY_2]),
                                                      shuffle=True,
@@ -499,7 +503,7 @@ def train_res_fwbw_lstm(data):
             training_fw_history = fwbw_net.model.fit(x=[trainX_1, trainX_2],
                                                      y=[trainY_1, trainY_2],
                                                      batch_size=1024,
-                                                     epochs=Config.FWBW_LSTM_N_EPOCH,
+                                                     epochs=Config.RES_FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=([validX_1, validX_2], [validY_1, validY_2]),
                                                      shuffle=True,
@@ -511,14 +515,14 @@ def train_res_fwbw_lstm(data):
             fwbw_net.save_model_history(training_fw_history)
 
     else:
-        fwbw_net.load_model_from_check_point(_from_epoch=Config.FWBW_LSTM_BEST_CHECKPOINT)
+        fwbw_net.load_model_from_check_point(_from_epoch=Config.RES_FWBW_LSTM_BEST_CHECKPOINT)
     # --------------------------------------------------------------------------------------------------------------
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
                                                                       Config.ALG, Config.TAG, Config.SCALER)):
         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
                                                                 Config.ALG, Config.TAG, Config.SCALER))
-    results_summary = pd.DataFrame(index=range(Config.FWBW_LSTM_TESTING_TIME),
+    results_summary = pd.DataFrame(index=range(Config.RES_FWBW_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
@@ -534,10 +538,10 @@ def train_res_fwbw_lstm(data):
 
 def ims_tm_test_data(test_data):
     ims_test_set = np.zeros(
-        shape=(test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
+        shape=(test_data.shape[0] - Config.RES_FWBW_LSTM_IMS_STEP + 1, test_data.shape[1]))
 
-    for i in range(Config.FWBW_LSTM_IMS_STEP - 1, test_data.shape[0], 1):
-        ims_test_set[i - Config.FWBW_LSTM_IMS_STEP + 1] = test_data[i]
+    for i in range(Config.RES_FWBW_LSTM_IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.RES_FWBW_LSTM_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
@@ -566,16 +570,16 @@ def test_res_fwbw_lstm(data):
     _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
                                                                                 valid_data2d,
                                                                                 test_data2d)
-    input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
+    input_shape = (Config.RES_FWBW_LSTM_STEP, Config.RES_FWBW_LSTM_FEATURES)
 
     with tf.device('/device:GPU:{}'.format(gpu)):
-        fwbw_net = load_trained_models(input_shape, Config.FWBW_LSTM_BEST_CHECKPOINT)
+        fwbw_net = load_trained_models(input_shape, Config.RES_FWBW_LSTM_BEST_CHECKPOINT)
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
                                                                       Config.ALG, Config.TAG, Config.SCALER)):
         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
                                                                 Config.ALG, Config.TAG, Config.SCALER))
-    results_summary = pd.DataFrame(index=range(Config.FWBW_LSTM_TESTING_TIME),
+    results_summary = pd.DataFrame(index=range(Config.RES_FWBW_LSTM_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
@@ -595,12 +599,27 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
     else:
         day_size = Config.GEANT_DAY_SIZE
 
-    idx = np.random.random_integers(Config.FWBW_LSTM_STEP,
-                                    test_data2d.shape[0] - day_size * Config.FWBW_LSTM_TEST_DAYS - 10)
+    idx = np.random.random_integers(Config.RES_FWBW_LSTM_STEP,
+                                    test_data2d.shape[0] - day_size * Config.RES_FWBW_LSTM_TEST_DAYS - 10)
 
-    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * Config.FWBW_LSTM_TEST_DAYS])
-    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.FWBW_LSTM_STEP: idx])
-    test_data = test_data2d[idx:idx + day_size * Config.FWBW_LSTM_TEST_DAYS]
+    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * Config.RES_FWBW_LSTM_TEST_DAYS])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.RES_FWBW_LSTM_STEP: idx])
+    test_data = test_data2d[idx:idx + day_size * Config.RES_FWBW_LSTM_TEST_DAYS]
+
+    return test_data_normalize, init_data_normalize, test_data
+
+
+def prepare_test_set_last_5days(test_data2d, test_data_normalized2d):
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    idx = test_data2d.shape[0] - day_size * 5 - 10
+
+    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 5])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.RES_FWBW_LSTM_STEP: idx])
+    test_data = test_data2d[idx:idx + day_size * 5]
 
     return test_data_normalize, init_data_normalize, test_data
 
@@ -611,9 +630,11 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
 
     # per_gain = []
 
-    for i in range(Config.FWBW_LSTM_TESTING_TIME):
+    for i in range(Config.RES_FWBW_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
-        test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+        # test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_5days(test_data2d,
+                                                                                          test_data_normalized2d)
         ims_test_data = ims_tm_test_data(test_data=test_data)
         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 
@@ -636,7 +657,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         # r2_score_wo = calculate_r2_score(y_true=test_data, y_pred=pred_tm_wo_invert2d)
         # rmse_wo = calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_wo_invert2d / 1000000)
 
-        if Config.FWBW_LSTM_IMS:
+        if Config.RES_FWBW_LSTM_IMS:
             # Calculate error for multistep-ahead-prediction
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
@@ -665,7 +686,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         #     per_gain.append(-np.abs(err[i] - err_wo) * 100.0 / err[i])
         #     print('|-----> Performance gain: {}'.format(-np.abs(err[i] - err_wo) * 100.0 / err[i]))
 
-    results_summary['No.'] = range(Config.FWBW_LSTM_TESTING_TIME)
+    results_summary['No.'] = range(Config.RES_FWBW_LSTM_TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse
@@ -684,7 +705,3 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
 
     return results_summary
 
-
-if __name__ == '__main':
-    data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
-    train_res_fwbw_lstm(data)

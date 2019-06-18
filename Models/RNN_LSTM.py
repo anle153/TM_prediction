@@ -62,10 +62,9 @@ class lstm(AbstractModel):
         _input = Concatenate(axis=1)([input_tensor_flatten, output])
 
         _input = Flatten()(_input)
-        _input = Dense(256, )(_input)
-        _input = Dense(128, )(_input)
-        outputs = Dense(self.n_timestep, name='outputs')(_input)
-        outputs = Reshape((self.n_timestep, 1))(outputs)
+        _input = Dense(64, )(_input)
+        _input = Dense(32, )(_input)
+        outputs = Dense(1, name='outputs')(_input)
 
         self.model = Model(inputs=input_tensor, outputs=outputs, name='res-lstm')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])

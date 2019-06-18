@@ -288,6 +288,21 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
     return test_data_normalize, init_data_normalize, test_data
 
 
+def prepare_test_set_last_5days(test_data2d, test_data_normalized2d):
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    idx = test_data2d.shape[0] - day_size * 5 - 10
+
+    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 5])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.RES_LSTM_2_STEP: idx])
+    test_data = test_data2d[idx:idx + day_size * 5]
+
+    return test_data_normalize, init_data_normalize, test_data
+
+
 def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary):
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
@@ -295,7 +310,9 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
     for i in range(Config.RES_LSTM_2_TESTING_TIME):
         print('|--- Running time: {}'.format(i))
 
-        test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+        # test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_5days(test_data2d,
+                                                                                          test_data_normalized2d)
 
         ims_test_data = ims_tm_test_data(test_data=test_data)
         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)

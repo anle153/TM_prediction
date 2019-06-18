@@ -136,7 +136,7 @@ class fwbw_lstm_model(AbstractModel):
         _input_bw = Dense(64, )(_input_bw)
         bw_outputs = Dense(self.n_timestep, name='bw_outputs')(_input_bw)
 
-        self.model = Model(inputs=input_tensor, outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
+        self.model = Model(inputs=[input_tensor, input_2], outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 

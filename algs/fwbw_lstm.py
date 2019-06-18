@@ -396,7 +396,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         tm_pred[ts + 1:ts + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
         # Partial monitoring
-        if Config.FWBW_LSTM_RANDOM_ACTION:
+        if Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
                                         p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
         else:
@@ -519,9 +519,11 @@ def train_fwbw_lstm(data):
 
     results_summary = run_test(valid_data2d, valid_data_normalized2d, fwbw_net, scalers, results_summary)
 
+    result_file_name = 'Valid_results_{}.csv'.format(Config.FWBW_LSTM_FLOW_SELECTION)
+
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                                  Config.SCALER),
+                           '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                   Config.SCALER, result_file_name),
                            index=False)
 
     return
@@ -575,9 +577,11 @@ def test_fwbw_lstm(data):
 
     results_summary = run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary)
 
+    result_file_name = 'Test_results_{}.csv'.format(Config.FWBW_LSTM_FLOW_SELECTION)
+
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                                 Config.SCALER),
+                           '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                   Config.SCALER, result_file_name),
                            index=False)
 
     return

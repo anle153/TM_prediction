@@ -74,9 +74,7 @@ def predict_lstm_nn(init_data, test_data, model):
                                                     labels=labels[ts: ts + Config.RES_LSTM_STEP])
 
         # Get the TM prediction of next time slot
-        predictX = model.predict(rnn_input)
-
-        pred = predictX[:, -1, 0]
+        pred = model.predict(rnn_input)
 
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)

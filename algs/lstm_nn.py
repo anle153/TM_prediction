@@ -6,7 +6,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from Models.RNN_LSTM import lstm
-from common import Config
+from common import Config_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_lstm_nn_data, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 

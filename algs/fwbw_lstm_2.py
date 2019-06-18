@@ -6,7 +6,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
-from common import Config
+from common import Config_fwbw_lstm_2 as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm_2
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 

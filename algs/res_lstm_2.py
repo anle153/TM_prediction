@@ -17,15 +17,17 @@ session = tf.Session(config=config)
 
 def prepare_input_online_prediction(data, labels):
     labels = labels.astype(int)
-    dataX = np.zeros(shape=(data.shape[1], Config.RES_LSTM_2_STEP, 2))
+    data_x_1 = np.zeros(shape=(data.shape[1], Config.RES_LSTM_2_STEP, 2))
+    data_x_2 = np.zeros(shape=(data.shape[1], Config.RES_LSTM_2_STEP, 1))
     for flow_id in range(data.shape[1]):
         x = data[:, flow_id]
         label = labels[:, flow_id]
 
-        sample = np.array([x, label]).T
-        dataX[flow_id] = sample
+        data_x_1[flow_id, : 0] = x
+        data_x_1[flow_id, : 1] = label
+        data_x_2[flow_id] = np.reshape(x, newshape=(Config.RES_LSTM_2_STEP, 1))
 
-    return dataX
+    return data_x_1
 
 
 def ims_tm_prediction(init_data, model, init_labels):

@@ -104,7 +104,7 @@ class fwbw_lstm_model(AbstractModel):
     def construct_res_fwbw_lstm(self):
         # Input
         input_tensor = Input(shape=self.input_shape, name='input')
-        input_2 = Input(shape=self.n_timestep, name='input2')
+        input_2 = Input(shape=(self.n_timestep, 1), name='input2')
 
         # Forward Network
         fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)

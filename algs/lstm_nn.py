@@ -114,10 +114,12 @@ def build_model(input_shape):
                saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
                                                                      Config.SCALER))
 
-    if Config.LSTM_DEEP:
-        net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
-    else:
-        net.seq2seq_model_construction()
+    # if Config.LSTM_DEEP:
+    #     net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
+    # else:
+    #     net.seq2seq_model_construction()
+
+    net.res_lstm_construction()
 
     net.plot_models()
 

@@ -76,6 +76,8 @@ def predict_lstm_nn(init_data, test_data, model):
         # Get the TM prediction of next time slot
         pred = model.predict(rnn_input)
 
+        pred = np.squeeze(pred, axis=1)
+
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
@@ -113,7 +115,6 @@ def build_model(input_shape):
                                                                      Config.SCALER))
 
     net.res_lstm_construction()
-
     net.plot_models()
 
     return net

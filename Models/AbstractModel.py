@@ -128,7 +128,7 @@ class AbstractModel(object):
 
         loss = np.array(model_history.history['loss'])
         val_loss = np.array(model_history.history['val_loss'])
-        dump_model_history = pd.DataFrame(index=loss.size,
+        dump_model_history = pd.DataFrame(index=range(loss.size),
                                           columns=['epoch', 'loss', 'val_loss'])
 
         dump_model_history['epoch'] = range(loss.size)

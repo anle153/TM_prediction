@@ -326,10 +326,26 @@ def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
     flows_stds = np.std(rnn_input, axis=1)
 
     w = 1 / (fw_losses * Config.FWBW_LSTM_HYPERPARAMS[0] +
-             cl * Config.FWBW_LSTM_HYPERPARAMS[1] +
-             flows_stds * Config.FWBW_LSTM_HYPERPARAMS[2])
+             cl * Config.FWBW_LSTM_HYPERPARAMS[1])
 
     return w
+
+
+def calculate_flows_weights_fairness(rnn_input, fw_losses, measured_matrix):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param fw_losses: shape(#n_flows)
+    :param measured_matrix: shape(#n_flows, #time-steps)
+    :return: w: flow weight shape(#n_flows)
+    """
+
+    cl = calculate_consecutive_loss(measured_matrix).astype(float)
+
+    w = 1 / (cl * Config.FWBW_LSTM_HYPERPARAMS[0])
+
+    return w
+
 
 
 def predict_fwbw_lstm_v2(initial_data, test_data, model):

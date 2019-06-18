@@ -1,4 +1,4 @@
-from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape
+from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
 
@@ -67,6 +67,29 @@ class lstm(AbstractModel):
         outputs = Dense(1, name='outputs')(_input)
 
         self.model = Model(inputs=input_tensor, outputs=outputs, name='res-lstm')
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
+    def res_lstm_2_construction(self):
+
+        input_tensor = Input(shape=self.input_shape, name='input')
+        input_tensor_2 = Input(shape=(self.n_timestep, 1), name='input_2')
+        # res lstm network
+        lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
+        drop_out = Dropout(self.drop_out)(lstm_layer)
+        flat_layer = TimeDistributed(Flatten())(drop_out)
+        dense_1 = TimeDistributed(Dense(64, ))(flat_layer)
+        dense_2 = TimeDistributed(Dense(32, ))(dense_1)
+        output = TimeDistributed(Dense(1, ))(dense_2)
+
+        # input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
+        _input = Add()([input_tensor_2, output])
+
+        _input = Flatten()(_input)
+        _input = Dense(64, )(_input)
+        _input = Dense(32, )(_input)
+        outputs = Dense(1, name='outputs')(_input)
+
+        self.model = Model(inputs=[input_tensor, input_tensor_2], outputs=outputs, name='res-lstm')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def seq2seq_deep_model_construction(self, n_layers):

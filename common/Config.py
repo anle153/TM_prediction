@@ -12,7 +12,7 @@ LSTM_STEP = 30
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
-LSTM_MON_RAIO = 0.40
+LSTM_MON_RAIO = 0.45
 
 LSTM_BEST_CHECKPOINT = 2
 LSTM_TESTING_TIME = 10
@@ -232,9 +232,9 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[1]
-ALG = ALGS[3]
-GPU = 1
+RUN_MODE = RUN_MODES[0]
+ALG = ALGS[2]
+GPU = 0
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

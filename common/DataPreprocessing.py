@@ -304,6 +304,39 @@ def create_offline_reslstm_nn_data(data, input_shape, mon_ratio, eps):
     return data_x, data_y
 
 
+def create_offline_res_lstm_2_data(data, input_shape, mon_ratio, eps):
+    ntimesteps = input_shape[0]
+    features = input_shape[1]
+
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf,
+                               size=data.shape,
+                               p=(mon_ratio, 1 - mon_ratio))
+    data_x_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    data_x_2 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, 1))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], 1))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(_data.shape[0] - ntimesteps):
+            _x = _data[idx: (idx + ntimesteps), flow]
+            _label = _labels[idx: (idx + ntimesteps), flow]
+
+            data_x_1[i, :, 0] = _x
+            data_x_2[i] = np.reshape(_x, newshape=(ntimesteps, 1))
+            data_x_1[i, :, 1] = _label
+
+            data_y[i] = data[idx + ntimesteps, flow]
+
+            i += 1
+
+    return data_x_1, data_x_2, data_y
+
+
 def create_offline_fwbw_lstm_2(data, input_shape, mon_ratio, eps):
     ntimesteps = input_shape[0]
     features = input_shape[1]

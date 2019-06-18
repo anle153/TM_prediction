@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.RNN_LSTM import lstm
 from common import Config_res_lstm_2 as Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_reslstm_nn_data, data_scalling
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_res_lstm_2_data, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
@@ -149,36 +149,36 @@ def train_res_lstm_2(data):
             print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
             from_epoch = lstm_net.load_model_from_check_point()
             # -------------------------------- Create offline training and validating dataset --------------------------
-            print('|--- Create offline train set for lstm-nn!')
-            trainX, trainY = create_offline_reslstm_nn_data(train_data_normalized2d, input_shape,
+            print('|--- Create offline train set for res-lstm-2!')
+            train_x_1, train_x_2, train_y = create_offline_res_lstm_2_data(train_data_normalized2d, input_shape,
                                                             Config.RES_LSTM_2_MON_RAIO,
                                                             train_data_normalized2d.std())
-            print('|--- Create offline valid set for lstm-nn!')
-            validX, validY = create_offline_reslstm_nn_data(valid_data_normalized2d, input_shape,
+            print('|--- Create offline valid set for res-lstm-2!')
+            valid_x_1, valid_x_2, valid_y = create_offline_res_lstm_2_data(valid_data_normalized2d, input_shape,
                                                             Config.RES_LSTM_2_MON_RAIO,
                                                             train_data_normalized2d.std())
             # ----------------------------------------------------------------------------------------------------------
 
             if from_epoch > 0:
                 print('|--- Continue training.')
-                training_history = lstm_net.model.fit(x=trainX,
-                                                      y=trainY,
+                training_history = lstm_net.model.fit(x=[train_x_1, train_x_2],
+                                                      y=train_y,
                                                       batch_size=Config.RES_LSTM_2_BATCH_SIZE,
                                                       epochs=Config.RES_LSTM_2_N_EPOCH,
                                                       callbacks=lstm_net.callbacks_list,
-                                                      validation_data=(validX, validY),
+                                                      validation_data=([valid_x_1, valid_x_2], valid_y),
                                                       shuffle=True,
                                                       initial_epoch=from_epoch,
                                                       verbose=2)
             else:
                 print('|--- Training new model.')
 
-                training_history = lstm_net.model.fit(x=trainX,
-                                                      y=trainY,
+                training_history = lstm_net.model.fit(x=[train_x_1, train_x_2],
+                                                      y=train_y,
                                                       batch_size=Config.RES_LSTM_2_BATCH_SIZE,
                                                       epochs=Config.RES_LSTM_2_N_EPOCH,
                                                       callbacks=lstm_net.callbacks_list,
-                                                      validation_data=(validX, validY),
+                                                      validation_data=([valid_x_1, valid_x_2], valid_y),
                                                       shuffle=True,
                                                       verbose=2)
 

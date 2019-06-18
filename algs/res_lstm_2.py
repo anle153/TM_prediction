@@ -23,8 +23,8 @@ def prepare_input_online_prediction(data, labels):
         x = data[:, flow_id]
         label = labels[:, flow_id]
 
-        data_x_1[flow_id, : 0] = x
-        data_x_1[flow_id, : 1] = label
+        data_x_1[flow_id, :, 0] = x
+        data_x_1[flow_id, :, 1] = label
         data_x_2[flow_id] = np.reshape(x, newshape=(Config.RES_LSTM_2_STEP, 1))
 
     return data_x_1

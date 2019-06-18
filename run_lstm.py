@@ -1,6 +1,6 @@
 import numpy as np
 
-from algs.lstm_nn import train_lstm_nn
+from algs.lstm_nn import train_lstm_nn, test_lstm_nn
 from common import Config_lstm as Config
 
 
@@ -45,4 +45,8 @@ def print_lstm_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_lstm_info()
-    train_lstm_nn(data)
+
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+        train_lstm_nn(data)
+    else:
+        test_lstm_nn(data)

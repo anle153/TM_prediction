@@ -1,6 +1,6 @@
 import numpy as np
 
-from algs.fwbw_lstm_2 import train_fwbw_lstm_2
+from algs.fwbw_lstm_2 import train_fwbw_lstm_2, test_fwbw_lstm_2
 from common import Config_fwbw_lstm_2 as Config
 
 
@@ -48,4 +48,8 @@ def print_fwbw_lstm_2_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_fwbw_lstm_2_info()
-    train_fwbw_lstm_2(data)
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+
+        train_fwbw_lstm_2(data)
+    else:
+        test_fwbw_lstm_2(data)

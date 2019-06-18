@@ -227,7 +227,7 @@ def load_trained_model(input_shape, best_ckp):
     return lstm_net
 
 
-def test_reslstm_nn(data):
+def test_res_lstm(data):
     print('|-- Run model testing.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:

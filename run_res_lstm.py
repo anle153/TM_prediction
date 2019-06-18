@@ -1,6 +1,6 @@
 import numpy as np
 
-from algs.res_lstm import train_res_lstm
+from algs.res_lstm import train_res_lstm, test_res_lstm
 from common import Config_res_lstm as Config
 
 
@@ -45,4 +45,8 @@ def print_res_lstm_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_res_lstm_info()
-    train_res_lstm(data)
+
+    if Config.RUN_MODE == Config.RUN_MODES[0]:
+        train_res_lstm(data)
+    else:
+        test_res_lstm(data)

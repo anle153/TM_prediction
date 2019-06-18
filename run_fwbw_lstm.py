@@ -1,7 +1,7 @@
 import numpy as np
 
 from algs.fwbw_lstm import train_fwbw_lstm
-from common import Config
+from common import Config_fwbw_lstm as Config
 
 
 def print_fwbw_lstm_info():
@@ -38,4 +38,5 @@ def print_fwbw_lstm_info():
 
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
+    print_fwbw_lstm_info()
     train_fwbw_lstm(data)

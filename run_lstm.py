@@ -1,7 +1,7 @@
 import numpy as np
 
 from algs.lstm_nn import train_lstm_nn
-from common import Config
+from common import Config_lstm as Config
 
 
 def print_lstm_info():
@@ -35,4 +35,5 @@ def print_lstm_info():
 
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
+    print_lstm_info()
     train_lstm_nn(data)

@@ -119,7 +119,7 @@ def build_model(input_shape):
     return net
 
 
-def train_reslstm_nn(data):
+def train_res_lstm(data):
     print('|-- Run model training.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:

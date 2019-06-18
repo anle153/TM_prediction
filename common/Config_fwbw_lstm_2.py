@@ -33,7 +33,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
-ALG = 'fwbw_lstm_2'
+ALG = 'fwbw-lstm-2'
 GPU = 1
 SCALER = SCALERS[5]
 

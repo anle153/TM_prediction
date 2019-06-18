@@ -486,7 +486,7 @@ def train_res_fwbw_lstm(data):
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
             training_fw_history = fwbw_net.model.fit(x=[trainX_1, trainX_2],
                                                      y=[trainY_1, trainY_2],
-                                                     batch_size=Config.FWBW_LSTM_BATCH_SIZE,
+                                                     batch_size=1024,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=([validX_1, validX_2], [validY_1, validY_2]),
@@ -498,7 +498,7 @@ def train_res_fwbw_lstm(data):
 
             training_fw_history = fwbw_net.model.fit(x=[trainX_1, trainX_2],
                                                      y=[trainY_1, trainY_2],
-                                                     batch_size=Config.FWBW_LSTM_BATCH_SIZE,
+                                                     batch_size=1024,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
                                                      validation_data=([validX_1, validX_2], [validY_1, validY_2]),

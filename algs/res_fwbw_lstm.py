@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
+from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_res_fwbw_lstm
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
@@ -416,7 +416,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
 
 
 def build_model(input_shape):
-    print('|--- Build models fwbw-lstm.')
+    print('|--- Build models res-fwbw-lstm.')
 
     # fwbw-lstm model
     fwbw_net = fwbw_lstm_model(input_shape=input_shape,
@@ -425,7 +425,7 @@ def build_model(input_shape):
                                alg_name=Config.ALG, tag=Config.TAG, check_point=True,
                                saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG,
                                                                                      Config.TAG, Config.SCALER))
-    fwbw_net.construct_fwbw_lstm()
+    fwbw_net.construct_res_fwbw_lstm()
     print(fwbw_net.model.summary())
     fwbw_net.plot_models()
     return fwbw_net
@@ -439,7 +439,7 @@ def load_trained_models(input_shape, ckp):
     return fwbw_net
 
 
-def train_fwbw_lstm(data):
+def train_res_fwbw_lstm(data):
     print('|-- Run model training fwbw_lstm.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:
@@ -471,37 +471,37 @@ def train_fwbw_lstm(data):
 
         print('|--- Create offline train set for forward net!')
 
-        trainX, trainY_1, trainY_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                              train_data_normalized2d.std())
+        trainX_1, trainX_2, trainY_1, trainY_2 = create_offline_res_fwbw_lstm(train_data_normalized2d,
+                                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                              train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
-        validX, validY_1, validY_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
-                                                              train_data_normalized2d.std())
+        validX_1, validX_2, validY_1, validY_2 = create_offline_res_fwbw_lstm(valid_data_normalized2d,
+                                                                              input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                              train_data_normalized2d.std())
 
         # Load model check point
         from_epoch = fwbw_net.load_model_from_check_point()
         if from_epoch > 0:
             print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-            training_fw_history = fwbw_net.model.fit(x=trainX,
+            training_fw_history = fwbw_net.model.fit(x=[trainX_1, trainX_2],
                                                      y=[trainY_1, trainY_2],
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(validX, [validY_1, validY_2]),
+                                                     validation_data=([validX_1, validX_2], [validY_1, validY_2]),
                                                      shuffle=True,
                                                      initial_epoch=from_epoch,
                                                      verbose=2)
         else:
             print('|--- Training new forward model.')
 
-            training_fw_history = fwbw_net.model.fit(x=trainX,
+            training_fw_history = fwbw_net.model.fit(x=[trainX_1, trainX_2],
                                                      y=[trainY_1, trainY_2],
                                                      batch_size=Config.FWBW_LSTM_BATCH_SIZE,
                                                      epochs=Config.FWBW_LSTM_N_EPOCH,
                                                      callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(validX, [validY_1, validY_2]),
+                                                     validation_data=([validX_1, validX_2], [validY_1, validY_2]),
                                                      shuffle=True,
                                                      verbose=2)
 
@@ -542,8 +542,9 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def test_fwbw_lstm(data):
+def test_res_fwbw_lstm(data):
     print('|-- Run model testing.')
+    gpu = Config.GPU
 
     data_name = Config.DATA_NAME
     if 'Abilene' in data_name:
@@ -567,7 +568,7 @@ def test_fwbw_lstm(data):
                                                                                 test_data2d)
     input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
 
-    with tf.device('/device:GPU:{}'.format(Config.GPU)):
+    with tf.device('/device:GPU:{}'.format(gpu)):
         fwbw_net = load_trained_models(input_shape, Config.FWBW_LSTM_BEST_CHECKPOINT)
 
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
@@ -608,7 +609,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
 
-    per_gain = []
+    # per_gain = []
 
     for i in range(Config.FWBW_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
@@ -653,7 +654,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
                                                           err_ims[i], rmse_ims[i],
-                                                                  r2_score_ims[i]))
+                                                          r2_score_ims[i]))
         # print('Result without data correction: mape \t err\trmse\tr2')
         # print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
         #
@@ -682,3 +683,8 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
     #                                                  calculate_confident_interval(per_gain)))
 
     return results_summary
+
+
+if __name__ == '__main':
+    data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
+    train_res_fwbw_lstm(data)

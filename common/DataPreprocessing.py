@@ -342,6 +342,44 @@ def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
     return dataX, dataY_1, dataY_2
 
 
+def create_offline_res_fwbw_lstm(data, input_shape, mon_ratio, eps):
+    ntimesteps = input_shape[0]
+    features = input_shape[1]
+
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf,
+                               size=data.shape,
+                               p=(mon_ratio, 1 - mon_ratio))
+    dataX_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, features))
+    dataX_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    dataY_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    dataY_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(1, _data.shape[0] - ntimesteps):
+            _x = _data[idx: (idx + ntimesteps), flow]
+            _label = _labels[idx: (idx + ntimesteps), flow]
+
+            dataX_1[i, :, 0] = _x
+            dataX_1[i, :, 1] = _label
+
+            dataX_2[i] = _x
+
+            _y_1 = data[(idx + 1):(idx + ntimesteps + 1), flow]
+            _y_2 = data[(idx - 1):(idx + ntimesteps - 1), flow]
+
+            dataY_1[i] = _y_1
+            dataY_2[i] = _y_2
+            i += 1
+
+    return dataX_1, dataX_2, dataY_1, dataY_2
+
+
 def add_trend_feature(arr, abs_values=False):
     idx = np.array(range(len(arr)))
     if abs_values:

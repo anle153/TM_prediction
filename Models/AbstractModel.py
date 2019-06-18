@@ -120,3 +120,19 @@ class AbstractModel(object):
                               tag=self.tag,
                            saving_path=self.saving_path,
                            model_history=model_history)
+
+    def save_model_history(self, model_history):
+
+        import numpy as np
+        import pandas as pd
+
+        loss = np.array(model_history.history['loss'])
+        val_loss = np.array(model_history.history['val_loss'])
+        dump_model_history = pd.DataFrame(index=loss.size,
+                                          columns=['epoch', 'loss', 'val_loss'])
+
+        dump_model_history['epoch'] = range(loss.size)
+        dump_model_history['loss'] = loss
+        dump_model_history['val_loss'] = val_loss
+
+        dump_model_history.to_csv(self.saving_path + 'training_history.csv', index=False)

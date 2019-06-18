@@ -187,6 +187,8 @@ def train_lstm_nn(data):
 
             if training_history is not None:
                 lstm_net.plot_training_history(training_history)
+                lstm_net.save_model_history(training_history)
+
     else:
         lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
     print(lstm_net.model.summary())

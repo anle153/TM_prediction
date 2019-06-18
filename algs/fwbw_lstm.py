@@ -508,6 +508,7 @@ def train_fwbw_lstm(data):
         # Plot the training history
         if training_fw_history is not None:
             fwbw_net.plot_training_history(training_fw_history)
+            fwbw_net.save_model_history(training_fw_history)
 
     else:
         fwbw_net.load_model_from_check_point(_from_epoch=Config.FWBW_LSTM_BEST_CHECKPOINT)

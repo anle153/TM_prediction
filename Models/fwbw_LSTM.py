@@ -62,7 +62,15 @@ class fwbw_lstm_model(AbstractModel):
         fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
         fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
         fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
-        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_2)
+        fw_output = TimeDistributed(Dense(1, ))(fw_dense_2)
+
+        fw_input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
+        _input_fw = Concatenate(axis=1)([fw_input_tensor_flatten, fw_output])
+
+        _input_fw = Flatten()(_input_fw)
+        _input_fw = Dense(256, )(_input_fw)
+        _input_fw = Dense(128, )(_input_fw)
+        fw_outputs = Dense(self.n_timestep, name='fw_outputs')(_input_fw)
 
         # Backward Network
         bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
@@ -71,7 +79,15 @@ class fwbw_lstm_model(AbstractModel):
         bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
         bw_dense_1 = TimeDistributed(Dense(64, ))(bw_flat_layer)
         bw_dense_2 = TimeDistributed(Dense(32, ))(bw_dense_1)
-        bw_outputs = TimeDistributed(Dense(1, ), name='bw_outputs')(bw_dense_2)
+        bw_output = TimeDistributed(Dense(1, ))(bw_dense_2)
+
+        bw_input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
+        _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
+
+        _input_bw = Flatten()(_input_bw)
+        _input_bw = Dense(256, )(_input_bw)
+        _input_bw = Dense(128, )(_input_bw)
+        bw_outputs = Dense(self.n_timestep, name='bw_outputs')(_input_bw)
 
         self.model = Model(inputs=input_tensor, outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
 

@@ -318,8 +318,8 @@ def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
     dataX = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, features))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, 1))
-    dataY_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, 1))
+    dataY_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    dataY_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
 
     _data = np.copy(data)
 
@@ -337,8 +337,8 @@ def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
             _y_1 = data[(idx + 1):(idx + ntimesteps + 1), flow]
             _y_2 = data[(idx - 1):(idx + ntimesteps - 1), flow]
 
-            dataY_1[i] = np.reshape(_y_1, newshape=(ntimesteps, 1))
-            dataY_2[i] = np.reshape(_y_2, newshape=(ntimesteps, 1))
+            dataY_1[i] = _y_1
+            dataY_2[i] = _y_2
             i += 1
 
     return dataX, dataY_1, dataY_2

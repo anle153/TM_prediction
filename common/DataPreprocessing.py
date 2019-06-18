@@ -87,11 +87,11 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
-    dataX = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide, high, channel))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
-    dataY_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
+    data_x = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide, high, channel))
+    data_y_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
+    data_y_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
 
-    print(dataX.shape)
+    print(data_x.shape)
 
     for time in range(data_time):
         _labels = np.random.choice(_tf,
@@ -108,7 +108,7 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
         for idx in range(1, _traffic_labels.shape[0] - ntimesteps):
             _x = _traffic_labels[idx: (idx + ntimesteps)]
 
-            dataX[idx + time * (data.shape[0] - ntimesteps - 1) - 1] = _x
+            data_x[idx + time * (data.shape[0] - ntimesteps - 1) - 1] = _x
 
             _y = data[(idx + 1):(idx + ntimesteps + 1)]
             _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
@@ -116,11 +116,11 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
             _y_2 = data[(idx - 1):(idx + ntimesteps - 1)]
             _y_2 = np.reshape(np.flip(_y_2, axis=0), newshape=(ntimesteps, wide * high))
 
-            dataY_1[idx + time * (data.shape[0] - ntimesteps - 1) - 1] = _y
+            data_y_1[idx + time * (data.shape[0] - ntimesteps - 1) - 1] = _y
 
-            dataY_2[idx + time * (data.shape[0] - ntimesteps - 1) - 1] = _y_2
+            data_y_2[idx + time * (data.shape[0] - ntimesteps - 1) - 1] = _y_2
 
-    return dataX, dataY_1, dataY_2
+    return data_x, data_y_1, data_y_2
 
 
 def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
@@ -133,9 +133,9 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, da
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
-    dataX = np.zeros(
+    data_x = np.zeros(
         ((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide, high, channel))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data_time, wide * high))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data_time, wide * high))
 
     for time in range(data_time):
         _labels = np.random.choice(_tf,
@@ -152,14 +152,14 @@ def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, da
         for idx in range(_traffic_labels.shape[0] - ntimesteps):
             _x = _traffic_labels[idx: (idx + ntimesteps)]
 
-            dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
+            data_x[idx + time * (data.shape[0] - ntimesteps)] = _x
 
             _y = data[idx + ntimesteps]
             _y = np.reshape(_y, newshape=(wide * high))
 
-            dataY[idx + time * (data.shape[0] - ntimesteps)] = _y
+            data_y[idx + time * (data.shape[0] - ntimesteps)] = _y
 
-    return dataX, dataY
+    return data_x, data_y
 
 
 def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
@@ -172,9 +172,9 @@ def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, dat
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
-    dataX = np.zeros(
+    data_x = np.zeros(
         ((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide, high, channel))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide * high))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide * high))
 
     for time in range(data_time):
         _labels = np.random.choice(_tf,
@@ -191,14 +191,14 @@ def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, dat
         for idx in range(_traffic_labels.shape[0] - ntimesteps):
             _x = _traffic_labels[idx: (idx + ntimesteps)]
 
-            dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
+            data_x[idx + time * (data.shape[0] - ntimesteps)] = _x
 
             _y = data[(idx + 1):(idx + ntimesteps + 1)]
             _y = np.reshape(_y, newshape=(ntimesteps, wide * high))
 
-            dataY[idx + time * (data.shape[0] - ntimesteps)] = _y
+            data_y[idx + time * (data.shape[0] - ntimesteps)] = _y
 
-    return dataX, dataY
+    return data_x, data_y
 
 
 def create_offline_fwbw_convlstm_data(data, input_shape, mon_ratio, eps, data_time=None):
@@ -211,10 +211,10 @@ def create_offline_fwbw_convlstm_data(data, input_shape, mon_ratio, eps, data_ti
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
-    dataX = np.zeros(
+    data_x = np.zeros(
         ((data.shape[0] - ntimesteps) * data_time, ntimesteps, wide, high, channel))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps) * data_time, wide * high))
-    dataY_2 = np.zeros(((data.shape[0] - ntimesteps) * data_time, ntimesteps - 2, wide * high))
+    data_y_1 = np.zeros(((data.shape[0] - ntimesteps) * data_time, wide * high))
+    data_y_2 = np.zeros(((data.shape[0] - ntimesteps) * data_time, ntimesteps - 2, wide * high))
 
     for time in range(data_time):
         _labels = np.random.choice(_tf,
@@ -231,15 +231,15 @@ def create_offline_fwbw_convlstm_data(data, input_shape, mon_ratio, eps, data_ti
         for idx in range(_traffic_labels.shape[0] - ntimesteps):
             _x = _traffic_labels[idx: (idx + ntimesteps)]
 
-            dataX[idx + time * (data.shape[0] - ntimesteps)] = _x
+            data_x[idx + time * (data.shape[0] - ntimesteps)] = _x
 
             _y = data[(idx + 1):(idx + ntimesteps - 1)]
             _y = np.reshape(_y, newshape=(ntimesteps - 2, wide * high))
 
-            dataY_1[idx + time * (data.shape[0] - ntimesteps)] = data[idx + ntimesteps].flatten()
-            dataY_2[idx + time * (data.shape[0] - ntimesteps)] = _y
+            data_y_1[idx + time * (data.shape[0] - ntimesteps)] = data[idx + ntimesteps].flatten()
+            data_y_2[idx + time * (data.shape[0] - ntimesteps)] = _y
 
-    return dataX, dataY_1, dataY_2
+    return data_x, data_y_1, data_y_2
 
 
 def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
@@ -247,11 +247,9 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
     features = input_shape[1]
 
     _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf,
-                                       size=data.shape,
-                                       p=(mon_ratio, 1 - mon_ratio))
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, 1))
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+    data_x = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, 1))
 
     _data = np.copy(data)
 
@@ -263,16 +261,16 @@ def create_offline_lstm_nn_data(data, input_shape, mon_ratio, eps):
             _x = _data[idx: (idx + ntimesteps), flow]
             _label = _labels[idx: (idx + ntimesteps), flow]
 
-            dataX[i, :, 0] = _x
-            dataX[i, :, 1] = _label
+            data_x[i, :, 0] = _x
+            data_x[i, :, 1] = _label
 
             _y = data[(idx + 1):(idx + ntimesteps + 1), flow]
 
-            dataY[i] = np.array(_y).reshape((ntimesteps, 1))
+            data_y[i] = np.array(_y).reshape((ntimesteps, 1))
 
             i += 1
 
-    return dataX, dataY
+    return data_x, data_y
 
 
 def create_offline_reslstm_nn_data(data, input_shape, mon_ratio, eps):
@@ -283,8 +281,8 @@ def create_offline_reslstm_nn_data(data, input_shape, mon_ratio, eps):
     _labels = np.random.choice(_tf,
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], 1))
+    data_x = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], 1))
 
     _data = np.copy(data)
 
@@ -296,14 +294,14 @@ def create_offline_reslstm_nn_data(data, input_shape, mon_ratio, eps):
             _x = _data[idx: (idx + ntimesteps), flow]
             _label = _labels[idx: (idx + ntimesteps), flow]
 
-            dataX[i, :, 0] = _x
-            dataX[i, :, 1] = _label
+            data_x[i, :, 0] = _x
+            data_x[i, :, 1] = _label
 
-            dataY[i] = data[idx + ntimesteps, flow]
+            data_y[i] = data[idx + ntimesteps, flow]
 
             i += 1
 
-    return dataX, dataY
+    return data_x, data_y
 
 
 def create_offline_fwbw_lstm_2(data, input_shape, mon_ratio, eps):
@@ -314,9 +312,9 @@ def create_offline_fwbw_lstm_2(data, input_shape, mon_ratio, eps):
     _labels = np.random.choice(_tf,
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps))
-    dataY_2 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps - 2))
+    data_x = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps, features))
+    data_y_1 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps))
+    data_y_2 = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], ntimesteps - 2))
 
     _data = np.copy(data)
 
@@ -328,14 +326,14 @@ def create_offline_fwbw_lstm_2(data, input_shape, mon_ratio, eps):
             _x = _data[idx: (idx + ntimesteps), flow]
             _label = _labels[idx: (idx + ntimesteps), flow]
 
-            dataX[i, :, 0] = _x
-            dataX[i, :, 1] = _label
+            data_x[i, :, 0] = _x
+            data_x[i, :, 1] = _label
 
-            dataY_1[i] = data[(idx + 1):(idx + ntimesteps + 1), flow]
-            dataY_2[i] = data[(idx + 1):(idx + ntimesteps - 1), flow]
+            data_y_1[i] = data[(idx + 1):(idx + ntimesteps + 1), flow]
+            data_y_2[i] = data[(idx + 1):(idx + ntimesteps - 1), flow]
             i += 1
 
-    return dataX, dataY_1, dataY_2
+    return data_x, data_y_1, data_y_2
 
 
 def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
@@ -346,9 +344,9 @@ def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
     _labels = np.random.choice(_tf,
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
-    dataX = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, features))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
-    dataY_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    data_x = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, features))
+    data_y_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    data_y_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
 
     _data = np.copy(data)
 
@@ -360,17 +358,17 @@ def create_offline_fwbw_lstm(data, input_shape, mon_ratio, eps):
             _x = _data[idx: (idx + ntimesteps), flow]
             _label = _labels[idx: (idx + ntimesteps), flow]
 
-            dataX[i, :, 0] = _x
-            dataX[i, :, 1] = _label
+            data_x[i, :, 0] = _x
+            data_x[i, :, 1] = _label
 
             _y_1 = data[(idx + 1):(idx + ntimesteps + 1), flow]
             _y_2 = data[(idx - 1):(idx + ntimesteps - 1), flow]
 
-            dataY_1[i] = _y_1
-            dataY_2[i] = _y_2
+            data_y_1[i] = _y_1
+            data_y_2[i] = _y_2
             i += 1
 
-    return dataX, dataY_1, dataY_2
+    return data_x, data_y_1, data_y_2
 
 
 def create_offline_res_fwbw_lstm(data, input_shape, mon_ratio, eps):
@@ -381,10 +379,10 @@ def create_offline_res_fwbw_lstm(data, input_shape, mon_ratio, eps):
     _labels = np.random.choice(_tf,
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
-    dataX_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, features))
-    dataX_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, 1))
-    dataY_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
-    dataY_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    data_x_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, features))
+    data_x_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps, 1))
+    data_y_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
+    data_y_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data.shape[1], ntimesteps))
 
     _data = np.copy(data)
 
@@ -396,19 +394,19 @@ def create_offline_res_fwbw_lstm(data, input_shape, mon_ratio, eps):
             _x = _data[idx: (idx + ntimesteps), flow]
             _label = _labels[idx: (idx + ntimesteps), flow]
 
-            dataX_1[i, :, 0] = _x
-            dataX_1[i, :, 1] = _label
+            data_x_1[i, :, 0] = _x
+            data_x_1[i, :, 1] = _label
 
-            dataX_2[i] = np.reshape(_x, newshape=(ntimesteps, 1))
+            data_x_2[i] = np.reshape(_x, newshape=(ntimesteps, 1))
 
             _y_1 = data[(idx + 1):(idx + ntimesteps + 1), flow]
             _y_2 = data[(idx - 1):(idx + ntimesteps - 1), flow]
 
-            dataY_1[i] = _y_1
-            dataY_2[i] = _y_2
+            data_y_1[i] = _y_1
+            data_y_2[i] = _y_2
             i += 1
 
-    return dataX_1, dataX_2, dataY_1, dataY_2
+    return data_x_1, data_x_2, data_y_1, data_y_2
 
 
 def add_trend_feature(arr, abs_values=False):
@@ -431,7 +429,6 @@ def calc_change_rate(x):
 
 def create_xgb_features(x):
     x_step = []
-
     x_step.append(x.mean())
     x_step.append(x.std())
     x_step.append(x.max())
@@ -476,8 +473,8 @@ def create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps, connecti
                                        size=data.shape,
                                        p=(mon_ratio, 1 - mon_ratio))
     _labels = measured_matrix.astype(int)
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
+    data_x = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
 
     _data = np.copy(data)
 
@@ -488,16 +485,16 @@ def create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps, connecti
         for idx in range(_data.shape[0] - ntimesteps - 1):
             _x = _data[idx: (idx + ntimesteps), flow]
             _x = pd.Series(_x)
-            dataX[i, :] = np.array(create_xgb_features(_x))
+            data_x[i, :] = np.array(create_xgb_features(_x))
 
             _y = _data[(idx + ntimesteps + 1), flow]
 
-            dataY[i] = _y
+            data_y[i] = _y
 
             i += 1
 
     print("[PROC_ID: %d] Sending result" % proc_id)
-    connection.send([dataX, dataY])
+    connection.send([data_x, data_y])
     connection.close()
     print("[PROC_ID] RESULT SENT")
 
@@ -513,9 +510,9 @@ def parallel_create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps)
     for proc_id in range(nproc):
         connections.append(Pipe())
 
-    dataX = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
+    data_x = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
 
-    dataY = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
+    data_y = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
     ret_xy = []
 
     for proc_id in range(nproc):
@@ -540,10 +537,10 @@ def parallel_create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps)
         _end = (proc_id + 1) * quota * (data.shape[0] - ntimesteps) if proc_id < (nproc - 1) \
             else (data.shape[0] - ntimesteps) * data.shape[1]
 
-        dataX[_start: _end] = ret_xy[proc_id][0]
-        dataY[_start: _end] = ret_xy[proc_id][1]
+        data_x[_start: _end] = ret_xy[proc_id][0]
+        data_y[_start: _end] = ret_xy[proc_id][1]
 
-    return dataX, dataY
+    return data_x, data_y
 
 
 ########################################################################################################################

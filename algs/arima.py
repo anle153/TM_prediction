@@ -6,7 +6,7 @@ import pandas as pd
 from pmdarima.arima import auto_arima
 from tqdm import tqdm
 
-from common import Config
+from common import Config_arima as Config
 from common.DataPreprocessing import data_scalling, prepare_train_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
@@ -254,9 +254,9 @@ def test_arima(data):
     results_summary['rmse_ims'] = rmse_ims
 
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results_{}.csv'.format(Config.DATA_NAME,
-                                                                    Config.ALG, Config.TAG, Config.SCALER,
-                                                                    Config.ARIMA_TEST_DAYS),
+                           '{}-{}-{}-{}/Test_results_test_days_{}.csv'.format(Config.DATA_NAME,
+                                                                              Config.ALG, Config.TAG, Config.SCALER,
+                                                                              Config.ARIMA_TEST_DAYS),
                            index=False)
 
     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))

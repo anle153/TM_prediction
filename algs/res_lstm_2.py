@@ -27,7 +27,7 @@ def prepare_input_online_prediction(data, labels):
         data_x_1[flow_id, :, 1] = label
         data_x_2[flow_id] = np.reshape(x, newshape=(Config.RES_LSTM_2_STEP, 1))
 
-    return data_x_1
+    return data_x_1, data_x_2
 
 
 def ims_tm_prediction(init_data, model, init_labels):
@@ -72,11 +72,11 @@ def predict_lstm_nn(init_data, test_data, model):
                                            init_labels=labels[ts:ts + Config.RES_LSTM_2_STEP, :])
 
         # Create 3D input for rnn
-        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.RES_LSTM_2_STEP],
-                                                    labels=labels[ts: ts + Config.RES_LSTM_2_STEP])
+        rnn_input_1, rnn_input_2 = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.RES_LSTM_2_STEP],
+                                                                   labels=labels[ts: ts + Config.RES_LSTM_2_STEP])
 
         # Get the TM prediction of next time slot
-        pred = model.predict(rnn_input)
+        pred = model.predict([rnn_input_1, rnn_input_2])
 
         # Using part of current prediction as input to the next estimation
         # Randomly choose the flows which is measured (using the correct data from test_set)

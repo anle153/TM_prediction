@@ -371,10 +371,10 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_STEP],
         #                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
-        fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step, 1)
+        fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step)
 
-        fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
-        bw_outputs = np.squeeze(bw_outputs, axis=2)
+        # fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
+        # bw_outputs = np.squeeze(bw_outputs, axis=2)
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
 

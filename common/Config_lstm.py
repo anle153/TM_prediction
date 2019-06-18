@@ -13,7 +13,7 @@ LSTM_IMS_STEP = 12
 LSTM_MON_RAIO = 0.30
 
 LSTM_BEST_CHECKPOINT = 2
-LSTM_TESTING_TIME = 10
+LSTM_TESTING_TIME = 50
 
 LSTM_IMS = False
 LSTM_VALID_TEST = True
@@ -38,7 +38,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
 ALG = 'lstm-nn'
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),

@@ -376,7 +376,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # corrected_data: shape(#n_flows, #time-step-2)
         fw_outputs, corrected_data = model.predict(rnn_input)
 
-        fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
+        # fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
 

@@ -48,7 +48,6 @@ def print_fwbw_lstm_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_fwbw_lstm_info()
-    train_fwbw_lstm(data)
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         train_fwbw_lstm(data)

@@ -241,7 +241,7 @@ def predict_fwbw_lstm(initial_data, test_data, model):
 
         # Partial monitoring
         sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                    p=[Config.FWBW_LSTM_2_MON_RAIO, 1 - Config.FWBW_LSTM_2_MON_RAIO])
+                                    p=[Config.FWBW_LSTM_2_MON_RATIO, 1 - Config.FWBW_LSTM_2_MON_RATIO])
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
         _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
@@ -304,7 +304,7 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
                                 measured_matrix=labels)
 
     sampling = np.zeros(shape=n_flows)
-    m = int(Config.FWBW_LSTM_2_MON_RAIO * n_flows)
+    m = int(Config.FWBW_LSTM_2_MON_RATIO * n_flows)
 
     w = w.flatten()
     sorted_idx_w = np.argsort(w)
@@ -331,6 +331,30 @@ def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
              flows_stds * Config.FWBW_LSTM_2_HYPERPARAMS[2])
 
     return w
+
+
+def set_measured_flow_fairness(rnn_input, labels):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param labels: shape(n_flows, #time-steps)
+    :return:
+    """
+
+    n_flows = rnn_input.shape[0]
+
+    cl = calculate_consecutive_loss(labels).astype(float)
+
+    w = 1 / cl
+
+    sampling = np.zeros(shape=n_flows)
+    m = int(Config.FWBW_LSTM_2_MON_RATIO * n_flows)
+
+    w = w.flatten()
+    sorted_idx_w = np.argsort(w)
+    sampling[sorted_idx_w[:m]] = 1
+
+    return sampling
 
 
 def predict_fwbw_lstm_v2(initial_data, test_data, model):
@@ -369,9 +393,6 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_2_STEP],
                                                     labels=labels[ts: ts + Config.FWBW_LSTM_2_STEP])
 
-        # rnn_input_wo_corr = prepare_input_online_prediction(data=tm_pred_no_updated[ts: ts + Config.FWBW_LSTM_2_STEP],
-        #                                                     labels=labels[ts: ts + Config.FWBW_LSTM_2_STEP])
-
         # fw_outputs: shape(#n_flows, #time-step, 1)
         # corrected_data: shape(#n_flows, #time-step-2)
         fw_outputs, corrected_data = model.predict(rnn_input)
@@ -379,7 +400,6 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
-
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_2_STEP - 1]
 
@@ -389,19 +409,20 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         tm_pred[ts + 1:ts + Config.FWBW_LSTM_2_STEP - 1] = measured_data + pred_data
 
         # Partial monitoring
-        if Config.FWBW_LSTM_2_RANDOM_ACTION:
+        if Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                        p=[Config.FWBW_LSTM_2_MON_RAIO, 1 - Config.FWBW_LSTM_2_MON_RAIO])
+                                        p=[Config.FWBW_LSTM_2_MON_RATIO, 1 - Config.FWBW_LSTM_2_MON_RATIO])
+        elif Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[1]:
+            sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_2_STEP].T),
+                                                  labels=labels[ts: ts + Config.FWBW_LSTM_2_STEP].T)
         else:
             sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_2_STEP].T),
                                          pred_forward=fw_outputs,
                                          labels=labels[ts: ts + Config.FWBW_LSTM_2_STEP].T)
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
-        # _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
 
         tm_pred[ts + Config.FWBW_LSTM_2_STEP] = new_input
-        # tm_pred_no_updated[ts + Config.FWBW_LSTM_2_STEP] = _new_input
         labels[ts + Config.FWBW_LSTM_2_STEP] = sampling
 
     return tm_pred[Config.FWBW_LSTM_2_STEP:], labels[Config.FWBW_LSTM_2_STEP:], ims_tm
@@ -464,12 +485,12 @@ def train_fwbw_lstm_2(data):
         print('|--- Create offline train set for forward net!')
 
         train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm_2(train_data_normalized2d,
-                                                                   input_shape, Config.FWBW_LSTM_2_MON_RAIO,
+                                                                   input_shape, Config.FWBW_LSTM_2_MON_RATIO,
                                                                    train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
         valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm_2(valid_data_normalized2d,
-                                                                   input_shape, Config.FWBW_LSTM_2_MON_RAIO,
+                                                                   input_shape, Config.FWBW_LSTM_2_MON_RATIO,
                                                                    train_data_normalized2d.std())
 
         # Load model check point

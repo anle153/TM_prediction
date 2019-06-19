@@ -298,8 +298,7 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
     fw_losses = np.array(fw_losses)
     fw_losses[fw_losses == 0.] = np.max(fw_losses)
 
-    w = calculate_flows_weights(rnn_input=rnn_input,
-                                fw_losses=fw_losses,
+    w = calculate_flows_weights(fw_losses=fw_losses,
                                 measured_matrix=labels)
 
     sampling = np.zeros(shape=n_flows)
@@ -336,10 +335,9 @@ def set_measured_flow_fairness(rnn_input, labels):
     return sampling
 
 
-def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
+def calculate_flows_weights(fw_losses, measured_matrix):
     """
 
-    :param rnn_input: shape(#n_flows, #time-steps)
     :param fw_losses: shape(#n_flows)
     :param measured_matrix: shape(#n_flows, #time-steps)
     :return: w: flow weight shape(#n_flows)

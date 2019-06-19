@@ -13,7 +13,7 @@ FWBW_LSTM_2_IMS_STEP = 12
 
 FWBW_LSTM_2_MON_RAIO = 0.30
 
-FWBW_LSTM_2_BEST_CHECKPOINT = 13
+FWBW_LSTM_2_BEST_CHECKPOINT = 18
 FWBW_LSTM_2_TESTING_TIME = 10
 
 FWBW_LSTM_2_IMS = False
@@ -26,8 +26,6 @@ FWBW_LSTM_2_HYPERPARAMS = [1.5, 2.0, 1.0]
 # ----------------------------------------------
 
 RUN_MODES = ['train', 'test', 'plot']
-ALGS = ['fwbw-conv-lstm', 'conv-lstm', 'lstm-nn', 'arima', 'holt-winter', 'xgb', 'fwbw-lstm', 'fwbw-convlstm',
-        'cnnlstm', 'fwbw_lstm_2', 'res-lstm']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
 DATA_SETS = ['Abilene2d', 'Geant2d']
 

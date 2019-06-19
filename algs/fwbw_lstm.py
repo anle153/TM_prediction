@@ -347,8 +347,6 @@ def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
 
     cl = calculate_consecutive_loss(measured_matrix).astype(float)
 
-    flows_stds = np.std(rnn_input, axis=1)
-
     w = 1 / (fw_losses * Config.FWBW_LSTM_HYPERPARAMS[0] +
              cl * Config.FWBW_LSTM_HYPERPARAMS[1])
 

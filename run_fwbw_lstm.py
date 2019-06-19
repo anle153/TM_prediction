@@ -26,7 +26,7 @@ def print_fwbw_lstm_info():
     print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.FWBW_LSTM_HIDDEN_UNIT))
     print('|--- FLOW_SELECTION:\t{}'.format(Config.FWBW_LSTM_FLOW_SELECTION))
 
-    if Config.FWBW_LSTM_FLOW_SELECTION != Config.FLOW_SELECTIONS[0]:
+    if Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[2]:
         print('|--- FLOW_SELECTION_PARAMETERS:\t{}'.format(Config.FWBW_LSTM_HYPERPARAMS))
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:

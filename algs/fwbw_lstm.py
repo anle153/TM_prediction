@@ -241,7 +241,7 @@ def predict_fwbw_lstm(initial_data, test_data, model):
 
         # Partial monitoring
         sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                    p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+                                    p=[Config.FWBW_LSTM_MON_RATIO, 1 - Config.FWBW_LSTM_MON_RATIO])
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
         _new_input = pred_next_tm_wo_corr * (1.0 - sampling) + test_data[ts] * sampling
@@ -303,7 +303,7 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
                                 measured_matrix=labels)
 
     sampling = np.zeros(shape=n_flows)
-    m = int(Config.FWBW_LSTM_MON_RAIO * n_flows)
+    m = int(Config.FWBW_LSTM_MON_RATIO * n_flows)
 
     w = w.flatten()
     sorted_idx_w = np.argsort(w)
@@ -327,7 +327,7 @@ def set_measured_flow_fairness(rnn_input, labels):
     w = 1 / cl
 
     sampling = np.zeros(shape=n_flows)
-    m = int(Config.FWBW_LSTM_MON_RAIO * n_flows)
+    m = int(Config.FWBW_LSTM_MON_RATIO * n_flows)
 
     w = w.flatten()
     sorted_idx_w = np.argsort(w)
@@ -402,7 +402,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         # Partial monitoring
         if Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                        p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+                                        p=[Config.FWBW_LSTM_MON_RATIO, 1 - Config.FWBW_LSTM_MON_RATIO])
         elif Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[1]:
             sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
                                          labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
@@ -474,12 +474,12 @@ def train_fwbw_lstm(data):
         print('|--- Create offline train set for forward net!')
 
         train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                                 input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                 input_shape, Config.FWBW_LSTM_MON_RATIO,
                                                                  train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
         valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                                 input_shape, Config.FWBW_LSTM_MON_RAIO,
+                                                                 input_shape, Config.FWBW_LSTM_MON_RATIO,
                                                                  train_data_normalized2d.std())
 
         # Load model check point

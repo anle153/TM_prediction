@@ -16,7 +16,7 @@ def print_fwbw_lstm_info():
     print('|--- DATA:\t{}'.format(Config.DATA_NAME))
     print('|--- GPU:\t{}'.format(Config.GPU))
 
-    print('|--- MON_RATIO:\t{}'.format(Config.FWBW_LSTM_MON_RAIO))
+    print('|--- MON_RATIO:\t{}'.format(Config.FWBW_LSTM_MON_RATIO))
     print('            -----------            ')
 
     print('|--- LSTM_DEEP:\t{}'.format(Config.FWBW_LSTM_DEEP))

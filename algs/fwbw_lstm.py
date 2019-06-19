@@ -126,11 +126,11 @@ def data_correction_v2(rnn_input, pred_backward, labels):
     _labels = np.copy(labels.T)
 
     beta = np.zeros(_rnn_input.shape)
-    for i in range(_rnn_input.shape[1]):
+    for i in range(1, _rnn_input.shape[1] - 1):
         _b = np.arange(1, _rnn_input.shape[1] - i + 1)
-        beta[:, i] = (np.sum(_labels[:, i:], axis=1) / (_rnn_input.shape[1] - i)) * \
-                     (np.sum(np.power((_labels[:, i:] / (_rnn_input.shape[1] - i)), _b), axis=1)) * \
-                     ((_rnn_input.shape[1] - i) / _rnn_input.shape[1])
+        beta[:, i] = (np.sum(_labels[:, i:], axis=1) / (_rnn_input.shape[1] - i - 1)) * \
+                     (np.sum(np.power((_labels[:, i:] / (_rnn_input.shape[1] - i - 1)), _b), axis=1)) * \
+                     ((_rnn_input.shape[1] - i - 1) / _rnn_input.shape[1])
 
     considered_backward = pred_backward[:, 2:]
     considered_rnn_input = _rnn_input[:, 1:-1]

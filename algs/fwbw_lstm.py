@@ -312,6 +312,30 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
     return sampling
 
 
+def set_measured_flow_fairness(rnn_input, labels):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param labels: shape(n_flows, #time-steps)
+    :return:
+    """
+
+    n_flows = rnn_input.shape[0]
+
+    cl = calculate_consecutive_loss(labels).astype(float)
+
+    w = 1 / cl
+
+    sampling = np.zeros(shape=n_flows)
+    m = int(Config.FWBW_LSTM_MON_RAIO * n_flows)
+
+    w = w.flatten()
+    sorted_idx_w = np.argsort(w)
+    sampling[sorted_idx_w[:m]] = 1
+
+    return sampling
+
+
 def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
     """
 
@@ -329,23 +353,6 @@ def calculate_flows_weights(rnn_input, fw_losses, measured_matrix):
              cl * Config.FWBW_LSTM_HYPERPARAMS[1])
 
     return w
-
-
-def calculate_flows_weights_fairness(rnn_input, fw_losses, measured_matrix):
-    """
-
-    :param rnn_input: shape(#n_flows, #time-steps)
-    :param fw_losses: shape(#n_flows)
-    :param measured_matrix: shape(#n_flows, #time-steps)
-    :return: w: flow weight shape(#n_flows)
-    """
-
-    cl = calculate_consecutive_loss(measured_matrix).astype(float)
-
-    w = 1 / (cl * Config.FWBW_LSTM_HYPERPARAMS[0])
-
-    return w
-
 
 
 def predict_fwbw_lstm_v2(initial_data, test_data, model):
@@ -399,6 +406,9 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         if Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
                                         p=[Config.FWBW_LSTM_MON_RAIO, 1 - Config.FWBW_LSTM_MON_RAIO])
+        elif Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[1]:
+            sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
+                                         labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
         else:
             sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
                                          pred_forward=fw_outputs,
@@ -687,7 +697,8 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
+    print('Test: {}-{}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
+                                        Config.FWBW_LSTM_FLOW_SELECTION))
 
     print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
                                                            np.mean(np.array(rmse)),

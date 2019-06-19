@@ -56,7 +56,7 @@ ALL_DATA = True
 NUM_DAYS = 160
 
 # -----------------------------------------------------------------------------------------------------------------------
-TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(FWBW_LSTM_MON_RAIO * 100),
+TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(FWBW_LSTM_MON_RATIO * 100),
                                                                  FWBW_LSTM_STEP,
                                                                  FWBW_LSTM_BATCH_SIZE,
                                                                  FWBW_LSTM_HIDDEN_UNIT)

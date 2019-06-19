@@ -14,7 +14,7 @@ def train():
         from algs.fwbw_conv_lstm import train_fwbw_conv_lstm
         train_fwbw_conv_lstm(data=data)
     elif Config.ALG == Config.ALGS[1]:
-        from algs.conv_lstm2 import train_conv_lstm
+        from algs.conv_lstm import train_conv_lstm
         train_conv_lstm(data=data)
     elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import train_lstm_nn
@@ -52,7 +52,7 @@ def test():
         experiment = Experiment(project_name='tmp-fwbw-conv-lstm', api_key='RzFughRSAY2raEySCf69bjiFn')
         test_fwbw_conv_lstm(data=data)
     elif Config.ALG == Config.ALGS[1]:
-        from algs.conv_lstm2 import test_conv_lstm
+        from algs.conv_lstm import test_conv_lstm
         test_conv_lstm(data=data)
     elif Config.ALG == Config.ALGS[2]:
         from algs.lstm_nn import test_lstm_nn

@@ -38,7 +38,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[1]
 ALG = 'lstm-nn'
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),

@@ -380,14 +380,6 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
 
-        # For comparing tm prediction w/o data correction
-        # _fw_outputs, _ = model.predict(rnn_input_wo_corr)
-        # _fw_outputs = np.squeeze(_fw_outputs, axis=2)
-        # pred_next_tm_wo_corr = np.copy(_fw_outputs[:, -1])
-
-        # if ts == 100:
-        #     plot_test_data('fwbw-lstm', raw_data[ts: ts + Config.FWBW_LSTM_2_STEP],
-        #                    bw_outputs.T, tm_pred[ts: ts + Config.FWBW_LSTM_2_STEP])
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_2_STEP - 1]
 

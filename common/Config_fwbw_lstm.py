@@ -20,7 +20,7 @@ FWBW_LSTM_IMS = False
 
 FWBW_LSTM_VALID_TEST = True
 FWBW_LSTM_TEST_DAYS = 25
-FWBW_LSTM_HYPERPARAMS = [1.6, 1.0]
+FWBW_LSTM_HYPERPARAMS = [1.55, 1.0]
 
 FWBW_LSTM_FLOW_SELECTION = FLOW_SELECTIONS[2]
 
@@ -39,7 +39,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[1]
 ALG = 'fwbw-lstm'
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

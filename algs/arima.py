@@ -328,9 +328,6 @@ def test_arima_2(data):
             history.append([x for x in flow_train.astype(float)])
 
         for ts in tqdm(range(test_data_normalize.shape[0])):
-            print('')
-            print('---------------------------------------------------------------------------------------------------')
-            print("|--- Run time: {} - ts: {}".format(running_time, ts))
 
             predictions = np.zeros(shape=(test_data_normalize.shape[1]))
 
@@ -339,6 +336,10 @@ def test_arima_2(data):
             flow_ims_pred = np.zeros(shape=(test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP + 1))
 
             for flow_id in range(test_data_normalize.shape[1]):
+                print('')
+                print(
+                    '---------------------------------------------------------------------------------------------------')
+                print("|--- Run time: {} - ts: {}".format(running_time, ts))
 
                 try:
                     model = build_auto_arima(history[flow_id][-Config.ARIMA_STEP:])

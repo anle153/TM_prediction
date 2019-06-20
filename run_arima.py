@@ -24,7 +24,6 @@ def print_arima_info():
             print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.ARIMA_TESTING_TIME))
-        print('|--- ARIMA_UPDATE:\t{}'.format(Config.ARIMA_UPDATE))
     else:
         raise Exception('Unknown RUN_MODE!')
     print('----------------------------------------------------')

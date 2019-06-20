@@ -255,9 +255,8 @@ def test_arima(data):
     results_summary['rmse_ims'] = rmse_ims
 
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results_test_days_{}.csv'.format(Config.DATA_NAME,
-                                                                              Config.ALG, Config.TAG, Config.SCALER,
-                                                                              Config.ARIMA_TEST_DAYS),
+                           '{}-{}-{}-{}/Test_results_random.csv'.format(Config.DATA_NAME,
+                                                                        Config.ALG, Config.TAG, Config.SCALER),
                            index=False)
 
     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))

@@ -1,3 +1,5 @@
+FLOW_SELECTIONS = ['random', 'fairness', 'weights']
+
 LSTM_N_EPOCH = 20
 LSTM_BATCH_SIZE = 512
 LSTM_HIDDEN_UNIT = 64
@@ -10,15 +12,22 @@ LSTM_STEP = 30
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
-LSTM_MON_RAIO = 0.60
+LSTM_MON_RATIO = 0.10
 
 LSTM_BEST_CHECKPOINT = 2
-LSTM_TESTING_TIME = 50
 
 LSTM_IMS = False
 LSTM_VALID_TEST = True
 
 LSTM_TEST_DAYS = 25
+
+LSTM_FLOW_SELECTION = FLOW_SELECTIONS[1]
+
+if LSTM_FLOW_SELECTION == FLOW_SELECTIONS[0]:
+    LSTM_TESTING_TIME = 50
+else:
+    LSTM_TESTING_TIME = 1
+
 
 DATA_PATH = './Dataset/'
 MODEL_SAVE = './trained_models/'
@@ -41,7 +50,7 @@ ALG = 'lstm-nn'
 GPU = 0
 SCALER = SCALERS[5]
 
-TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RAIO * 100),
+TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RATIO * 100),
                                                                  LSTM_STEP,
                                                                  LSTM_BATCH_SIZE,
                                                                  LSTM_HIDDEN_UNIT)

@@ -44,6 +44,53 @@ def ims_tm_prediction(init_data, model, init_labels):
     return multi_steps_tm[-1, :]
 
 
+def calculate_consecutive_loss(measured_matrix):
+    """
+
+    :param measured_matrix: shape(#n_flows, #time-steps)
+    :return: consecutive_losses: shape(#n_flows)
+    """
+
+    consecutive_losses = []
+    for flow_id in range(measured_matrix.shape[0]):
+        flows_labels = measured_matrix[flow_id, :]
+        if flows_labels[-1] == 1:
+            consecutive_losses.append(1)
+        else:
+            measured_idx = np.argwhere(flows_labels == 1)
+            if measured_idx.size == 0:
+                consecutive_losses.append(measured_matrix.shape[1])
+            else:
+                consecutive_losses.append(measured_matrix.shape[1] - measured_idx[-1][0])
+
+    consecutive_losses = np.asarray(consecutive_losses)
+    return consecutive_losses
+
+
+def set_measured_flow_fairness(rnn_input, labels):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param labels: shape(n_flows, #time-steps)
+    :return:
+    """
+
+    n_flows = rnn_input.shape[0]
+
+    cl = calculate_consecutive_loss(labels).astype(float)
+
+    w = 1 / cl
+
+    sampling = np.zeros(shape=n_flows)
+    m = int(Config.LSTM_MON_RATIO * n_flows)
+
+    w = w.flatten()
+    sorted_idx_w = np.argsort(w)
+    sampling[sorted_idx_w[:m]] = 1
+
+    return sampling
+
+
 def predict_lstm_nn(init_data, test_data, model):
     tf_a = np.array([1.0, 0.0])
     labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -82,8 +129,12 @@ def predict_lstm_nn(init_data, test_data, model):
         # Randomly choose the flows which is measured (using the correct data from test_set)
 
         # boolean array(1 x n_flows):for choosing value from predicted data
-        sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                    p=[Config.LSTM_MON_RAIO, 1 - Config.LSTM_MON_RAIO])
+        if Config.LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
+            sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
+                                        p=[Config.LSTM_MON_RATIO, 1 - Config.LSTM_MON_RATIO])
+        else:
+            sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.LSTM_STEP].T),
+                                                  labels=labels[ts: ts + Config.LSTM_STEP].T)
 
         labels[ts + Config.LSTM_STEP] = sampling
         # invert of sampling: for choosing value from the original data
@@ -157,10 +208,10 @@ def train_lstm_nn(data):
             from_epoch = lstm_net.load_model_from_check_point()
             # -------------------------------- Create offline training and validating dataset --------------------------
             print('|--- Create offline train set for lstm-nn!')
-            trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
+            trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RATIO,
                                                          train_data_normalized2d.std())
             print('|--- Create offline valid set for lstm-nn!')
-            validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RAIO,
+            validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RATIO,
                                                          train_data_normalized2d.std())
             # ----------------------------------------------------------------------------------------------------------
 
@@ -207,8 +258,9 @@ def train_lstm_nn(data):
     results_summary = run_test(valid_data2d, valid_data_normalized2d, lstm_net, scalers, results_summary)
 
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME,
-                                                                  Config.ALG, Config.TAG, Config.SCALER),
+                           '{}-{}-{}-{}/Valid_results_{}.csv'.format(Config.DATA_NAME,
+                                                                     Config.ALG, Config.TAG, Config.SCALER,
+                                                                     Config.LSTM_FLOW_SELECTION),
                            index=False)
 
     return
@@ -268,8 +320,9 @@ def test_lstm_nn(data):
 
     results_summary = run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary)
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME,
-                                                                 Config.ALG, Config.TAG, Config.SCALER),
+                           '{}-{}-{}-{}/Test_results_{}.csv'.format(Config.DATA_NAME,
+                                                                    Config.ALG, Config.TAG, Config.SCALER,
+                                                                    Config.LSTM_FLOW_SELECTION),
                            index=False)
 
     return
@@ -357,7 +410,8 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
-    print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
+    print('Test: {}-{}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
+                                        Config.LSTM_FLOW_SELECTION))
 
     print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
                                                            np.mean(np.array(rmse)),

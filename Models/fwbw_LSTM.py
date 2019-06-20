@@ -93,6 +93,31 @@ class fwbw_lstm_model(AbstractModel):
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
+    def construct_fwbw_lstm_no_sc(self):
+        # Input
+        input_tensor = Input(shape=self.input_shape, name='input')
+
+        # Forward Network
+        fw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape, return_sequences=True)(input_tensor)
+        fw_drop_out = Dropout(self.drop_out)(fw_lstm_layer)
+        fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
+        fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
+        fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
+        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_2)
+
+        # Backward Network
+        bw_lstm_layer = LSTM(self.hidden, input_shape=self.input_shape,
+                             return_sequences=True, go_backwards=True)(input_tensor)
+        bw_drop_out = Dropout(self.drop_out)(bw_lstm_layer)
+        bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
+        bw_dense_1 = TimeDistributed(Dense(64, ))(bw_flat_layer)
+        bw_dense_2 = TimeDistributed(Dense(32, ))(bw_dense_1)
+        bw_outputs = TimeDistributed(Dense(1, ))(bw_dense_2)
+
+        self.model = Model(inputs=input_tensor, outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
+
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
     def construct_res_fwbw_lstm(self):
         # Input
         input_tensor = Input(shape=self.input_shape, name='input')

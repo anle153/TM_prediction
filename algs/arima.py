@@ -328,6 +328,9 @@ def test_arima_2(data):
             history.append([x for x in flow_train.astype(float)])
 
         for ts in tqdm(range(test_data_normalize.shape[0])):
+            print('')
+            print('---------------------------------------------------------------------------------------------------')
+            print("|--- Run time: {} - ts: {}".format(running_time, ts))
 
             predictions = np.zeros(shape=(test_data_normalize.shape[1]))
 
@@ -408,9 +411,8 @@ def test_arima_2(data):
     results_summary['rmse_ims'] = rmse_ims
 
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results_test_days_{}.csv'.format(Config.DATA_NAME,
-                                                                              Config.ALG, Config.TAG, Config.SCALER,
-                                                                              Config.ARIMA_TEST_DAYS),
+                           '{}-{}-{}-{}/Test_results_random.csv'.format(Config.DATA_NAME,
+                                                                        Config.ALG, Config.TAG, Config.SCALER),
                            index=False)
 
     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))

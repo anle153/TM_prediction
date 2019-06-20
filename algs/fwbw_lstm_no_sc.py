@@ -451,7 +451,7 @@ def load_trained_models(input_shape, ckp):
     return fwbw_net
 
 
-def train_FWBW_LSTM_NO_SC_no_sc(data):
+def train_fwbw_lstm_no_sc(data):
     print('|-- Run model training FWBW_LSTM_NO_SC.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:
@@ -554,7 +554,7 @@ def ims_tm_test_data(test_data):
     return ims_test_set
 
 
-def test_FWBW_LSTM_NO_SC_no_sc(data):
+def test_fwbw_lstm_no_sc(data):
     print('|-- Run model testing.')
 
     data_name = Config.DATA_NAME

@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config_fwbw_lstm_no_sc as Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
+from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm_no_sc
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
@@ -481,14 +481,14 @@ def train_fwbw_lstm_no_sc(data):
 
         print('|--- Create offline train set for forward net!')
 
-        train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                                 input_shape, Config.FWBW_LSTM_NO_SC_MON_RATIO,
-                                                                 train_data_normalized2d.std())
+        train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm_no_sc(train_data_normalized2d,
+                                                                       input_shape, Config.FWBW_LSTM_NO_SC_MON_RATIO,
+                                                                       train_data_normalized2d.std())
         print('|--- Create offline valid set for forward net!')
 
-        valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                                 input_shape, Config.FWBW_LSTM_NO_SC_MON_RATIO,
-                                                                 train_data_normalized2d.std())
+        valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm_no_sc(valid_data_normalized2d,
+                                                                       input_shape, Config.FWBW_LSTM_NO_SC_MON_RATIO,
+                                                                       train_data_normalized2d.std())
 
         # Load model check point
         from_epoch = fwbw_net.load_model_from_check_point()

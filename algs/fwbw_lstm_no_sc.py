@@ -359,7 +359,7 @@ def calculate_flows_weights(fw_losses, measured_matrix):
     return w
 
 
-def predict_FWBW_LSTM_NO_SC_v2(initial_data, test_data, model):
+def predict_fwbw_lstm_no_sc_v2(initial_data, test_data, model):
     tf_a = np.array([1.0, 0.0])
 
     # Initialize traffic matrix data
@@ -394,6 +394,7 @@ def predict_FWBW_LSTM_NO_SC_v2(initial_data, test_data, model):
         fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step)
 
         fw_outputs = np.squeeze(fw_outputs, axis=2)
+        bw_outputs = np.squeeze(bw_outputs, axis=2)
 
         pred_next_tm = np.copy(fw_outputs[:, -1])
 
@@ -647,7 +648,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         ims_test_data = ims_tm_test_data(test_data=test_data)
         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 
-        pred_tm2d, measured_matrix2d, ims_tm2d = predict_FWBW_LSTM_NO_SC_v2(initial_data=init_data_normalize,
+        pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm_no_sc_v2(initial_data=init_data_normalize,
                                                                             test_data=test_data_normalize,
                                                                             model=fwbw_net.model)
 

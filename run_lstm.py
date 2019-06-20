@@ -16,7 +16,7 @@ def print_lstm_info():
     print('|--- DATA:\t{}'.format(Config.DATA_NAME))
     print('|--- GPU:\t{}'.format(Config.GPU))
 
-    print('|--- MON_RATIO:\t{}'.format(Config.LSTM_MON_RAIO))
+    print('|--- MON_RATIO:\t{}'.format(Config.LSTM_MON_RATIO))
     print('            -----------            ')
 
     print('|--- LSTM_DEEP:\t{}'.format(Config.LSTM_DEEP))
@@ -24,6 +24,8 @@ def print_lstm_info():
         print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.LSTM_DEEP_NLAYERS))
     print('|--- LSTM_DROPOUT:\t{}'.format(Config.LSTM_DROPOUT))
     print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.LSTM_HIDDEN_UNIT))
+
+    print('|--- FLOW_SELECTION:\t{}'.format(Config.LSTM_FLOW_SELECTION))
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         print('|--- N_EPOCH:\t{}'.format(Config.LSTM_N_EPOCH))

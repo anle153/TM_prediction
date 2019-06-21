@@ -7,16 +7,15 @@ from keras.models import model_from_json
 
 
 def plot_training_history(alg_name, tag, saving_path, model_history):
-    plt.plot(model_history.history['mean_absolute_error'], label='mae')
-    plt.plot(model_history.history['val_mean_absolute_error'], label='val_mae')
-    plt.legend()
-    plt.savefig(saving_path + '[MAE]{}-{}.png'.format(alg_name, tag))
-    plt.close()
-
-    plt.plot(model_history.history['mean_squared_error'], label='mse')
-    plt.plot(model_history.history['val_mean_squared_error'], label='val_mse')
+    plt.plot(model_history.history['loss'], label='mse')
+    plt.plot(model_history.history['val_loss'], label='val_mse')
     plt.savefig(saving_path + '[MSE]{}-{}.png'.format(alg_name, tag))
     plt.legend()
+    plt.close()
+
+    plt.plot(model_history.history['val_loss'], label='val_mae')
+    plt.legend()
+    plt.savefig(saving_path + '[val_loss]{}-{}.png'.format(alg_name, tag))
     plt.close()
 
 
@@ -121,3 +120,19 @@ class AbstractModel(object):
                               tag=self.tag,
                            saving_path=self.saving_path,
                            model_history=model_history)
+
+    def save_model_history(self, model_history):
+
+        import numpy as np
+        import pandas as pd
+
+        loss = np.array(model_history.history['loss'])
+        val_loss = np.array(model_history.history['val_loss'])
+        dump_model_history = pd.DataFrame(index=range(loss.size),
+                                          columns=['epoch', 'loss', 'val_loss'])
+
+        dump_model_history['epoch'] = range(loss.size)
+        dump_model_history['loss'] = loss
+        dump_model_history['val_loss'] = val_loss
+
+        dump_model_history.to_csv(self.saving_path + 'training_history.csv', index=False)

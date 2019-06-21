@@ -1,35 +1,11 @@
-import datetime
-import os
 from math import sqrt
 
-import matplotlib as plt
 import numpy as np
+from scipy.stats import sem, t
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
+CONFIDENCE = 0.95
 
-def plot_errors(x_axis, xlabel, errors, filename, title='', saving_path='/home/anle/TM_estimation_figures/'):
-    now = datetime.datetime.now()
-
-    if not os.path.exists(saving_path):
-        os.makedirs(saving_path)
-
-    plt.title('Errors\n' + title)
-    plt.plot(x_axis, errors[:, 0], label='NMAE')
-    plt.plot(x_axis, errors[:, 1], label='NMSE')
-    plt.xlabel(xlabel)
-    if errors.shape[1] == 4:
-        plt.plot(x_axis, errors[:, 3], label='Error_ratio')
-    plt.legend()
-
-    plt.savefig(saving_path + str(now) + '_Errors_' + filename)
-    plt.close()
-
-    plt.title('R2-Score')
-    plt.plot(x_axis, errors[:, 2])
-    plt.xlabel(xlabel)
-    plt.savefig(saving_path + str(now) + '_R2_Score_' + filename)
-    plt.close()
-    print('--- Saving figures at %s ---' % saving_path)
 
 
 def calculate_measured_weights(rnn_input, forward_pred, backward_pred, measured_matrix, hyperparams):
@@ -198,14 +174,19 @@ def calculate_r2_score(y_true, y_pred):
     return r2
 
 
+def calculate_mape(y_true, y_pred):
+
+    y_true_flatten = y_true.flatten()
+    y_pred_flatten = y_pred.flatten()
+
+    y_true_flatten[y_true_flatten == 0] = 10e-5
+
+    mape = (np.sum(np.abs((y_true_flatten - y_pred_flatten) / y_true_flatten))) / np.size(y_true_flatten)
+
+    return mape
+
+
 def recovery_loss_3d(rnn_input, rnn_updated, measured_matrix):
-    """
-    Calculate the recovery loss for each flow using this equation: r_l = sqrt(sum((y_true - y_pred)^2))
-    :param rnn_input: array-like, shape = (time x od x od)
-    :param rnn_updated: array-like, shape = (time x od x od)
-    :param measured_matrix: array-like, shape = (time x od x od)
-    :return: shape = (od, od)
-    """
     labels = measured_matrix.astype(int)
     r_l = []
     for flow_id_i in range(rnn_input.shape[1]):
@@ -275,7 +256,7 @@ def error_ratio(y_true, y_pred, measured_matrix):
     y_true_flatten = y_true.flatten()
     y_pred_flatten = y_pred.flatten()
     measured_matrix = measured_matrix.flatten()
-    observated_indice = np.where(measured_matrix == False)
+    observated_indice = np.where(measured_matrix == 0.0)
 
     e1 = sqrt(np.sum(np.square(y_true_flatten[observated_indice] - y_pred_flatten[observated_indice])))
     e2 = sqrt(np.sum(np.square(y_true_flatten[observated_indice])))
@@ -283,6 +264,15 @@ def error_ratio(y_true, y_pred, measured_matrix):
         return 0
     else:
         return e1 / e2
+
+
+def calculate_confident_interval(data):
+    n = len(data)
+    std_err = sem(data)
+
+    h = std_err * t.ppf((1 + CONFIDENCE) / 2, n - 1)
+
+    return h
 
 
 def normalized_mean_absolute_error(y_true, y_hat):

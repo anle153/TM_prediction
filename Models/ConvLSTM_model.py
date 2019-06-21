@@ -1,8 +1,8 @@
 import os
 
-from keras.layers import *
-from keras.layers import Activation
-from keras.models import Sequential
+from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense, ReLU
+from keras.models import Model
+from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -29,31 +29,44 @@ class ConvLSTM(AbstractModel):
         self.kernel_sizes = kernel_sizes
 
         self.n_timsteps = input_shape[0]
-        self.height = input_shape[1]
-        self.weight = input_shape[2]
-        self.depth = input_shape[3]
+        self.wide = input_shape[1]
+        self.high = input_shape[2]
+        self.channel = input_shape[3]
         self.saving_path = saving_path
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
 
-        self.model = Sequential()
+        input = Input(shape=(self.n_timsteps, self.wide, self.high, self.channel), name='input')
 
-        for cnn_layer in range(self.cnn_layers):
-            self.model.add(ConvLSTM2D(filters=self.a_filters[cnn_layer],
-                                      kernel_size=self.kernel_sizes[cnn_layer],
-                                      strides=[1, 1],
-                                      padding='same',
-                                      dropout=self.dropout[cnn_layer],
-                                      input_shape=(None, self.weight, self.height, self.depth),
-                                      return_sequences=True,
-                                      recurrent_dropout=self.rnn_dropout[cnn_layer]))
+        lstm_layer1 = ConvLSTM2D(filters=self.a_filters[0],
+                                 kernel_size=self.kernel_sizes[0],
+                                 strides=[1, 1],
+                                 padding='same',
+                                 dropout=self.dropout[0],
+                                 return_sequences=True,
+                                 recurrent_dropout=self.rnn_dropout[0],
+                                 data_format='channels_last')(input)
 
-            self.model.add(BatchNormalization())
-            self.model.add(Activation('relu'))
+        BatchNormalization_layer1 = BatchNormalization()(lstm_layer1)
 
-        self.model.add(Conv3D(filters=1, kernel_size=(3, 3, 3),
-                              activation='relu',
-                              padding='same', data_format='channels_last'))
+        relu = ReLU()(BatchNormalization_layer1)
 
-        self.model.compile(loss='mean_squared_error', optimizer='adam',
-                           metrics=['mse', 'mae'])
+        lstm_layer2 = ConvLSTM2D(filters=self.a_filters[1],
+                                 kernel_size=self.kernel_sizes[1],
+                                 strides=[1, 1],
+                                 padding='same',
+                                 dropout=self.dropout[1],
+                                 return_sequences=True,
+                                 recurrent_dropout=self.rnn_dropout[1],
+                                 data_format='channels_last')(relu)
+
+        BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
+        outputs = Flatten()(BatchNormalization_layer2)
+
+        outputs = Dense(self.wide * self.high, )(outputs)
+
+        self.model = Model(inputs=input, outputs=outputs, name='Model')
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
+    def plot_models(self):
+        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

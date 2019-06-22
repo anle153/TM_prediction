@@ -19,10 +19,9 @@ def print_arima_info():
     print('|--- MON_RATIO:\t{}'.format(Config.ARIMA_MON_RATIO))
     print('            -----------            ')
 
-    if Config.RUN_MODE == Config.RUN_MODES[0]:
-        if Config.ARIMA_IMS:
-            print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
-    elif Config.RUN_MODE == Config.RUN_MODES[1]:
+    if Config.ARIMA_IMS:
+        print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
+    if Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.ARIMA_TESTING_TIME))
     else:
         raise Exception('Unknown RUN_MODE!')

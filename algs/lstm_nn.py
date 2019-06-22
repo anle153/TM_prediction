@@ -39,7 +39,7 @@ def ims_tm_prediction(init_data, model, init_labels):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead + Config.LSTM_STEP],
                                                     labels=labels[ts_ahead:ts_ahead + Config.LSTM_STEP])
         predictX = model.predict(rnn_input)
-        multi_steps_tm[ts_ahead] = predictX[:, -1, 0].T
+        multi_steps_tm[ts_ahead] = predictX[:, -1, 0]
 
     return multi_steps_tm[-1, :]
 
@@ -112,9 +112,9 @@ def predict_lstm_nn(init_data, test_data, model):
         # This block is used for iterated multi-step traffic matrices prediction
 
         if Config.LSTM_IMS and (ts <= test_data.shape[0] - Config.LSTM_IMS_STEP):
-            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP, :],
+            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP],
                                            model=model,
-                                           init_labels=labels[ts:ts + Config.LSTM_STEP, :])
+                                           init_labels=labels[ts:ts + Config.LSTM_STEP])
 
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.LSTM_STEP],
@@ -319,10 +319,15 @@ def test_lstm_nn(data):
                                             'rmse_ims'])
 
     results_summary = run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary)
+
+    if Config.LSTM_IMS:
+        result_file_name = 'Test_results_ims_{}.csv'.format(Config.LSTM_FLOW_SELECTION)
+    else:
+        result_file_name = 'Test_results_{}.csv'.format(Config.LSTM_FLOW_SELECTION)
+
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results_{}.csv'.format(Config.DATA_NAME,
-                                                                    Config.ALG, Config.TAG, Config.SCALER,
-                                                                    Config.LSTM_FLOW_SELECTION),
+                           '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                   Config.SCALER, result_file_name),
                            index=False)
 
     return

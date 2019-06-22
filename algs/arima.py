@@ -333,12 +333,11 @@ def test_arima_2(data):
 
             measured_flow = measured_matrix2d[ts]
 
-            flow_ims_pred = np.zeros(shape=(test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP + 1))
+            predictions_ims = []
 
             for flow_id in range(test_data_normalize.shape[1]):
                 print('')
-                print(
-                    '---------------------------------------------------------------------------------------------------')
+                print('----------------------------------------------------------------------------------------------')
                 print("|--- Run time: {} - ts: {}".format(running_time, ts))
 
                 try:
@@ -346,10 +345,17 @@ def test_arima_2(data):
                 except:
                     pass
 
-                if Config.ARIMA_IMS:
+                if Config.ARIMA_IMS and (ts <= test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP):
                     output = model.predict(n_periods=Config.ARIMA_IMS_STEP)
                     if ts <= (test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP):
-                        flow_ims_pred[ts] = output[-1]
+                        yhat_ims = output[-1]
+                        if np.any(np.isinf(yhat_ims)):
+                            yhat_ims = np.max(train_data_normalized2d)
+                            pass
+                        elif np.any(np.isnan(yhat_ims)):
+                            yhat_ims = np.min(train_data_normalized2d)
+
+                        predictions_ims.append(yhat_ims)
 
                 else:
                     output = model.predict(n_periods=1)
@@ -372,6 +378,9 @@ def test_arima_2(data):
                     predictions[flow_id] = yhat
 
             pred_tm2d[ts, :] = predictions
+
+            if Config.ARIMA_IMS and (ts <= test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP):
+                ims_pred_tm2d[ts] = predictions_ims
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
 
@@ -411,9 +420,14 @@ def test_arima_2(data):
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
+    if Config.ARIMA_IMS:
+        result_file_name = "Test_results_ims_random.csv"
+    else:
+        result_file_name = "Test_results_random.csv"
+
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results_random.csv'.format(Config.DATA_NAME,
-                                                                        Config.ALG, Config.TAG, Config.SCALER),
+                           '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
+                                                   result_file_name),
                            index=False)
 
     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))

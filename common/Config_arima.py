@@ -1,11 +1,11 @@
 # ----------- ARIMA Config ----------------------
 ARIMA_UPDATE = 7
-ARIMA_TESTING_TIME = 3
-ARIMA_MON_RATIO = 0.90
+ARIMA_TESTING_TIME = 1
+ARIMA_MON_RATIO = 0.40
 ARIMA_STEP = 30
 ARIMA_IMS_STEP = 12
-ARIMA_IMS = False
-ARIMA_TEST_DAYS = 5
+ARIMA_IMS = True
+ARIMA_TEST_DAYS = 0.05
 # ----------------------------------------------
 
 
@@ -14,7 +14,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[0]
+RUN_MODE = RUN_MODES[1]
 ALG = 'arima'
 GPU = 1
 SCALER = SCALERS[5]

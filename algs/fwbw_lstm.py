@@ -169,7 +169,7 @@ def data_correction_v3(rnn_input, pred_backward, labels):
     considered_backward = pred_backward[:, 1:]
     considered_rnn_input = _rnn_input[:, 0:-1]
 
-    beta[beta > 0.7] = 0.7
+    beta[beta > 0.5] = 0.5
 
     alpha = 1.0 - beta
 

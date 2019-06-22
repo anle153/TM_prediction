@@ -1,4 +1,3 @@
-FLOW_SELECTIONS = ['random', 'fairness', 'weights']
 
 FWBW_LSTM_N_EPOCH = 20
 FWBW_LSTM_BATCH_SIZE = 512
@@ -8,27 +7,31 @@ FWBW_LSTM_DROPOUT = 0.5
 FWBW_LSTM_DEEP = False
 FWBW_LSTM_DEEP_NLAYERS = 3
 
-FWBW_LSTM_STEP = 30
+FWBW_LSTM_STEP = 288
 FWBW_LSTM_FEATURES = 2
 FWBW_LSTM_IMS_STEP = 12
 
-FWBW_LSTM_MON_RATIO = 0.90
+FWBW_LSTM_MON_RATIO = 0.40
 
-FWBW_LSTM_BEST_CHECKPOINT = 11
+FWBW_LSTM_BEST_CHECKPOINT = 1
 
 FWBW_LSTM_IMS = False
 
 FWBW_LSTM_VALID_TEST = True
+
 FWBW_LSTM_TEST_DAYS = 25
+
 FWBW_LSTM_HYPERPARAMS = [2.6, 1.0]
 
-FWBW_LSTM_FLOW_SELECTION = FLOW_SELECTIONS[1]
+FLOW_SELECTIONS = ['random', 'fairness', 'weights']
+FWBW_LSTM_FLOW_SELECTION = FLOW_SELECTIONS[0]
 
 if FWBW_LSTM_FLOW_SELECTION == FLOW_SELECTIONS[0]:
     FWBW_LSTM_TESTING_TIME = 50
 else:
     FWBW_LSTM_TESTING_TIME = 1
 
+FWBW_LSTM_R = int(FWBW_LSTM_STEP / 3)
 
 # ----------- RUNNING Config ----------------------
 
@@ -37,9 +40,9 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[0]
+RUN_MODE = RUN_MODES[1]
 ALG = 'fwbw-lstm'
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

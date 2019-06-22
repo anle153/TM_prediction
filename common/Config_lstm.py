@@ -8,20 +8,24 @@ LSTM_DROPOUT = 0.5
 LSTM_DEEP = False
 LSTM_DEEP_NLAYERS = 3
 
-LSTM_STEP = 72
+LSTM_STEP = 288
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 12
 
 LSTM_MON_RATIO = 0.40
 
+<<<<<<< HEAD
 LSTM_BEST_CHECKPOINT = 20
+=======
+LSTM_BEST_CHECKPOINT = 1
+>>>>>>> 36ba001db3c9e753258a672a42bf461fe433396a
 
 LSTM_IMS = False
 LSTM_VALID_TEST = True
 
 LSTM_TEST_DAYS = 25
 
-LSTM_FLOW_SELECTION = FLOW_SELECTIONS[1]
+LSTM_FLOW_SELECTION = FLOW_SELECTIONS[0]
 
 if LSTM_FLOW_SELECTION == FLOW_SELECTIONS[0]:
     LSTM_TESTING_TIME = 50
@@ -45,9 +49,9 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[0]
+RUN_MODE = RUN_MODES[1]
 ALG = 'lstm-nn'
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 TAG = 'mon_{:02d}_lstm_{:02d}_batch_{:03d}_hidden_{:03d}'.format(int(LSTM_MON_RATIO * 100),

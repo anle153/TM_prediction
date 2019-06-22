@@ -1,6 +1,6 @@
 import numpy as np
 
-from algs.arima import test_arima
+from algs.arima import test_arima_2
 from common import Config_arima as Config
 
 
@@ -24,7 +24,6 @@ def print_arima_info():
             print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.ARIMA_TESTING_TIME))
-        print('|--- ARIMA_UPDATE:\t{}'.format(Config.ARIMA_UPDATE))
     else:
         raise Exception('Unknown RUN_MODE!')
     print('----------------------------------------------------')
@@ -36,4 +35,4 @@ def print_arima_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_arima_info()
-    test_arima(data)
+    test_arima_2(data)

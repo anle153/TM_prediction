@@ -60,7 +60,7 @@ for layer in range(CONV_LSTM_LAYERS):
     filters = filters + '{:02d}_'.format(CONV_LSTM_FILTERS[layer])
     kernel = kernel + '{:02d}_'.format(CONV_LSTM_KERNEL_SIZE[layer][0])
 
-TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{}kernel_{}batch_{:03d}'.format(int(CONV_LSTM_MON_RAIO * 100),
+TAG = 'mon_{:02d}_lstm_{:02d}_layers_{:02d}_filters_{}kernel_{}batch_{:03d}'.format(int(CONV_LSTM_MON_RATIO * 100),
                                                                                     CONV_LSTM_STEP,
                                                                                     CONV_LSTM_LAYERS,
                                                                                     filters, kernel,

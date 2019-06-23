@@ -183,6 +183,40 @@ def data_correction_v3(rnn_input, pred_backward, labels):
     return corrected_data.T
 
 
+def data_correction_v4(rnn_input, pred_backward, labels, fw_mon_ratio):
+    # Shape = (#n_flows, #time-steps)
+    _rnn_input = np.copy(rnn_input.T)
+    _labels = np.copy(labels.T)
+
+    beta = np.zeros(_rnn_input.shape)
+    for i in range(_rnn_input.shape[1] - Config.FWBW_LSTM_R):
+        mu = np.sum(_labels[:, i + 1:i + Config.FWBW_LSTM_R + 1], axis=1) / Config.FWBW_LSTM_R
+
+        h = np.arange(1, Config.FWBW_LSTM_R + 1)
+
+        rho = (1 / (np.log(Config.FWBW_LSTM_R) + 1)) * np.sum(_labels[:, i + 1:i + Config.FWBW_LSTM_R + 1] / h, axis=1)
+
+        beta[:, i] = mu * rho
+
+        np.argwhere(fw_mon_ratio[:, i] - mu >= 0)
+
+    considered_backward = pred_backward[:, 1:]
+    considered_rnn_input = _rnn_input[:, 0:-1]
+
+    beta[beta > 0.8] = 0.5
+
+    alpha = 1.0 - beta
+
+    alpha = alpha[:, 0:-1]
+    beta = beta[:, 0:-1]
+    # gamma = gamma[:, 1:-1]
+
+    # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
+    corrected_data = considered_rnn_input * alpha + considered_backward * beta
+
+    return corrected_data.T
+
+
 def predict_fwbw_lstm_ims(initial_data, initial_labels, model):
     ims_tm_pred = np.zeros(shape=(initial_data.shape[0] + Config.FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
     ims_tm_pred[0:initial_data.shape[0], :] = initial_data

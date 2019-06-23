@@ -36,6 +36,9 @@ def print_conv_lstm_info():
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.CONV_LSTM_BEST_CHECKPOINT))
     else:
         raise Exception('Unknown RUN_MODE!')
+    infor_correct = input('Is the information correct? y(Yes)/n(No):')
+    if infor_correct != 'y' and infor_correct != 'yes':
+        raise RuntimeError('Information is not correct!')
 
 
 if __name__ == '__main__':

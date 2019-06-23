@@ -154,7 +154,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         # Selecting next monitored flows randomly
         if Config.CONV_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
             sampling = np.random.choice(tf_a, size=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH),
-                                        p=(Config.CONV_LSTM_MON_RAIO, 1.0 - Config.CONV_LSTM_MON_RAIO))
+                                        p=(Config.CONV_LSTM_MON_RATIO, 1.0 - Config.CONV_LSTM_MON_RATIO))
         # else:
         #     sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.CONV_LSTM_STEP].T),
         #                                  labels=labels[ts: ts + Config.CONV_LSTM_STEP].T)
@@ -239,12 +239,12 @@ def train_conv_lstm(data):
         print('|--- Create offline train set for conv_lstm net!')
 
         trainX, trainY = create_offline_conv_lstm_data_fix_ratio(train_data_normalized,
-                                                                 input_shape, Config.CONV_LSTM_MON_RAIO,
+                                                                 input_shape, Config.CONV_LSTM_MON_RATIO,
                                                                  train_data_normalized.std(), 3)
         print('|--- Create offline valid set for conv_lstm net!')
 
         validX, validY = create_offline_conv_lstm_data_fix_ratio(valid_data_normalized,
-                                                                 input_shape, Config.CONV_LSTM_MON_RAIO,
+                                                                 input_shape, Config.CONV_LSTM_MON_RATIO,
                                                                  train_data_normalized.std(), 1)
         # ----------------------------------------------------------------------------------------------------------
 

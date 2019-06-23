@@ -1,18 +1,17 @@
 CONV_LSTM_N_EPOCH = 50
-CONV_LSTM_BATCH_SIZE = 256
+CONV_LSTM_BATCH_SIZE = 512
 
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 30
 
 CONV_LSTM_BEST_CHECKPOINT = 50
-CONV_LSTM_TESTING_TIME = 20
 
 CONV_LSTM_LAYERS = 2
 CONV_LSTM_FILTERS = [2, 2]
 CONV_LSTM_KERNEL_SIZE = [[3, 3], [3, 3]]
 CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
 CONV_LSTM_DROPOUTS = [0.5, 0.5]
-CONV_LSTM_RNN_DROPOUTS = [0.2, 0.2]
+CONV_LSTM_RNN_DROPOUTS = [0.5, 0.5]
 
 CONV_LSTM_WIDE = 12
 CONV_LSTM_HIGH = 12
@@ -22,8 +21,15 @@ CONV_LSTM_MON_RAIO = 0.30
 
 CONV_LSTM_IMS = False
 
-CONV_LSTM_DATA_GENERATE_TIME = 3
 CONV_LSTM_VALID_TEST = True
+
+FLOW_SELECTIONS = ['random', 'fairness', 'weights']
+CONV_LSTM_FLOW_SELECTION = FLOW_SELECTIONS[0]
+
+if CONV_LSTM_FLOW_SELECTION == FLOW_SELECTIONS[0]:
+    CONV_LSTM_TESTING_TIME = 50
+else:
+    CONV_LSTM_TESTING_TIME = 1
 
 RUN_MODES = ['train', 'test', 'plot']
 SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'robust-scaler', 'sd_scaler']
@@ -45,7 +51,6 @@ ADDED_RESULT_NAME = 'random'
 ABILENE_DAY_SIZE = 288
 GEANT_DAY_SIZE = 96
 
-ALL_DATA = True
 NUM_DAYS = 160
 
 # -----------------------------------------------------------------------------------------------------------------------

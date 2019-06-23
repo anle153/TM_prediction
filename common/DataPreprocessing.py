@@ -123,7 +123,7 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
     return data_x, data_y_1, data_y_2
 
 
-def create_offline_convlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
+def create_offline_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
     if data_time is None:
         data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
 

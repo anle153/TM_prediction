@@ -61,7 +61,10 @@ class ConvLSTM(AbstractModel):
                                  data_format='channels_last')(relu)
 
         BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
-        outputs = Flatten()(BatchNormalization_layer2)
+
+        relu_2 = ReLU()(BatchNormalization_layer2)
+
+        outputs = Flatten()(relu_2)
 
         outputs = Dense(self.wide * self.high, )(outputs)
 

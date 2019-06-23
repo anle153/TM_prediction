@@ -6,10 +6,10 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
-from common import Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_convlstm_data_fix_ratio, data_scalling
+from common import Config_conv_lstm as Config
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_conv_lstm_data_fix_ratio, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, \
-    calculate_rmse, calculate_mape
+    calculate_rmse
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -65,6 +65,53 @@ def ims_tm_prediction(init_data_labels, conv_lstm_model):
     return multi_steps_tm[-1, :, :, 0]
 
 
+def calculate_consecutive_loss(measured_matrix):
+    """
+
+    :param measured_matrix: shape(#n_flows, #time-steps)
+    :return: consecutive_losses: shape(#n_flows)
+    """
+
+    consecutive_losses = []
+    for flow_id in range(measured_matrix.shape[0]):
+        flows_labels = measured_matrix[flow_id, :]
+        if flows_labels[-1] == 1:
+            consecutive_losses.append(1)
+        else:
+            measured_idx = np.argwhere(flows_labels == 1)
+            if measured_idx.size == 0:
+                consecutive_losses.append(measured_matrix.shape[1])
+            else:
+                consecutive_losses.append(measured_matrix.shape[1] - measured_idx[-1][0])
+
+    consecutive_losses = np.asarray(consecutive_losses)
+    return consecutive_losses
+
+
+def set_measured_flow_fairness(rnn_input, labels):
+    """
+
+    :param rnn_input: shape(#n_flows, #time-steps)
+    :param labels: shape(n_flows, #time-steps)
+    :return:
+    """
+
+    n_flows = rnn_input.shape[0]
+
+    cl = calculate_consecutive_loss(labels).astype(float)
+
+    w = 1 / cl
+
+    sampling = np.zeros(shape=n_flows)
+    m = int(Config.CONV_LSTM_MON_RATIO * n_flows)
+
+    w = w.flatten()
+    sorted_idx_w = np.argsort(w)
+    sampling[sorted_idx_w[:m]] = 1
+
+    return sampling
+
+
 def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
     tf_a = np.array([1.0, 0.0])
 
@@ -105,8 +152,13 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         predict_tm = np.reshape(predict_tm, newshape=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
         # Selecting next monitored flows randomly
-        sampling = np.random.choice(tf_a, size=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH),
-                                    p=(Config.CONV_LSTM_MON_RAIO, 1.0 - Config.CONV_LSTM_MON_RAIO))
+        if Config.CONV_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
+            sampling = np.random.choice(tf_a, size=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH),
+                                        p=(Config.CONV_LSTM_MON_RAIO, 1.0 - Config.CONV_LSTM_MON_RAIO))
+        # else:
+        #     sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.CONV_LSTM_STEP].T),
+        #                                  labels=labels[ts: ts + Config.CONV_LSTM_STEP].T)
+
         inv_sampling = 1.0 - sampling
 
         # Calculating the true value for the TM
@@ -135,7 +187,6 @@ def build_model(input_shape):
                              saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG,
                                                                                    Config.TAG,
                                                                                    Config.SCALER))
-    print(conv_lstm_net.model.summary())
     conv_lstm_net.plot_models()
     return conv_lstm_net
 
@@ -149,7 +200,7 @@ def load_trained_models(input_shape, best_ckp):
 
 
 def train_conv_lstm(data):
-    print('|-- Run model training.')
+    print('|-- Run model training conv-lstm.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
@@ -187,14 +238,14 @@ def train_conv_lstm(data):
         # -------------------------------- Create offline training and validating dataset --------------------------
         print('|--- Create offline train set for conv_lstm net!')
 
-        trainX, trainY = create_offline_convlstm_data_fix_ratio(train_data_normalized,
-                                                                input_shape, Config.CONV_LSTM_MON_RAIO,
-                                                                train_data_normalized.std(), 3)
+        trainX, trainY = create_offline_conv_lstm_data_fix_ratio(train_data_normalized,
+                                                                 input_shape, Config.CONV_LSTM_MON_RAIO,
+                                                                 train_data_normalized.std(), 3)
         print('|--- Create offline valid set for conv_lstm net!')
 
-        validX, validY = create_offline_convlstm_data_fix_ratio(valid_data_normalized,
-                                                                input_shape, Config.CONV_LSTM_MON_RAIO,
-                                                                train_data_normalized.std(), 1)
+        validX, validY = create_offline_conv_lstm_data_fix_ratio(valid_data_normalized,
+                                                                 input_shape, Config.CONV_LSTM_MON_RAIO,
+                                                                 train_data_normalized.std(), 1)
         # ----------------------------------------------------------------------------------------------------------
 
         # Load model check point
@@ -235,24 +286,24 @@ def train_conv_lstm(data):
             Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
     results_summary = pd.DataFrame(index=range(Config.CONV_LSTM_TESTING_TIME),
-                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
     results_summary = run_test(valid_data2d, valid_data_normalized2d, conv_lstm_net, scalers, results_summary)
 
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Valid_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                                  Config.SCALER),
+                           '{}-{}-{}-{}/Valid_results_{}.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                     Config.SCALER, Config.CONV_LSTM_FLOW_SELECTION),
                            index=False)
     return
 
 
 def ims_tm_test_data(test_data):
     ims_test_set = np.zeros(
-        shape=(test_data.shape[0] - Config.LSTM_IMS_STEP + 1, test_data.shape[1]))
+        shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1]))
 
-    for i in range(Config.LSTM_IMS_STEP - 1, test_data.shape[0], 1):
-        ims_test_set[i - Config.LSTM_IMS_STEP + 1] = test_data[i]
+    for i in range(Config.CONV_LSTM_IMS_STEP - 1, test_data.shape[0], 1):
+        ims_test_set[i - Config.CONV_LSTM_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
 
@@ -291,13 +342,13 @@ def test_conv_lstm(data):
             Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
     results_summary = pd.DataFrame(index=range(Config.CONV_LSTM_TESTING_TIME),
-                                   columns=['No.', 'mape, ''err', 'r2', 'rmse', 'mape_ims', 'err_ims', 'r2_ims',
+                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
     run_test(test_data2d, test_data_normalized2d, conv_lstm_net, scalers, results_summary)
     results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Test_results.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                                 Config.SCALER),
+                           '{}-{}-{}-{}/Test_results_{}.csv'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
+                                                                    Config.SCALER, Config.CONV_LSTM_FLOW_SELECTION),
                            index=False)
 
     return
@@ -318,13 +369,29 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
     return test_data_normalize, init_data_normalize, test_data
 
 
+def prepare_test_set_last_5days(test_data2d, test_data_normalized2d):
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
+        day_size = Config.ABILENE_DAY_SIZE
+    else:
+        day_size = Config.GEANT_DAY_SIZE
+
+    idx = test_data2d.shape[0] - day_size * 5 - 10
+
+    test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 5])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - Config.CONV_LSTM_STEP: idx])
+    test_data = test_data2d[idx:idx + day_size * 5]
+
+    return test_data_normalize, init_data_normalize, test_data
+
+
 def run_test(test_data2d, test_data_normalized2d, conv_lstm_net, scalers, results_summary):
-    mape, err, r2_score, rmse = [], [], [], []
-    mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
+    err, r2_score, rmse = [], [], []
+    err_ims, r2_score_ims, rmse_ims = [], [], []
 
     for i in range(Config.CONV_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
-        test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_5days(test_data2d,
+                                                                                          test_data_normalized2d)
 
         init_data_normalize = np.reshape(init_data_normalize, newshape=(init_data_normalize.shape[0],
                                                                         Config.CONV_LSTM_WIDE,
@@ -345,7 +412,6 @@ def run_test(test_data2d, test_data_normalized2d, conv_lstm_net, scalers, result
                                                  measured_matrix.shape[1] * measured_matrix.shape[2]))
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-        mape.append(calculate_mape(y_true=test_data, y_pred=pred_tm_invert2d))
 
         err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
@@ -355,8 +421,6 @@ def run_test(test_data2d, test_data_normalized2d, conv_lstm_net, scalers, result
             ims_tm2d = np.reshape(np.copy(ims_tm), newshape=(ims_tm.shape[0], ims_tm.shape[1] * ims_tm.shape[2]))
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
             ims_ytrue2d = ims_tm_test_data(test_data=test_data)
-
-            mape_ims.append(calculate_mape(y_true=ims_ytrue2d, y_pred=ims_tm_invert2d))
 
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
                                        y_true=ims_ytrue2d,
@@ -368,28 +432,24 @@ def run_test(test_data2d, test_data_normalized2d, conv_lstm_net, scalers, result
             err_ims.append(0)
             r2_score_ims.append(0)
             rmse_ims.append(0)
-            mape_ims.append(0)
 
-        print('Result: mape\terr\trmse\tr2 \t\t mape_ims\terr_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
-                                                                  mape_ims[i], err_ims[i], rmse_ims[i],
+        print('Result: err\trmse\tr2 \t\t terr_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
+                                                          err_ims[i], rmse_ims[i],
                                                                   r2_score_ims[i]))
 
     results_summary['No.'] = range(Config.CONV_LSTM_TESTING_TIME)
-    results_summary['mape'] = mape
     results_summary['err'] = err
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse
-    results_summary['mape_ims'] = mape_ims
     results_summary['err_ims'] = err_ims
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
 
-    print('avg_mape: {} - avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
-                                                                          np.mean(np.array(err)),
-                                                                          np.mean(np.array(rmse)),
-                                                                          np.mean(np.array(r2_score))))
+    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+                                                           np.mean(np.array(rmse)),
+                                                           np.mean(np.array(r2_score))))
 
     return results_summary

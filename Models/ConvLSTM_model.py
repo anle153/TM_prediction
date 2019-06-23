@@ -1,6 +1,6 @@
 import os
 
-from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense, ReLU
+from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense
 from keras.models import Model
 from keras.utils import plot_model
 
@@ -49,8 +49,6 @@ class ConvLSTM(AbstractModel):
 
         BatchNormalization_layer1 = BatchNormalization()(lstm_layer1)
 
-        relu = ReLU()(BatchNormalization_layer1)
-
         lstm_layer2 = ConvLSTM2D(filters=self.a_filters[1],
                                  kernel_size=self.kernel_sizes[1],
                                  strides=[1, 1],
@@ -58,13 +56,13 @@ class ConvLSTM(AbstractModel):
                                  dropout=self.dropout[1],
                                  return_sequences=True,
                                  recurrent_dropout=self.rnn_dropout[1],
-                                 data_format='channels_last')(relu)
+                                 data_format='channels_last')(BatchNormalization_layer1)
 
         BatchNormalization_layer2 = BatchNormalization()(lstm_layer2)
 
-        relu_2 = ReLU()(BatchNormalization_layer2)
+        outputs = Flatten()(BatchNormalization_layer2)
 
-        outputs = Flatten()(relu_2)
+        outputs = Dense(256, )(outputs)
 
         outputs = Dense(self.wide * self.high, )(outputs)
 

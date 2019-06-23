@@ -275,6 +275,8 @@ def train_conv_lstm(data):
         # Plot the training history
         if training_history is not None:
             conv_lstm_net.plot_training_history(training_history)
+            conv_lstm_net.save_model_history(training_history)
+
     else:
         print('|--- Test valid set')
         conv_lstm_net.load_model_from_check_point(_from_epoch=Config.CONV_LSTM_BEST_CHECKPOINT)

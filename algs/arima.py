@@ -421,9 +421,9 @@ def test_arima_2(data):
     results_summary['rmse_ims'] = rmse_ims
 
     if Config.ARIMA_IMS:
-        result_file_name = "Test_results_ims_random.csv"
+        result_file_name = "Test_results_ims_random_in_{}_days.csv".format(Config.ARIMA_TEST_DAYS)
     else:
-        result_file_name = "Test_results_random.csv"
+        result_file_name = "Test_results_random_in_{}_days.csv".format(Config.ARIMA_TEST_DAYS)
 
     results_summary.to_csv(Config.RESULTS_PATH +
                            '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,

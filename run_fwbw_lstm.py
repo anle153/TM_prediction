@@ -28,13 +28,13 @@ def print_fwbw_lstm_info():
 
     if Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[2]:
         print('|--- FLOW_SELECTION_PARAMETERS:\t{}'.format(Config.FWBW_LSTM_HYPERPARAMS))
+    if Config.FWBW_LSTM_IMS:
+        print('|--- IMS_STEP:\t{}'.format(Config.FWBW_LSTM_IMS_STEP))
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         print('|--- N_EPOCH:\t{}'.format(Config.FWBW_LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.FWBW_LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.FWBW_LSTM_STEP))
-        if Config.FWBW_LSTM_IMS:
-            print('|--- IMS_STEP:\t{}'.format(Config.FWBW_LSTM_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.FWBW_LSTM_TESTING_TIME))
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.FWBW_LSTM_BEST_CHECKPOINT))

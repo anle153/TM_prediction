@@ -1,7 +1,7 @@
 # ----------- ARIMA Config ----------------------
 ARIMA_UPDATE = 7
 ARIMA_TESTING_TIME = 5
-ARIMA_MON_RATIO = 0.10
+ARIMA_MON_RATIO = 0.40
 ARIMA_STEP = 144
 ARIMA_IMS_STEP = 12
 ARIMA_IMS = False

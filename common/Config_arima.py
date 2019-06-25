@@ -5,7 +5,7 @@ ARIMA_MON_RATIO = 0.70
 ARIMA_STEP = 30
 ARIMA_IMS_STEP = 3
 ARIMA_IMS = True
-ARIMA_TEST_DAYS = 1
+ARIMA_TEST_DAYS = 0.05
 # ----------------------------------------------
 
 

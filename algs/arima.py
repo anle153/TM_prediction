@@ -1,4 +1,5 @@
 import pickle
+import time
 
 import matplotlib
 import numpy as np
@@ -290,11 +291,9 @@ def test_arima_2(data):
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
-    run_times = pd.DataFrame(index=10, columns=['No.', 'run_time'])
 
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
-    running_times = []
 
     import os
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
@@ -330,6 +329,9 @@ def test_arima_2(data):
 
             history.append([x for x in flow_train.astype(float)])
 
+        prediction_times = pd.DataFrame(index=range(test_data_normalize.shape[0]), columns=['No.', 'run_time'])
+        pred_times = []
+
         for ts in tqdm(range(test_data_normalize.shape[0])):
 
             predictions = np.zeros(shape=(test_data_normalize.shape[1]))
@@ -337,6 +339,8 @@ def test_arima_2(data):
             measured_flow = measured_matrix2d[ts]
 
             predictions_ims = []
+
+            start_time = time.time()
 
             for flow_id in range(test_data_normalize.shape[1]):
                 print('')
@@ -382,6 +386,10 @@ def test_arima_2(data):
 
             pred_tm2d[ts, :] = predictions
 
+            stop_time = time.time()
+
+            pred_times.append(stop_time - start_time)
+
             if Config.ARIMA_IMS and (ts <= test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP):
                 ims_pred_tm2d[ts] = predictions_ims
 
@@ -414,6 +422,13 @@ def test_arima_2(data):
                                                           rmse[running_time], r2_score[running_time],
                                                           err_ims[running_time],
                                                           rmse_ims[running_time], r2_score_ims[running_time]))
+
+        prediction_times['No'] = range(test_data_normalize.shape[0])
+        prediction_times['run_time'] = pred_times
+        prediction_times.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/RPrediction_times'.format(Config.DATA_NAME,
+                                                                                             Config.ALG,
+                                                                                             Config.TAG, Config.SCALER),
+                                index=False)
 
     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
     results_summary['err'] = err

@@ -219,10 +219,10 @@ def data_correction_v4(rnn_input, pred_backward, labels, fw_mon_ratio):
 
 def predict_fwbw_lstm_ims(initial_data, initial_labels, model):
     ims_tm_pred = np.zeros(shape=(initial_data.shape[0] + Config.FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
-    ims_tm_pred[0:initial_data.shape[0], :] = initial_data
+    ims_tm_pred[0:initial_data.shape[0]] = initial_data
 
     labels = np.zeros(shape=(initial_data.shape[0] + Config.FWBW_LSTM_IMS_STEP, initial_data.shape[1]))
-    labels[0:initial_labels.shape[0], :] = initial_labels
+    labels[0:initial_labels.shape[0]] = initial_labels
 
     for ts_ahead in range(Config.FWBW_LSTM_IMS_STEP):
         rnn_input = prepare_input_online_prediction(data=ims_tm_pred[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP],
@@ -237,8 +237,8 @@ def predict_fwbw_lstm_ims(initial_data, initial_labels, model):
                                             pred_backward=bw_outputs,
                                             labels=labels[ts_ahead: ts_ahead + Config.FWBW_LSTM_STEP])
 
-        measured_data = ims_tm_pred[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP - 1] * labels[
-                                                                                     ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP - 1]
+        measured_data = ims_tm_pred[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP - 1] * \
+                        labels[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP - 1]
         pred_data = corrected_data * (1.0 - labels[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP - 1])
         ims_tm_pred[ts_ahead:ts_ahead + Config.FWBW_LSTM_STEP - 1] = measured_data + pred_data
 
@@ -443,8 +443,8 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     for ts in tqdm(range(test_data.shape[0])):
 
         if Config.FWBW_LSTM_IMS and (ts < test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1):
-            ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
-                                               initial_labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
+            ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
+                                               initial_labels=np.copy(labels[ts: ts + Config.FWBW_LSTM_STEP]),
                                                model=model)
 
         # Create 3D input for rnn

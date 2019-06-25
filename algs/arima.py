@@ -290,8 +290,11 @@ def test_arima_2(data):
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
 
+    run_times = pd.DataFrame(index=10, columns=['No.', 'run_time'])
+
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
+    running_times = []
 
     import os
     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,

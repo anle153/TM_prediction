@@ -18,6 +18,8 @@ def print_lstm_info():
 
     print('|--- MON_RATIO:\t{}'.format(Config.LSTM_MON_RATIO))
     print('            -----------            ')
+    if Config.LSTM_IMS:
+        print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
 
     print('|--- LSTM_DEEP:\t{}'.format(Config.LSTM_DEEP))
     if Config.LSTM_DEEP:
@@ -31,8 +33,6 @@ def print_lstm_info():
         print('|--- N_EPOCH:\t{}'.format(Config.LSTM_N_EPOCH))
         print('|--- BATCH_SIZE:\t{}'.format(Config.LSTM_BATCH_SIZE))
         print('|--- LSTM_STEP:\t{}'.format(Config.LSTM_STEP))
-        if Config.LSTM_IMS:
-            print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
     elif Config.RUN_MODE == Config.RUN_MODES[1]:
         print('|--- TESTING_TIME:\t{}'.format(Config.LSTM_TESTING_TIME))
         print('|--- BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))

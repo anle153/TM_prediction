@@ -30,16 +30,16 @@ def prepare_input_online_prediction(data, labels):
 
 def ims_tm_prediction(init_data, model, init_labels):
     multi_steps_tm = np.zeros(shape=(init_data.shape[0] + Config.LSTM_IMS_STEP, init_data.shape[1]))
-    multi_steps_tm[0:Config.LSTM_STEP, :] = init_data
+    multi_steps_tm[0:Config.LSTM_STEP] = init_data
 
     labels = np.zeros(shape=(init_labels.shape[0] + Config.LSTM_IMS_STEP, init_labels.shape[1]))
-    labels[0:Config.LSTM_STEP, :] = init_labels
+    labels[0:Config.LSTM_STEP] = init_labels
 
     for ts_ahead in range(Config.LSTM_IMS_STEP):
         rnn_input = prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead + Config.LSTM_STEP],
                                                     labels=labels[ts_ahead:ts_ahead + Config.LSTM_STEP])
         predictX = model.predict(rnn_input)
-        multi_steps_tm[ts_ahead] = predictX[:, -1, 0]
+        multi_steps_tm[ts_ahead + Config.LSTM_STEP] = predictX[:, -1, 0]
 
     return multi_steps_tm[-1, :]
 
@@ -111,10 +111,10 @@ def predict_lstm_nn(init_data, test_data, model):
     for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
 
-        if Config.LSTM_IMS and (ts <= test_data.shape[0] - Config.LSTM_IMS_STEP):
-            ims_tm[ts] = ims_tm_prediction(init_data=tm_pred[ts:ts + Config.LSTM_STEP],
+        if Config.LSTM_IMS and (ts < test_data.shape[0] - Config.LSTM_IMS_STEP + 1):
+            ims_tm[ts] = ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + Config.LSTM_STEP]),
                                            model=model,
-                                           init_labels=labels[ts:ts + Config.LSTM_STEP])
+                                           init_labels=np.copy(labels[ts:ts + Config.LSTM_STEP]))
 
         # Create 3D input for rnn
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.LSTM_STEP],

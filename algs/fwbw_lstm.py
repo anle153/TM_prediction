@@ -272,7 +272,7 @@ def predict_fwbw_lstm(initial_data, test_data, model):
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
 
-        if Config.FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP):
+        if Config.FWBW_LSTM_IMS and (ts < test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1):
             ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                initial_labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
                                                model=model)
@@ -442,7 +442,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
 
-        if Config.FWBW_LSTM_IMS and (ts <= test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP):
+        if Config.FWBW_LSTM_IMS and (ts < test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1):
             ims_tm[ts] = predict_fwbw_lstm_ims(initial_data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                initial_labels=labels[ts: ts + Config.FWBW_LSTM_STEP],
                                                model=model)

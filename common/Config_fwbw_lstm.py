@@ -8,7 +8,7 @@ FWBW_LSTM_DEEP_NLAYERS = 3
 
 FWBW_LSTM_STEP = 30
 FWBW_LSTM_FEATURES = 2
-FWBW_LSTM_IMS_STEP = 9
+FWBW_LSTM_IMS_STEP = 6
 
 FWBW_LSTM_MON_RATIO = 0.70
 
@@ -44,7 +44,7 @@ DATA_SETS = ['Abilene2d', 'Geant2d']
 DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[1]
 ALG = 'fwbw-lstm'
-GPU = 0
+GPU = 1
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

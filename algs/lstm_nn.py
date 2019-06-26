@@ -171,7 +171,7 @@ def build_model(input_shape):
         net.seq2seq_model_construction()
 
     # net.res_lstm_construction()
-
+    print(net.model.summary())
     net.plot_models()
 
     return net

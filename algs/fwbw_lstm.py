@@ -686,7 +686,8 @@ def test_fwbw_lstm(data):
     results_summary = run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary)
 
     if Config.FWBW_LSTM_IMS:
-        result_file_name = 'Test_results_ims_{}.csv'.format(Config.FWBW_LSTM_FLOW_SELECTION)
+        result_file_name = 'Test_results_ims_{}_{}.csv'.format(Config.FWBW_LSTM_IMS_STEP,
+                                                               Config.FWBW_LSTM_FLOW_SELECTION)
     else:
         result_file_name = 'Test_results_{}.csv'.format(Config.FWBW_LSTM_FLOW_SELECTION)
 

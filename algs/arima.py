@@ -329,7 +329,7 @@ def test_arima_2(data):
 
             history.append([x for x in flow_train.astype(float)])
 
-        prediction_times = pd.DataFrame(index=range(test_data_normalize.shape[0]), columns=['No.', 'run_time'])
+        prediction_times = pd.DataFrame(index=range(test_data_normalize.shape[0]), columns=['No', 'run_time'])
         pred_times = []
 
         for ts in tqdm(range(test_data_normalize.shape[0])):
@@ -425,10 +425,12 @@ def test_arima_2(data):
 
         prediction_times['No'] = range(test_data_normalize.shape[0])
         prediction_times['run_time'] = pred_times
-        prediction_times.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/RPrediction_times'.format(Config.DATA_NAME,
-                                                                                             Config.ALG,
-                                                                                             Config.TAG, Config.SCALER),
+        prediction_times.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/Prediction_times'.format(Config.DATA_NAME,
+                                                                                            Config.ALG,
+                                                                                            Config.TAG, Config.SCALER),
                                 index=False)
+
+        exit(0)
 
     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
     results_summary['err'] = err

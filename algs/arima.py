@@ -345,7 +345,7 @@ def test_arima_2(data):
             for flow_id in range(test_data_normalize.shape[1]):
                 print('')
                 print('----------------------------------------------------------------------------------------------')
-                print("|--- Run time: {} - ts: {}".format(running_time, ts))
+                print("|--- Run time: {} - ts: {} -- Mon: {}".format(running_time, ts, Config.ARIMA_MON_RATIO))
 
                 try:
                     model = build_auto_arima(history[flow_id][-Config.ARIMA_STEP:])

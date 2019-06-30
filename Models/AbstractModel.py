@@ -4,6 +4,8 @@ import os
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import model_from_json
+import keras.callbacks as keras_callbacks
+import time
 
 
 def plot_training_history(alg_name, tag, saving_path, model_history):
@@ -32,6 +34,7 @@ class AbstractModel(object):
 
         self.checkpoints_path = self.saving_path + 'checkpoints/'
 
+
         if check_point:
             if not os.path.isdir(self.checkpoints_path):
                 os.makedirs(self.checkpoints_path)
@@ -46,6 +49,9 @@ class AbstractModel(object):
             self.earlystop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=50,
                                            verbose=1, mode='auto')
             self.callbacks_list.append(self.earlystop)
+
+        self.time_callback = TimeHistory()
+        self.callbacks_list.append(self.time_callback)
 
     def save(self, model_json_filename='trained_model.json', model_weight_filename='trained_model.h5'):
         # Save model to dir + record_model/model_train_[%training_set].json
@@ -129,10 +135,24 @@ class AbstractModel(object):
         loss = np.array(model_history.history['loss'])
         val_loss = np.array(model_history.history['val_loss'])
         dump_model_history = pd.DataFrame(index=range(loss.size),
-                                          columns=['epoch', 'loss', 'val_loss'])
+                                          columns=['epoch', 'loss', 'val_loss', 'train_time'])
 
         dump_model_history['epoch'] = range(loss.size)
         dump_model_history['loss'] = loss
         dump_model_history['val_loss'] = val_loss
 
+        if self.time_callback.times is not None:
+            dump_model_history['train_time'] = self.time_callback.times
+
         dump_model_history.to_csv(self.saving_path + 'training_history.csv', index=False)
+
+
+class TimeHistory(keras_callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.times = []
+
+    def on_epoch_begin(self, batch, logs={}):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)

@@ -430,8 +430,6 @@ def test_arima_2(data):
                                                                                             Config.TAG, Config.SCALER),
                                 index=False)
 
-        exit(0)
-
     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
     results_summary['err'] = err
     results_summary['r2'] = r2_score

@@ -8,15 +8,15 @@ LSTM_DROPOUT = 0.5
 LSTM_DEEP = False
 LSTM_DEEP_NLAYERS = 3
 
-LSTM_STEP = 30
+LSTM_STEP = 36
 LSTM_FEATURES = 2
 LSTM_IMS_STEP = 9
 
-LSTM_MON_RATIO = 0.70
+LSTM_MON_RATIO = 0.40
 
 LSTM_BEST_CHECKPOINT = 1
 
-LSTM_IMS = True
+LSTM_IMS = False
 LSTM_VALID_TEST = True
 
 LSTM_TEST_DAYS = 25
@@ -48,7 +48,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[1]
+RUN_MODE = RUN_MODES[0]
 ALG = 'lstm-nn'
 GPU = 0
 SCALER = SCALERS[5]

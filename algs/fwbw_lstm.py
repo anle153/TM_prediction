@@ -472,7 +472,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     prediction_times = []
     import pandas as pd
     import time
-    dump_prediction_time = pd.DataFrame(index=range(test_data.shape[0]), columns=['time-step', 'pred_time'])
+    dump_prediction_time = pd.DataFrame(index=range(test_data.shape[0]), columns=['time_step', 'pred_time'])
 
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):

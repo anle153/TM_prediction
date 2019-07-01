@@ -107,9 +107,15 @@ def predict_lstm_nn(init_data, test_data, model):
     raw_data[0:init_data.shape[0]] = init_data
     raw_data[init_data.shape[0]:] = test_data
 
+    prediction_times = []
+    import pandas as pd
+    import time
+    dump_prediction_time = pd.DataFrame(index=range(test_data.shape[0]), columns=['time_step', 'pred_time'])
+
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
         # This block is used for iterated multi-step traffic matrices prediction
+        _start = time.time()
 
         if Config.LSTM_IMS and (ts < test_data.shape[0] - Config.LSTM_IMS_STEP + 1):
             ims_tm[ts] = ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + Config.LSTM_STEP]),
@@ -151,6 +157,16 @@ def predict_lstm_nn(init_data, test_data, model):
 
         # Concatenating new_input into current rnn_input
         tm_pred[ts + Config.LSTM_STEP] = new_input
+
+        prediction_times.append(time.time() - _start)
+
+    dump_prediction_time['time_step'] = range(test_data.shape[0])
+    dump_prediction_time['pred_time'] = prediction_times
+    dump_prediction_time.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/Prediction_times.csv'.format(Config.DATA_NAME,
+                                                                                                Config.ALG,
+                                                                                                Config.TAG,
+                                                                                                Config.SCALER),
+                                index=False)
 
     return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP:, :], ims_tm
 

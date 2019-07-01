@@ -469,8 +469,15 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     raw_data[0:initial_data.shape[0]] = initial_data
     raw_data[initial_data.shape[0]:] = test_data
 
+    prediction_times = []
+    import pandas as pd
+    import time
+    dump_prediction_time = pd.DataFrame(index=range(test_data.shape[0]), columns=['time-step', 'pred_time'])
+
     # Predict the TM from time slot look_back
     for ts in tqdm(range(test_data.shape[0])):
+
+        _start = time.time()
 
         if Config.FWBW_LSTM_IMS and (ts < test_data.shape[0] - Config.FWBW_LSTM_IMS_STEP + 1):
             ims_tm[ts] = predict_fwbw_lstm_ims_v2(initial_data=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
@@ -506,7 +513,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
                                         p=[Config.FWBW_LSTM_MON_RATIO, 1 - Config.FWBW_LSTM_MON_RATIO])
         elif Config.FWBW_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[1]:
             sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
-                                         labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
+                                                  labels=labels[ts: ts + Config.FWBW_LSTM_STEP].T)
         else:
             sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP].T),
                                          pred_forward=fw_outputs,
@@ -516,6 +523,16 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
 
         tm_pred[ts + Config.FWBW_LSTM_STEP] = new_input
         labels[ts + Config.FWBW_LSTM_STEP] = sampling
+
+        prediction_times.append(time.time() - _start)
+
+    dump_prediction_time['time_step'] = range(test_data.shape[0])
+    dump_prediction_time['pred_time'] = prediction_times
+    dump_prediction_time.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/Prediction_times.csv'.format(Config.DATA_NAME,
+                                                                                                Config.ALG,
+                                                                                                Config.TAG,
+                                                                                                Config.SCALER),
+                                index=False)
 
     return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm
 

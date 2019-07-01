@@ -754,10 +754,10 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
     for i in range(Config.FWBW_LSTM_TESTING_TIME):
         print('|--- Run time {}'.format(i))
         # test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
-        # test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_5days(test_data2d,
-        #                                                                                   test_data_normalized2d)
-        test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_day(test_data2d,
+        test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_5days(test_data2d,
                                                                                           test_data_normalized2d)
+        # test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_day(test_data2d,
+        #                                                                                   test_data_normalized2d)
         ims_test_data = ims_tm_test_data(test_data=test_data)
         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 

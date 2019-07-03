@@ -227,7 +227,7 @@ def train_conv_lstm(data):
 
         trainX, trainY = create_offline_conv_lstm_data_fix_ratio(train_data_normalized,
                                                                  input_shape, Config.CONV_LSTM_MON_RATIO,
-                                                                 train_data_normalized.std(), 3)
+                                                                 train_data_normalized.std(), 5)
         print('|--- Create offline valid set for conv_lstm net!')
 
         validX, validY = create_offline_conv_lstm_data_fix_ratio(valid_data_normalized,

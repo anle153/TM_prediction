@@ -87,8 +87,6 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
     data_y_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
     data_y_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
 
-    print(data_x.shape)
-
     for time in range(data_time):
         _labels = np.random.choice(_tf,
                                    size=data.shape,

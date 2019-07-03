@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from keras.callbacks import ModelCheckpoint
 from tqdm import tqdm
 
 from Models.ConvLSTM_model import ConvLSTM
@@ -141,6 +142,7 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predict_tm = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
 
+        predict_tm = predict_tm[-1]
         predict_tm = np.reshape(predict_tm, newshape=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
         # Selecting next monitored flows randomly
@@ -233,35 +235,24 @@ def train_conv_lstm(data):
                                                                  input_shape, Config.CONV_LSTM_MON_RATIO,
                                                                  train_data_normalized.std(), 1)
         # ----------------------------------------------------------------------------------------------------------
+        checkpoint_callback = ModelCheckpoint(conv_lstm_net.checkpoints_path + "weights-{epoch:02d}.hdf5",
+                                              monitor='val_loss', verbose=1,
+                                              save_best_only=True,
+                                              mode='auto', period=1)
 
-        # Load model check point
-        from_epoch = conv_lstm_net.load_model_from_check_point()
-        if from_epoch > 0:
-            print('|--- Continue training model from epoch %i --- ' % from_epoch)
-            training_history = conv_lstm_net.model.fit(x=trainX,
-                                                       y=trainY,
-                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.CONV_LSTM_N_EPOCH,
-                                                       callbacks=conv_lstm_net.callbacks_list,
-                                                       validation_data=(validX, validY),
-                                                       shuffle=True,
-                                                       initial_epoch=from_epoch,
-                                                       verbose=2)
-        else:
-            print('|--- Training new model.')
-            training_history = conv_lstm_net.model.fit(x=trainX,
-                                                       y=trainY,
-                                                       batch_size=Config.CONV_LSTM_BATCH_SIZE,
-                                                       epochs=Config.CONV_LSTM_N_EPOCH,
-                                                       callbacks=conv_lstm_net.callbacks_list,
-                                                       validation_data=(validX, validY),
-                                                       shuffle=True,
-                                                       verbose=2)
+        print('|--- Training new model.')
+        training_history = conv_lstm_net.model.fit(x=trainX,
+                                                   y=trainY,
+                                                   batch_size=Config.CONV_LSTM_BATCH_SIZE,
+                                                   epochs=Config.CONV_LSTM_N_EPOCH,
+                                                   callbacks=[checkpoint_callback],
+                                                   validation_data=(validX, validY),
+                                                   shuffle=True,
+                                                   verbose=2)
 
         # Plot the training history
         if training_history is not None:
             conv_lstm_net.plot_training_history(training_history)
-            conv_lstm_net.save_model_history(training_history)
 
     else:
         print('|--- Test valid set')

@@ -147,10 +147,8 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         sampling = np.random.choice(tf_a, size=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH),
                                     p=(Config.CONV_LSTM_MON_RATIO, 1.0 - Config.CONV_LSTM_MON_RATIO))
 
-        inv_sampling = 1.0 - sampling
-
         # Calculating the true value for the TM
-        new_tm = predict_tm * inv_sampling + test_data[ts] * sampling
+        new_tm = predict_tm * (1.0 - sampling) + test_data[ts] * sampling
 
         # Concaternating the new tm to the final results
         tm_pred[ts + Config.CONV_LSTM_STEP] = new_tm

@@ -190,6 +190,9 @@ def data_correction(rnn_input, pred_backward, labels):
         mu = np.sum(labels[i + 1:i + Config.FWBW_CONV_LSTM_R + 1], axis=0) / Config.FWBW_CONV_LSTM_R
 
         h = np.arange(1, Config.FWBW_CONV_LSTM_R + 1)
+        h = np.expand_dims(h, axis=1)
+        h = np.expand_dims(h, axis=2)
+        h = np.tile(h, (1, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_WIDE))
 
         rho = (1 / (np.log(Config.FWBW_CONV_LSTM_R) + 1)) * np.sum(labels[i + 1:i + Config.FWBW_CONV_LSTM_R + 1] / h,
                                                                    axis=0)
@@ -222,11 +225,6 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
 
     ims_tm = np.zeros(
         shape=(test_data.shape[0] - Config.FWBW_CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
-
-    raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
-
-    raw_data[0:initial_data.shape[0]] = initial_data
-    raw_data[initial_data.shape[0]:] = test_data
 
     for ts in tqdm(range(test_data.shape[0])):
         rnn_input = np.zeros(shape=(Config.FWBW_CONV_LSTM_STEP,
@@ -375,7 +373,7 @@ def train_fwbw_conv_lstm(data):
         # Plot the training history
         if training_history is not None:
             fwbw_conv_lstm_net.plot_training_history(training_history)
-            fwbw_conv_lstm_net.save_model_history(training_history)
+            # fwbw_conv_lstm_net.save_model_history(training_history)
     else:
         fwbw_conv_lstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
@@ -522,9 +520,9 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
                                                                   test_data=test_data_normalize,
                                                                   model=fwbw_conv_lstm_net.model)
 
-        pred_tm2d = np.reshape(np.copy(pred_tm), newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
+        pred_tm2d = np.reshape(pred_tm, newshape=(pred_tm.shape[0], pred_tm.shape[1] * pred_tm.shape[2]))
 
-        measured_matrix2d = np.reshape(np.copy(measured_matrix),
+        measured_matrix2d = np.reshape(measured_matrix,
                                        newshape=(measured_matrix.shape[0],
                                                  measured_matrix.shape[1] * measured_matrix.shape[2]))
 

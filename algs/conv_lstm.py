@@ -127,16 +127,8 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
     ims_tm = np.zeros(
         shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
-    raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1], test_data.shape[2]))
-
-    raw_data[0:initial_data.shape[0]] = initial_data
-    raw_data[initial_data.shape[0]:] = test_data
 
     for ts in tqdm(range(test_data.shape[0])):
-        # if Config.CONV_LSTM_IMS and (ts <= test_data.shape[0] - Config.CONV_LSTM_IMS_STEP):
-        #     ims_tm[ts] = ims_tm_prediction(init_data_labels=tm_labels[ts:ts + Config.CONV_LSTM_STEP, :, :, :],
-        #                                    conv_lstm_model=conv_lstm_model)
-
         rnn_input = np.zeros(
             shape=(Config.CONV_LSTM_STEP, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL))
 
@@ -152,12 +144,8 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         predict_tm = np.reshape(predict_tm, newshape=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
         # Selecting next monitored flows randomly
-        if Config.CONV_LSTM_FLOW_SELECTION == Config.FLOW_SELECTIONS[0]:
-            sampling = np.random.choice(tf_a, size=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH),
-                                        p=(Config.CONV_LSTM_MON_RATIO, 1.0 - Config.CONV_LSTM_MON_RATIO))
-        # else:
-        #     sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + Config.CONV_LSTM_STEP].T),
-        #                                  labels=labels[ts: ts + Config.CONV_LSTM_STEP].T)
+        sampling = np.random.choice(tf_a, size=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH),
+                                    p=(Config.CONV_LSTM_MON_RATIO, 1.0 - Config.CONV_LSTM_MON_RATIO))
 
         inv_sampling = 1.0 - sampling
 

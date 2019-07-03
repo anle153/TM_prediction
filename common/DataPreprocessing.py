@@ -117,9 +117,7 @@ def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, e
     return data_x, data_y_1, data_y_2
 
 
-def create_offline_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
-    if data_time is None:
-        data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
+def create_offline_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=1):
 
     _tf = np.array([1.0, 0.0])
 
@@ -156,9 +154,7 @@ def create_offline_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, d
     return data_x, data_y
 
 
-def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
-    if data_time is None:
-        data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
+def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=1):
 
     _tf = np.array([1.0, 0.0])
 
@@ -195,9 +191,7 @@ def create_offline_cnnlstm_data_fix_ratio(data, input_shape, mon_ratio, eps, dat
     return data_x, data_y
 
 
-def create_offline_fwbw_convlstm_data(data, input_shape, mon_ratio, eps, data_time=None):
-    if data_time is None:
-        data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
+def create_offline_fwbw_convlstm_data(data, input_shape, mon_ratio, eps, data_time=1):
 
     _tf = np.array([1.0, 0.0])
 

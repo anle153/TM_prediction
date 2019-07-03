@@ -191,26 +191,24 @@ def data_correction(rnn_input, pred_backward, labels):
 
         h = np.arange(1, Config.FWBW_CONV_LSTM_R + 1)
 
-        rho = (1 / (np.log(Config.FWBW_CONV_LSTM_R) + 1)) * np.sum(labels[:, i + 1:i + Config.FWBW_CONV_LSTM_R + 1] / h,
-                                                                   axis=1)
+        rho = (1 / (np.log(Config.FWBW_CONV_LSTM_R) + 1)) * np.sum(labels[i + 1:i + Config.FWBW_CONV_LSTM_R + 1] / h,
+                                                                   axis=0)
 
-        beta[:, i] = mu * rho
+        beta[i] = mu * rho
 
-    considered_backward = pred_backward[:, 1:]
-    considered_rnn_input = rnn_input[:, 0:-1]
+    considered_backward = pred_backward[1:]
+    considered_rnn_input = rnn_input[0:-1]
 
     beta[beta > 0.5] = 0.5
 
     alpha = 1.0 - beta
 
-    alpha = alpha[:, 0:-1]
-    beta = beta[:, 0:-1]
-    # gamma = gamma[:, 1:-1]
+    alpha = alpha[0:-1]
+    beta = beta[0:-1]
 
-    # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
     corrected_data = considered_rnn_input * alpha + considered_backward * beta
 
-    return corrected_data.T
+    return corrected_data
 
 
 def predict_fwbw_conv_lstm(initial_data, test_data, model):
@@ -351,7 +349,7 @@ def train_fwbw_conv_lstm(data):
         trainX, trainY_fw, trainY_bw = create_offline_fwbw_conv_lstm_data_fix_ratio(train_data_normalized,
                                                                                     input_shape,
                                                                                     Config.FWBW_CONV_LSTM_MON_RATIO,
-                                                                                    train_data_normalized.std(), 3)
+                                                                                    train_data_normalized.std(), 1)
         print('|--- Create offline valid set for forward net!')
 
         validX, validY_fw, validY_bw = create_offline_fwbw_conv_lstm_data_fix_ratio(valid_data_normalized,

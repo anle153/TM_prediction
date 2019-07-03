@@ -17,25 +17,6 @@ config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
 
-def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
-    saving_path = Config.RESULTS_PATH + 'plot_fwbw_convlstm/'
-
-    if not os.path.exists(saving_path):
-        os.makedirs(saving_path)
-
-    from matplotlib import pyplot as plt
-    for flow_x in range(raw_data.shape[1]):
-        for flow_y in range(raw_data.shape[2]):
-            plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
-            plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
-            plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
-            plt.plot(current_data[:, flow_x, flow_y], label='Current_pred')
-
-            plt.legend()
-            plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
-            plt.close()
-
-
 def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matrix):
     eps = 10e-5
 

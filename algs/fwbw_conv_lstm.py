@@ -3,11 +3,12 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from keras.callbacks import ModelCheckpoint
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from Models.FWBW_CONV_LSTM import FWBW_CONV_LSTM
-from common import Config
+from common import Config_fwbw_conv_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_conv_lstm_data_fix_ratio, \
     data_scalling
 from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, error_ratio, calculate_r2_score, \
@@ -16,25 +17,6 @@ from common.error_utils import calculate_consecutive_loss_3d, recovery_loss_3d, 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
-
-
-def plot_test_data(prefix, raw_data, pred_fw, pred_bw, current_data):
-    saving_path = Config.RESULTS_PATH + 'plot_fwbw_conv_lstm/'
-
-    if not os.path.exists(saving_path):
-        os.makedirs(saving_path)
-
-    from matplotlib import pyplot as plt
-    for flow_x in range(raw_data.shape[1]):
-        for flow_y in range(raw_data.shape[2]):
-            plt.plot(raw_data[:, flow_x, flow_y], label='Actual')
-            plt.plot(pred_fw[:, flow_x, flow_y], label='Pred_fw')
-            plt.plot(pred_bw[:, flow_x, flow_y], label='Pred_bw')
-            plt.plot(current_data[:, flow_x, flow_y], label='Current_pred')
-
-            plt.legend()
-            plt.savefig(saving_path + '{}_flow_{:02d}-{:02d}.png'.format(prefix, flow_x, flow_y))
-            plt.close()
 
 
 def calculate_flows_weights_3d(rnn_input, rl_forward, rl_backward, measured_matrix):
@@ -301,15 +283,11 @@ def predict_fwbw_conv_lstm(initial_data, test_data, model):
         labels[ts + Config.FWBW_CONV_LSTM_STEP] = sampling
 
     return tm[Config.FWBW_CONV_LSTM_STEP:], labels[Config.FWBW_CONV_LSTM_STEP:], ims_tm, tm_no_update[
-                                                                                                Config.FWBW_CONV_LSTM_STEP:]
+                                                                                         Config.FWBW_CONV_LSTM_STEP:]
 
 
 def build_model(input_shape):
     print('|--- Build models.')
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
-
     fwbw_conv_lstm_net = FWBW_CONV_LSTM(input_shape=input_shape,
                                         cnn_layers=Config.FWBW_CONV_LSTM_LAYERS,
                                         a_filters=Config.FWBW_CONV_LSTM_FILTERS,
@@ -317,13 +295,13 @@ def build_model(input_shape):
                                         dropouts=Config.FWBW_CONV_LSTM_DROPOUTS,
                                         kernel_sizes=Config.FWBW_CONV_LSTM_KERNEL_SIZE,
                                         rnn_dropouts=Config.FWBW_CONV_LSTM_RNN_DROPOUTS,
-                                        alg_name=alg_name,
-                                        tag=tag,
+                                        alg_name=Config.ALG,
+                                        tag=Config.TAG,
                                         check_point=True,
-                                        saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name, alg_name, tag,
+                                        saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                                                              Config.ALG,
+                                                                                              Config.TAG,
                                                                                               Config.SCALER))
-
-    print(fwbw_conv_lstm_net.model.summary())
     fwbw_conv_lstm_net.plot_models()
     return fwbw_conv_lstm_net
 
@@ -339,10 +317,7 @@ def load_trained_models(input_shape, best_ckp):
 def train_fwbw_conv_lstm(data):
     print('|-- Run model training.')
 
-    gpu = Config.GPU
-
-    data_name = Config.DATA_NAME
-    if 'Abilene' in data_name:
+    if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
         assert Config.FWBW_CONV_LSTM_HIGH == 12
         assert Config.FWBW_CONV_LSTM_WIDE == 12
@@ -368,7 +343,7 @@ def train_fwbw_conv_lstm(data):
     input_shape = (Config.FWBW_CONV_LSTM_STEP,
                    Config.FWBW_CONV_LSTM_WIDE, Config.FWBW_CONV_LSTM_HIGH, Config.FWBW_CONV_LSTM_CHANNEL)
 
-    with tf.device('/device:GPU:{}'.format(gpu)):
+    with tf.device('/device:GPU:{}'.format(Config.GPU)):
         fwbw_conv_lstm_net = build_model(input_shape)
 
     # --------------------------------------------------------------------------------------------------------------
@@ -396,36 +371,25 @@ def train_fwbw_conv_lstm(data):
                                                                                     train_data_normalized.std(),
                                                                                     1)
 
-        # Load model check point
-        from_epoch = fwbw_conv_lstm_net.load_model_from_check_point()
-        if from_epoch > 0:
-            print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-            training_history = fwbw_conv_lstm_net.model.fit(x=trainX,
-                                                            y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
-                                                            batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                            epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                            callbacks=fwbw_conv_lstm_net.callbacks_list,
-                                                            validation_data=(validX, {'fw_outputs': validY_fw,
-                                                                                      'bw_outputs': validY_bw}),
-                                                            shuffle=True,
-                                                            initial_epoch=from_epoch,
-                                                            verbose=2)
-        else:
-            print('|--- Training new forward model.')
+        checkpoint_callback = ModelCheckpoint(fwbw_conv_lstm_net.checkpoints_path + "weights-{epoch:02d}.hdf5",
+                                              monitor='val_loss', verbose=1,
+                                              save_best_only=True,
+                                              mode='auto', period=1)
 
-            training_history = fwbw_conv_lstm_net.model.fit(x=trainX,
-                                                            y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
-                                                            batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
-                                                            epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
-                                                            callbacks=fwbw_conv_lstm_net.callbacks_list,
-                                                            validation_data=(validX, {'fw_outputs': validY_fw,
-                                                                                      'bw_outputs': validY_bw}),
-                                                            shuffle=True,
-                                                            verbose=2)
+        training_history = fwbw_conv_lstm_net.model.fit(x=trainX,
+                                                        y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                        batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
+                                                        epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
+                                                        callbacks=[checkpoint_callback],
+                                                        validation_data=(validX, {'fw_outputs': validY_fw,
+                                                                                  'bw_outputs': validY_bw}),
+                                                        shuffle=True,
+                                                        verbose=2)
 
         # Plot the training history
         if training_history is not None:
             fwbw_conv_lstm_net.plot_training_history(training_history)
+            fwbw_conv_lstm_net.save_model_history(training_history)
     else:
         fwbw_conv_lstm_net.load_model_from_check_point(_from_epoch=Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)
 
@@ -526,7 +490,6 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
 
 
 def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, results_summary):
-
     mape, err, r2_score, rmse = [], [], [], []
     mape_ims, err_ims, r2_score_ims, rmse_ims = [], [], [], []
 
@@ -536,8 +499,8 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
         test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
 
         init_data_normalize = np.reshape(init_data_normalize, newshape=(init_data_normalize.shape[0],
-                                                      Config.FWBW_CONV_LSTM_WIDE,
-                                                      Config.FWBW_CONV_LSTM_HIGH))
+                                                                        Config.FWBW_CONV_LSTM_WIDE,
+                                                                        Config.FWBW_CONV_LSTM_HIGH))
         test_data_normalize = np.reshape(test_data_normalize, newshape=(test_data_normalize.shape[0],
                                                                         Config.FWBW_CONV_LSTM_WIDE,
                                                                         Config.FWBW_CONV_LSTM_HIGH))
@@ -606,7 +569,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_conv_lstm_net, scalers, r
         print('Result: mape\terr\trmse\tr2 \t\t mape_ims\terr_ims\trmse_ims\tr2_ims')
         print('        {}\t{}\t{}\t{} \t\t {}\t{}\t{}\t{}'.format(mape[i], err[i], rmse[i], r2_score[i],
                                                                   mape_ims[i], err_ims[i], rmse_ims[i],
-                                                          r2_score_ims[i]))
+                                                                  r2_score_ims[i]))
         print('Result without data correction: mape \t err\trmse\tr2')
         print('        {}\t{}\t{}\t{}'.format(mape_wo, err_wo, rmse_wo, r2_score_wo))
 

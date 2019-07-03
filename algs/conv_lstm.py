@@ -142,7 +142,6 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
 
         predict_tm = np.squeeze(predictX, axis=0)  # shape(timesteps, #nflows)
 
-        predict_tm = predict_tm[-1]
         predict_tm = np.reshape(predict_tm, newshape=(Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
         # Selecting next monitored flows randomly

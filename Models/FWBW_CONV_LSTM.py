@@ -100,7 +100,7 @@ class FWBW_CONV_LSTM(AbstractModel):
         bw_outputs = TimeDistributed(Dense(self.wide * self.high, ), name='bw_outputs')(bw_outputs)
 
         self.model = Model(inputs=input, outputs=[fw_outputs, bw_outputs], name='Model')
-        self.model.compile(loss={'fw_outputs': 'mse', 'bw_outputs': 'mse'}, optimizer='adam', metrics=['mse', 'mae'])
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

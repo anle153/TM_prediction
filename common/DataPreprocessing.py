@@ -75,16 +75,14 @@ def prepare_train_valid_test_2d(data, day_size):
 ########################################################################################################################
 #                                        Generator training data                                                       #
 
-def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=None):
-    if data_time is None:
-        data_time = Config.CONV_LSTM_DATA_GENERATE_TIME
-
+def create_offline_fwbw_conv_lstm_data_fix_ratio(data, input_shape, mon_ratio, eps, data_time=1):
     _tf = np.array([1.0, 0.0])
 
     ntimesteps = input_shape[0]
     wide = input_shape[1]
     high = input_shape[2]
     channel = input_shape[3]
+
     data_x = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide, high, channel))
     data_y_1 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))
     data_y_2 = np.zeros(((data.shape[0] - ntimesteps - 1) * data_time, ntimesteps, wide * high))

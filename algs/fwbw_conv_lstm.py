@@ -213,7 +213,6 @@ def data_correction(rnn_input, pred_backward, labels):
     return corrected_data.T
 
 
-
 def predict_fwbw_conv_lstm(initial_data, test_data, model):
     tf_a = np.array([1.0, 0.0])
 
@@ -347,9 +346,6 @@ def train_fwbw_conv_lstm(data):
             not os.path.isfile(
                 fwbw_conv_lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(
                     Config.FWBW_CONV_LSTM_BEST_CHECKPOINT)):
-        print('|--- Compile model. Saving path %s --- ' % fwbw_conv_lstm_net.saving_path)
-        # -------------------------------- Create offline training and validating dataset ------------------------------
-
         print('|--- Create offline train set for forward net!')
 
         trainX, trainY_fw, trainY_bw = create_offline_fwbw_conv_lstm_data_fix_ratio(train_data_normalized,
@@ -370,12 +366,11 @@ def train_fwbw_conv_lstm(data):
                                               mode='auto', period=1)
 
         training_history = fwbw_conv_lstm_net.model.fit(x=trainX,
-                                                        y={'fw_outputs': trainY_fw, 'bw_outputs': trainY_bw},
+                                                        y=[trainY_fw, trainY_bw],
                                                         batch_size=Config.FWBW_CONV_LSTM_BATCH_SIZE,
                                                         epochs=Config.FWBW_CONV_LSTM_N_EPOCH,
                                                         callbacks=[checkpoint_callback],
-                                                        validation_data=(validX, {'fw_outputs': validY_fw,
-                                                                                  'bw_outputs': validY_bw}),
+                                                        validation_data=(validX, [validY_fw, validY_bw]),
                                                         shuffle=True,
                                                         verbose=2)
 

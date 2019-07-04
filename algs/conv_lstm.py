@@ -305,9 +305,9 @@ def test_conv_lstm(data):
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
-    _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
-                                                                                valid_data2d,
-                                                                                test_data2d)
+    _, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
+                                                          valid_data2d,
+                                                          test_data2d)
 
     input_shape = (Config.CONV_LSTM_STEP,
                    Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL)

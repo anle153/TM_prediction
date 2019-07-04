@@ -129,7 +129,14 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
     ims_tm = np.zeros(
         shape=(test_data.shape[0] - Config.CONV_LSTM_IMS_STEP + 1, test_data.shape[1], test_data.shape[2]))
 
+    prediction_times = []
+    import pandas as pd
+    import time
+    dump_prediction_time = pd.DataFrame(index=range(test_data.shape[0]), columns=['time_step', 'pred_time'])
+
     for ts in tqdm(range(test_data.shape[0])):
+        _start = time.time()
+
         rnn_input = np.zeros(
             shape=(Config.CONV_LSTM_STEP, Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH, Config.CONV_LSTM_CHANNEL))
 
@@ -155,6 +162,16 @@ def predict_conv_lstm(initial_data, test_data, conv_lstm_model):
         tm_pred[ts + Config.CONV_LSTM_STEP] = new_tm
         labels[ts + Config.CONV_LSTM_STEP] = sampling
 
+        prediction_times.append(time.time() - _start)
+
+    dump_prediction_time['time_step'] = range(test_data.shape[0])
+    dump_prediction_time['pred_time'] = prediction_times
+    dump_prediction_time.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/Prediction_times.csv'.format(Config.DATA_NAME,
+                                                                                                Config.ALG,
+                                                                                                Config.TAG,
+                                                                                                Config.SCALER),
+                                index=False)
+
     return tm_pred[Config.CONV_LSTM_STEP:], labels[Config.CONV_LSTM_STEP:], ims_tm
 
 
@@ -175,6 +192,7 @@ def build_model(input_shape):
                                                                                    Config.TAG,
                                                                                    Config.SCALER))
     conv_lstm_net.plot_models()
+    print(conv_lstm_net.model.summary())
     return conv_lstm_net
 
 

@@ -4,7 +4,7 @@ CONV_LSTM_BATCH_SIZE = 1024
 CONV_LSTM_IMS_STEP = 12
 CONV_LSTM_STEP = 30
 
-CONV_LSTM_BEST_CHECKPOINT = 10
+CONV_LSTM_BEST_CHECKPOINT = 47
 
 CONV_LSTM_LAYERS = 2
 CONV_LSTM_FILTERS = [8, 8]
@@ -36,7 +36,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[0]
+RUN_MODE = RUN_MODES[1]
 
 ALG = 'conv-lstm'
 GPU = 0

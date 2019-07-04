@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     g = sns.heatmap(data_hm.corr(), cmap="BrBG")
     plt.sca(g)
-    plt.savefig('headmap.pdf')
+    plt.savefig('heatmap.pdf')
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         train_conv_lstm(data)

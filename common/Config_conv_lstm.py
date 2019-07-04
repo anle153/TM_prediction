@@ -17,7 +17,7 @@ CONV_LSTM_WIDE = 12
 CONV_LSTM_HIGH = 12
 CONV_LSTM_CHANNEL = 2
 
-CONV_LSTM_MON_RATIO = 0.50
+CONV_LSTM_MON_RATIO = 0.70
 
 CONV_LSTM_IMS = False
 
@@ -39,7 +39,7 @@ DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
 
 ALG = 'conv-lstm'
-GPU = 1
+GPU = 0
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

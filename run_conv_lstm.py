@@ -1,4 +1,7 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
 from algs.conv_lstm import train_conv_lstm, test_conv_lstm
 from common import Config_conv_lstm as Config
@@ -44,6 +47,18 @@ def print_conv_lstm_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_conv_lstm_info()
+
+    data_3d = np.reshape(data, newshape=(data.shape[0], Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
+
+    data_3d = data_3d[:288 * 7, :5, :5]
+    data_2d = np.reshape(data_3d, newshape=(data_3d.shape[0], data_3d.shape[1] * data_3d.shape[2]))
+
+    data_hm = pd.DataFrame(data_2d, index=range(data_3d.shape[0]),
+                           columns=['{}'.format(x + 1) for x in range(data_2d.shape[1])])
+
+    g = sns.heatmap(data_hm.corr(), cmap="BrBG")
+    plt.sca(g)
+    plt.savefig('headmap.pdf')
 
     if Config.RUN_MODE == Config.RUN_MODES[0]:
         train_conv_lstm(data)

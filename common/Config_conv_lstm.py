@@ -17,7 +17,7 @@ CONV_LSTM_WIDE = 12
 CONV_LSTM_HIGH = 12
 CONV_LSTM_CHANNEL = 2
 
-CONV_LSTM_MON_RATIO = 0.10
+CONV_LSTM_MON_RATIO = 0.30
 
 CONV_LSTM_IMS = False
 
@@ -36,7 +36,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[1]
+RUN_MODE = RUN_MODES[0]
 
 ALG = 'conv-lstm'
 GPU = 0

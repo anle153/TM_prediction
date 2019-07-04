@@ -39,7 +39,7 @@ DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[0]
 
 ALG = 'conv-lstm'
-GPU = 0
+GPU = 1
 SCALER = SCALERS[5]
 
 # --------------- Data Config -----------------

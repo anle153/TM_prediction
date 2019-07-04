@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     data_3d = np.reshape(data, newshape=(data.shape[0], Config.CONV_LSTM_WIDE, Config.CONV_LSTM_HIGH))
 
-    data_3d = data_3d[:288 * 7, :5, :5]
+    data_3d = data_3d[0:288 * 7, :5, :5]
     data_2d = np.reshape(data_3d, newshape=(data_3d.shape[0], data_3d.shape[1] * data_3d.shape[2]))
 
     data_hm = pd.DataFrame(data_2d, index=range(data_3d.shape[0]),

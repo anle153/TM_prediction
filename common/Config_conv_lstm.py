@@ -7,7 +7,7 @@ CONV_LSTM_STEP = 30
 CONV_LSTM_BEST_CHECKPOINT = 96
 
 CONV_LSTM_LAYERS = 2
-CONV_LSTM_FILTERS = [8, 8]
+CONV_LSTM_FILTERS = [4, 4]
 CONV_LSTM_KERNEL_SIZE = [[3, 3], [5, 5]]
 CONV_LSTM_STRIDES = [[1, 1], [1, 1]]
 CONV_LSTM_DROPOUTS = [0.5, 0.5]
@@ -36,7 +36,7 @@ SCALERS = ['power-transform', 'standard-scaler', 'minmax-scaler', 'box-cox', 'ro
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]
-RUN_MODE = RUN_MODES[1]
+RUN_MODE = RUN_MODES[0]
 
 ALG = 'conv-lstm'
 GPU = 0

@@ -17,7 +17,7 @@ DATA_NAME = DATA_SETS[0]
 RUN_MODE = RUN_MODES[1]
 ALG = 'arima'
 GPU = 1
-SCALER = SCALERS[5]
+SCALER = SCALERS[0]
 
 # --------------- Data Config -----------------
 

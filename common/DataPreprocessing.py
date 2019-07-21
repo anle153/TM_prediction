@@ -2,6 +2,7 @@ from multiprocessing import Process, Pipe, cpu_count
 
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PowerTransformer
 
 from FlowClassification.SpatialClustering import *
 
@@ -624,11 +625,10 @@ class sd_scale():
 
 
 def data_scalling(train_data2d, valid_data2d, test_data2d):
-    sd = sd_scale()
-    sd.fit(train_data2d)
-    train_data_normalized2d = sd.transform(train_data2d)
-    valid_data_normalized2d = sd.transform(valid_data2d)
-    test_data_normalized2d = sd.transform(test_data2d)
-    scalers = sd
+    scaler = PowerTransformer()
+    scaler.fit(train_data2d)
+    train_data_normalized2d = scaler.transform(train_data2d)
+    valid_data_normalized2d = scaler.transform(valid_data2d)
+    test_data_normalized2d = scaler.transform(test_data2d)
 
-    return train_data_normalized2d, valid_data_normalized2d, test_data_normalized2d, scalers
+    return train_data_normalized2d, valid_data_normalized2d, test_data_normalized2d, scaler

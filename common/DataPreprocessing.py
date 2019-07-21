@@ -624,11 +624,11 @@ class sd_scale():
         return (data * self.__std) + self.__mean
 
 
-def data_scalling(train_data2d, valid_data2d, test_data2d):
+def data_scalling(train_data2d):
     scaler = PowerTransformer()
     scaler.fit(train_data2d)
-    train_data_normalized2d = scaler.transform(train_data2d)
-    valid_data_normalized2d = scaler.transform(valid_data2d)
-    test_data_normalized2d = scaler.transform(test_data2d)
+    # train_data_normalized2d = scaler.transform(train_data2d)
+    # valid_data_normalized2d = scaler.transform(valid_data2d)
+    # test_data_normalized2d = scaler.transform(test_data2d)
 
-    return train_data_normalized2d, valid_data_normalized2d, test_data_normalized2d, scaler
+    return scaler

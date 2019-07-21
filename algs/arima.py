@@ -127,9 +127,10 @@ def test_arima(data):
         test_data2d = test_data2d[0:-day_size * 3]
 
     # Data normalization
-    train_data_normalized2d, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
-                                                                                [],
-                                                                                test_data2d)
+    scaler = data_scalling(train_data2d)
+
+    train_data_normalized2d = scaler.transform(train_data2d)
+    test_data_normalized2d = scaler.transform(test_data2d)
 
     tf = np.array([1.0, 0.0])
 

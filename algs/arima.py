@@ -1,5 +1,3 @@
-import pickle
-
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -39,60 +37,6 @@ def ims_tm_test_data(test_data):
         ims_test_set[i - Config.ARIMA_IMS_STEP + 1] = test_data[i]
 
     return ims_test_set
-
-
-def train_arima(data):
-    print('|--- Training ARIMA model')
-
-    alg_name = Config.ALG
-    tag = Config.TAG
-    data_name = Config.DATA_NAME
-
-    if 'Abilene' in data_name:
-        day_size = Config.ABILENE_DAY_SIZE
-    else:
-        day_size = Config.GEANT_DAY_SIZE
-
-    train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
-    if 'Abilene' in data_name:
-        print('|--- Remove last 3 days in test data.')
-        test_data2d = test_data2d[0:-day_size * 3]
-
-    # Data normalization
-    train_data_normalized2d, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
-                                                                                [],
-                                                                                test_data2d)
-
-    training_set_series = []
-    for flow_id in range(train_data_normalized2d.shape[1]):
-        flow_frame = pd.Series(train_data_normalized2d[:, flow_id])
-        training_set_series.append(flow_frame)
-
-    import os
-    if not os.path.exists(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
-                                                                    alg_name,
-                                                                    tag,
-                                                                    Config.SCALER)):
-        os.makedirs(Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(data_name,
-                                                              alg_name,
-                                                              tag,
-                                                              Config.SCALER))
-
-    for flow_id in tqdm(range(test_data_normalized2d.shape[1])):
-        training_set_series[flow_id].dropna(inplace=True)
-        flow_train = training_set_series[flow_id].values
-
-        history = [x for x in flow_train.astype(float)]
-
-        # Fit all historical data to auto_arima
-        model = build_auto_arima(history[-day_size * 30:])
-
-        saved_model = open(Config.MODEL_SAVE + '{}-{}-{}-{}/{}.model'.format(data_name,
-                                                                             alg_name,
-                                                                             tag,
-                                                                             Config.SCALER,
-                                                                             flow_id), 'wb')
-        pickle.dump(model, saved_model, 2)
 
 
 def prepare_test_set(test_data2d, test_data_normalized2d):
@@ -262,7 +206,7 @@ def test_arima(data):
 
         # Calculate error of ims
         if Config.ARIMA_IMS:
-            ims_tm_invert2d = scalers.inverse_transform(ims_pred_tm2d)
+            ims_tm_invert2d = scaler.inverse_transform(ims_pred_tm2d)
 
             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
                                        y_true=ims_test_data,

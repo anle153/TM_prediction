@@ -1,5 +1,4 @@
 import pickle
-import time
 
 import matplotlib
 import numpy as np
@@ -112,167 +111,14 @@ def prepare_test_set(test_data2d, test_data_normalized2d):
     return test_data_normalize, init_data_normalize, test_data
 
 
-# def test_arima(data):
-#     print('|--- Test ARIMA')
-#     if Config.DATA_NAME == Config.DATA_SETS[0]:
-#         day_size = Config.ABILENE_DAY_SIZE
-#     else:
-#         day_size = Config.GEANT_DAY_SIZE
-#
-#     train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
-#
-#     if Config.DATA_NAME == Config.DATA_SETS[0]:
-#         print('|--- Remove last 3 days in test_set.')
-#         test_data2d = test_data2d[0:-day_size * 3]
-#
-#     # Data normalization
-#     train_data_normalized2d, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
-#                                                                                 [],
-#                                                                                 test_data2d)
-#
-#     tf = np.array([1.0, 0.0])
-#
-#     results_summary = pd.DataFrame(index=range(Config.ARIMA_TESTING_TIME),
-#                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
-#                                             'rmse_ims'])
-#
-#     err, r2_score, rmse = [], [], []
-#     err_ims, r2_score_ims, rmse_ims = [], [], []
-#
-#     import os
-#     if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-#                                                                       Config.ALG, Config.TAG, Config.SCALER)):
-#         os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-#                                                                 Config.ALG, Config.TAG, Config.SCALER))
-#
-#     for running_time in range(Config.ARIMA_TESTING_TIME):
-#         print('|--- Run time: {}'.format(running_time))
-#
-#         # Randomly create 2 days data from test_set
-#         test_data_normalize, init_data_normalize, test_data = prepare_test_set(test_data2d, test_data_normalized2d)
-#
-#         ims_test_data = ims_tm_test_data(test_data=test_data)
-#         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
-#
-#         pred_tm2d = np.zeros(shape=test_data_normalize.shape)
-#         ims_pred_tm2d = np.zeros(
-#             (test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP + 1, test_data_normalize.shape[1]))
-#
-#         measured_matrix2d = np.random.choice(tf,
-#                                              size=test_data_normalize.shape,
-#                                              p=[Config.ARIMA_MON_RATIO, 1 - Config.ARIMA_MON_RATIO])
-#
-#         init_data_set_series = []
-#         for flow_id in range(init_data_normalize.shape[1]):
-#             flow_frame = pd.Series(init_data_normalize[:, flow_id])
-#             init_data_set_series.append(flow_frame)
-#
-#         for flow_id in tqdm(range(test_data_normalize.shape[1])):
-#             init_data_set_series[flow_id].dropna(inplace=True)
-#             flow_train = init_data_set_series[flow_id].values
-#
-#             history = [x for x in flow_train.astype(float)]
-#
-#             predictions = np.zeros(shape=(test_data_normalize.shape[0]))
-#
-#             measured_flow = measured_matrix2d[:, flow_id]
-#
-#             flow_ims_pred = np.zeros(shape=(test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP + 1))
-#
-#             for ts in range(test_data_normalize.shape[0]):
-#
-#                 try:
-#                     model = build_auto_arima(history[-Config.ARIMA_STEP:])
-#                 except:
-#                     pass
-#
-#                 if Config.ARIMA_IMS:
-#                     output = model.predict(n_periods=Config.ARIMA_IMS_STEP)
-#                     if ts <= (test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP):
-#                         flow_ims_pred[ts] = output[-1]
-#
-#                 else:
-#                     output = model.predict(n_periods=1)
-#
-#                 yhat = output[0]
-#                 obs = test_data_normalize[ts, flow_id]
-#
-#                 if np.any(np.isinf(yhat)):
-#                     yhat = np.max(train_data_normalized2d)
-#                     pass
-#                 elif np.any(np.isnan(yhat)):
-#                     yhat = np.min(train_data_normalized2d)
-#
-#                 # Partial monitoring
-#                 if measured_flow[ts]:
-#                     history.append(obs)
-#                     predictions[ts] = obs
-#                 else:
-#                     history.append(yhat)
-#                     predictions[ts] = yhat
-#
-#             pred_tm2d[:, flow_id] = predictions
-#
-#             if Config.ARIMA_IMS:
-#                 ims_pred_tm2d[:, flow_id] = flow_ims_pred
-#
-#         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-#
-#         # Calculate error
-#
-#         err.append(error_ratio(y_true=test_data,
-#                                y_pred=pred_tm_invert2d,
-#                                measured_matrix=measured_matrix2d))
-#         r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
-#         rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert2d))
-#
-#         # Calculate error of ims
-#         if Config.ARIMA_IMS:
-#             ims_tm_invert2d = scalers.inverse_transform(ims_pred_tm2d)
-#
-#
-#             err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-#                                        y_true=ims_test_data,
-#                                        measured_matrix=measured_matrix_ims))
-#             r2_score_ims.append(calculate_r2_score(y_true=ims_test_data, y_pred=ims_tm_invert2d))
-#             rmse_ims.append(calculate_rmse(y_true=ims_test_data, y_pred=ims_tm_invert2d))
-#         else:
-#             err_ims.append(0)
-#             r2_score_ims.append(0)
-#             rmse_ims.append(0)
-#
-#         print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-#         print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time],
-#                                                           rmse[running_time], r2_score[running_time],
-#                                                           err_ims[running_time],
-#                                                           rmse_ims[running_time], r2_score_ims[running_time]))
-#
-#     results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
-#     results_summary['err'] = err
-#     results_summary['r2'] = r2_score
-#     results_summary['rmse'] = rmse
-#     results_summary['err_ims'] = err_ims
-#     results_summary['r2_ims'] = r2_score_ims
-#     results_summary['rmse_ims'] = rmse_ims
-#
-#     results_summary.to_csv(Config.RESULTS_PATH +
-#                            '{}-{}-{}-{}/Test_results_random.csv'.format(Config.DATA_NAME,
-#                                                                         Config.ALG, Config.TAG, Config.SCALER),
-#                            index=False)
-#
-#     print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
-#
-#     print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-#                                                            np.mean(np.array(rmse)),
-#                                                            np.mean(np.array(r2_score))))
-
-
-def test_arima_2(data):
+def test_arima(data):
     print('|--- Test ARIMA')
     if Config.DATA_NAME == Config.DATA_SETS[0]:
         day_size = Config.ABILENE_DAY_SIZE
     else:
         day_size = Config.GEANT_DAY_SIZE
+
+    data[data <= 0] = 0.1
 
     train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
 
@@ -290,7 +136,6 @@ def test_arima_2(data):
     results_summary = pd.DataFrame(index=range(Config.ARIMA_TESTING_TIME),
                                    columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
                                             'rmse_ims'])
-
 
     err, r2_score, rmse = [], [], []
     err_ims, r2_score_ims, rmse_ims = [], [], []
@@ -318,6 +163,8 @@ def test_arima_2(data):
                                              size=test_data_normalize.shape,
                                              p=[Config.ARIMA_MON_RATIO, 1 - Config.ARIMA_MON_RATIO])
 
+        predicted_tm2d = np.zeros(shape=test_data_normalize.shape)
+
         init_data_set_series = []
         history = []
         for flow_id in range(init_data_normalize.shape[1]):
@@ -335,6 +182,7 @@ def test_arima_2(data):
         for ts in tqdm(range(test_data_normalize.shape[0])):
 
             predictions = np.zeros(shape=(test_data_normalize.shape[1]))
+            predicted_traffic = np.zeros(shape=(test_data_normalize.shape[1]))
 
             measured_flow = measured_matrix2d[ts]
 
@@ -372,7 +220,6 @@ def test_arima_2(data):
 
                 if np.any(np.isinf(yhat)):
                     yhat = np.max(train_data_normalized2d)
-                    pass
                 elif np.any(np.isnan(yhat)):
                     yhat = np.min(train_data_normalized2d)
 
@@ -384,8 +231,10 @@ def test_arima_2(data):
                     history[flow_id].append(yhat)
                     predictions[flow_id] = yhat
 
-            pred_tm2d[ts, :] = predictions
+                predicted_traffic = yhat
 
+            pred_tm2d[ts, :] = predictions
+            predicted_tm2d[ts, :] = predicted_traffic
             # stop_time = time.time()
             # pred_times.append(stop_time - start_time)
 
@@ -393,8 +242,13 @@ def test_arima_2(data):
                 ims_pred_tm2d[ts] = predictions_ims
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
+        predicted_tm_invert2d = scalers.inverse_transform(predicted_tm2d)
 
         # Calculate error
+
+        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
+                                                              "Predicted_tm_{}".format(running_time)),
+                predicted_tm_invert2d)
 
         err.append(error_ratio(y_true=test_data,
                                y_pred=pred_tm_invert2d,

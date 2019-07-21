@@ -249,6 +249,9 @@ def test_arima(data):
         np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
                                                               "Predicted_tm_{}".format(running_time)),
                 predicted_tm_invert2d)
+        np.save(Config.RESULTS_PATH + '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
+                                                              "M_indicator_{}".format(running_time)),
+                measured_matrix2d)
 
         err.append(error_ratio(y_true=test_data,
                                y_pred=pred_tm_invert2d,

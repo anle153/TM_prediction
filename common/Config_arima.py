@@ -2,9 +2,9 @@
 ARIMA_UPDATE = 7
 ARIMA_TESTING_TIME = 1
 ARIMA_MON_RATIO = 0.40
-ARIMA_STEP = 288
+ARIMA_STEP = 36
 ARIMA_IMS_STEP = 3
-ARIMA_IMS = True
+ARIMA_IMS = False
 ARIMA_TEST_DAYS = 5
 # ----------------------------------------------
 

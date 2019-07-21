@@ -242,8 +242,8 @@ def test_arima(data):
             if Config.ARIMA_IMS and (ts <= test_data_normalize.shape[0] - Config.ARIMA_IMS_STEP):
                 ims_pred_tm2d[ts] = predictions_ims
 
-        pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
-        predicted_tm_invert2d = scalers.inverse_transform(predicted_tm2d)
+        pred_tm_invert2d = scaler.inverse_transform(pred_tm2d)
+        predicted_tm_invert2d = scaler.inverse_transform(predicted_tm2d)
 
         # Calculate error
 

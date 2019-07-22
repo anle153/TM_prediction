@@ -2,9 +2,11 @@ from multiprocessing import Process, Pipe, cpu_count
 
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import PowerTransformer
 
 from FlowClassification.SpatialClustering import *
+from common.error_utils import calculate_mape
 
 
 def prepare_train_test_3d(data, day_size):
@@ -632,3 +634,18 @@ def data_scalling(train_data2d):
     # test_data_normalized2d = scaler.transform(test_data2d)
 
     return scaler
+
+
+def results_processing(tm_true, tm_pred):
+    """
+
+    :param tm_true:
+    :param tm_pred:
+    :return:
+    """
+
+    mape = calculate_mape(y_true=tm_true, y_pred=tm_pred)
+    mse = mean_squared_error(y_true=tm_true, y_pred=tm_pred)
+    r2 = r2_score(y_true=tm_true, y_pred=tm_pred)
+
+    return mape, mse, r2

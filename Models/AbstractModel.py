@@ -1,11 +1,11 @@
 import fnmatch
 import os
+import time
 
+import keras.callbacks as keras_callbacks
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import model_from_json
-import keras.callbacks as keras_callbacks
-import time
 
 
 def plot_training_history(alg_name, tag, saving_path, model_history):
@@ -33,7 +33,6 @@ class AbstractModel(object):
         self.callbacks_list = []
 
         self.checkpoints_path = self.saving_path + 'checkpoints/'
-
 
         if check_point:
             if not os.path.isdir(self.checkpoints_path):

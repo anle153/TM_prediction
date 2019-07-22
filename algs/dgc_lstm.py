@@ -105,6 +105,9 @@ def train_dgc_lstm():
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE)) as f:
         config = yaml.load(f)
 
+    if not os.path.isfile(os.path.join(config['data']['graph_pkl_filename'], "{}.npz".format('Corr_matrix'))):
+        generate_data(config)
+
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 

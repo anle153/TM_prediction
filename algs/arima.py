@@ -5,7 +5,7 @@ from pmdarima.arima import auto_arima
 from tqdm import tqdm
 
 from common import Config_arima as Config
-from common.DataPreprocessing import data_scalling, prepare_train_test_2d, results_processing
+from common.DataPreprocessing import data_scalling, prepare_train_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 matplotlib.use('Agg')
@@ -271,26 +271,3 @@ def test_arima(data):
     print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
                                                            np.mean(np.array(rmse)),
                                                            np.mean(np.array(r2_score))))
-
-    predicted_error = pd.DataFrame(index=range(Config.ARIMA_TESTING_TIME),
-                                   columns=['No.', 'mape', 'mse', 'r2'])
-
-    rets = []
-    for i in range(Config.ARIMA_TESTING_TIME):
-        test_data_normalize, init_data_normalize, test_data = prepare_test_set_last_5days(test_data2d,
-                                                                                          test_data_normalized2d)
-
-        predicted_tm = np.load(Config.RESULTS_PATH + '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG,
-                                                                             Config.TAG, Config.SCALER,
-                                                                             "Predicted_tm_{}".format(i)))
-        rets.append(results_processing(tm_pred=predicted_tm, tm_true=test_data))
-
-    rets = np.asarray(rets)
-    predicted_error['No'] = range(Config.ARIMA_TESTING_TIME)
-    predicted_error['mape'] = rets[:, 0]
-    predicted_error['mse'] = rets[:, 1]
-    predicted_error['r2'] = rets[:, 2]
-
-    predicted_error.to_csv(Config.RESULTS_PATH + '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG,
-                                                                         Config.TAG, Config.SCALER,
-                                                                         "Predicted_error.csv"))

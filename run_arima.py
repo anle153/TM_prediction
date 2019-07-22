@@ -1,7 +1,7 @@
 import numpy as np
 
-from algs.arima import test_arima
 from common import Config_arima as Config
+from common.DataPreprocessing import results_processing
 
 
 def print_arima_info():
@@ -34,4 +34,8 @@ def print_arima_info():
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_arima_info()
-    test_arima(data)
+    # test_arima(data)
+
+    results_path = Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
+                                                               Config.ALG, Config.TAG, Config.SCALER)
+    results_processing(data, Config.ARIMA_TESTING_TIME, results_path)

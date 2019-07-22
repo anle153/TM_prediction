@@ -636,16 +636,25 @@ def data_scalling(train_data2d):
     return scaler
 
 
-def results_processing(tm_true, tm_pred):
-    """
+def results_processing(tm_true, run_times, path):
+    predicted_error = pd.DataFrame(index=range(run_times),
+                                   columns=['No.', 'mape', 'mse', 'r2'])
+    rets = []
 
-    :param tm_true:
-    :param tm_pred:
-    :return:
-    """
+    for i in range(run_times):
+        tm_pred = np.load(path + 'Predicted_tm_{}.npy'.format(i))
+        mape = calculate_mape(y_true=tm_true, y_pred=tm_pred)
+        mse = mean_squared_error(y_true=tm_true, y_pred=tm_pred)
+        r2 = r2_score(y_true=tm_true, y_pred=tm_pred)
 
-    mape = calculate_mape(y_true=tm_true, y_pred=tm_pred)
-    mse = mean_squared_error(y_true=tm_true, y_pred=tm_pred)
-    r2 = r2_score(y_true=tm_true, y_pred=tm_pred)
+        rets.append([mape, mse, r2])
 
-    return mape, mse, r2
+    rets = np.asarray(rets)
+    predicted_error['No'] = range(run_times)
+    predicted_error['mape'] = rets[:, 0]
+    predicted_error['mse'] = rets[:, 1]
+    predicted_error['r2'] = rets[:, 2]
+
+    predicted_error.to_csv(path + 'Predicted_error.csv')
+
+    return

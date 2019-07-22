@@ -6,7 +6,7 @@ import yaml
 from sklearn.preprocessing import PowerTransformer
 from tqdm import tqdm
 
-from Models.dcrnn_supervisor import DCRNNSupervisor
+from Models.dcrnn_supervisor import DCRNNRegressor
 from common.DataPreprocessing import prepare_train_valid_test_2d
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
@@ -18,6 +18,30 @@ GEANT_DAY_SIZE = 288
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
 CONFIG_FILE = 'config_dgclstm.yaml'
 RESULTS_PATH = os.path.join(HOME_PATH, 'results')
+
+
+def create_data(data, step_in, step_out, input_dim, mon_ratio, eps):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    x = np.zeros(shape=(data.shape[0] - step_in - step_out, step_in, data.shape[1], input_dim))
+    y = np.zeros(shape=(data.shape[0] - step_in - step_out, step_out, data.shape[1], 1))
+
+    for idx in range(_data.shape[0] - step_in - step_out):
+        _x = _data[idx: (idx + step_in)]
+        _label = _labels[idx: (idx + step_in)]
+
+        x[idx, :, 0] = _x
+        x[idx, :, 1] = _label
+
+        _y = _data[idx + step_in:idx + step_in + step_out]
+
+        y[idx] = np.expand_dims(_y, axis=2)
+
+    return x, y
 
 
 def get_corr_matrix(data, step):
@@ -40,7 +64,10 @@ def generate_data(config):
     else:
         day_size = config['geant_day_size']
 
-    step = config['step']
+    step_in = config['step_in']
+    step_out = config['step_out']
+
+    mon_ratio = config['mon_ratio']
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
@@ -51,9 +78,12 @@ def generate_data(config):
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
 
-    x_train, y_train = create_data(train_data2d_norm)
-    x_val, y_val = create_data(valid_data2d_norm)
-    x_test, y_test = create_data(test_data2d_norm)
+    x_train, y_train = create_data(train_data2d_norm, step_in=step_in, step_out=step_out, input_dim=2,
+                                   mon_ratio=mon_ratio, eps=train_data2d_norm.mean)
+    x_val, y_val = create_data(valid_data2d_norm, step_in=step_in, step_out=step_out, input_dim=2,
+                               mon_ratio=mon_ratio, eps=train_data2d_norm.mean)
+    x_test, y_test = create_data(test_data2d_norm, step_in=step_in, step_out=step_out, input_dim=2,
+                                 mon_ratio=mon_ratio, eps=train_data2d_norm.mean)
 
     for cat in ["train", "val", "test"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
@@ -64,7 +94,7 @@ def generate_data(config):
             y=_y,
         )
 
-    adj_mx = get_corr_matrix(train_data2d, step)
+    adj_mx = get_corr_matrix(train_data2d, step_in)
     np.save(os.path.join(config['data']['adj_mx_path'], "{}.npz".format('Corr_matrix')),
             adj_mx)
 
@@ -81,7 +111,7 @@ def train_dgc_lstm():
     adj_mx = np.load(os.path.join(config['data']['adj_mx_path'], "{}.npz".format('Corr_matrix')))
 
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
+        model = DCRNNRegressor(adj_mx=adj_mx, **config)
         model.train(sess)
 
 
@@ -97,7 +127,7 @@ def test_dgc_lstm():
     adj_mx = np.load(os.path.join(config['data']['adj_mx_path'], "{}.npz".format('Corr_matrix')))
 
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
+        model = DCRNNRegressor(adj_mx=adj_mx, **config)
         model.load(sess, config['train']['model_filename'])
         outputs = model.evaluate(sess)
         np.savez_compressed(os.path.join(config['test']['results_path'],

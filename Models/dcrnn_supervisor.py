@@ -16,11 +16,7 @@ from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mae_loss
 
 
-class DCRNNSupervisor(object):
-    """
-    Do experiments using Graph Random Walk RNN model.
-    """
-
+class DCRNNAbstract(object):
     def __init__(self, adj_mx, **kwargs):
 
         self._kwargs = kwargs
@@ -41,6 +37,54 @@ class DCRNNSupervisor(object):
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
 
+    @staticmethod
+    def _get_log_dir(kwargs):
+        log_dir = kwargs['train'].get('log_dir')
+        if log_dir is None:
+            batch_size = kwargs['data'].get('batch_size')
+            learning_rate = kwargs['train'].get('base_lr')
+            max_diffusion_step = kwargs['model'].get('max_diffusion_step')
+            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
+            rnn_units = kwargs['model'].get('rnn_units')
+            structure = '-'.join(
+                ['%d' % rnn_units for _ in range(num_rnn_layers)])
+            horizon = kwargs['model'].get('horizon')
+            filter_type = kwargs['model'].get('filter_type')
+            filter_type_abbr = 'L'
+            if filter_type == 'random_walk':
+                filter_type_abbr = 'R'
+            elif filter_type == 'dual_random_walk':
+                filter_type_abbr = 'DR'
+            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
+                filter_type_abbr, max_diffusion_step, horizon,
+                structure, learning_rate, batch_size,
+                time.strftime('%m%d%H%M%S'))
+            base_dir = kwargs.get('base_dir')
+            log_dir = os.path.join(base_dir, run_id)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        return log_dir
+
+    def load(self, sess, model_filename):
+        """
+        Restore from saved model.
+        :param sess:
+        :param model_filename:
+        :return:
+        """
+        pass
+
+    def save(self, sess, val_loss):
+        pass
+
+
+class DCRNNRegressor(DCRNNAbstract):
+    """
+    Do experiments using Graph Random Walk RNN model.
+    """
+
+    def __init__(self, adj_mx, **kwargs):
+        super().__init__(adj_mx, **kwargs)
         # Build models.
         scaler = self._data['scaler']
         with tf.name_scope('Train'):
@@ -96,34 +140,6 @@ class DCRNNSupervisor(object):
         for var in tf.global_variables():
             self._logger.debug('{}, {}'.format(var.name, var.get_shape()))
 
-    @staticmethod
-    def _get_log_dir(kwargs):
-        log_dir = kwargs['train'].get('log_dir')
-        if log_dir is None:
-            batch_size = kwargs['data'].get('batch_size')
-            learning_rate = kwargs['train'].get('base_lr')
-            max_diffusion_step = kwargs['model'].get('max_diffusion_step')
-            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
-            rnn_units = kwargs['model'].get('rnn_units')
-            structure = '-'.join(
-                ['%d' % rnn_units for _ in range(num_rnn_layers)])
-            horizon = kwargs['model'].get('horizon')
-            filter_type = kwargs['model'].get('filter_type')
-            filter_type_abbr = 'L'
-            if filter_type == 'random_walk':
-                filter_type_abbr = 'R'
-            elif filter_type == 'dual_random_walk':
-                filter_type_abbr = 'DR'
-            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
-                filter_type_abbr, max_diffusion_step, horizon,
-                structure, learning_rate, batch_size,
-                time.strftime('%m%d%H%M%S'))
-            base_dir = kwargs.get('base_dir')
-            log_dir = os.path.join(base_dir, run_id)
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        return log_dir
-
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
         maes = []
@@ -174,7 +190,7 @@ class DCRNNSupervisor(object):
         return results
 
     def get_lr(self, sess):
-        return np.asscalar(sess.run(self._lr))
+        return sess.run(self._lr).item()
 
     def set_lr(self, sess, lr):
         sess.run(self._lr_update, feed_dict={
@@ -222,7 +238,7 @@ class DCRNNSupervisor(object):
             val_results = self.run_epoch_generator(sess, self._test_model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
-            val_loss, val_mae = np.asscalar(val_results['loss']), np.asscalar(val_results['mae'])
+            val_loss, val_mae = val_results['loss'].item(), val_results['mae'].item()
 
             utils.add_simple_summary(self._writer,
                                      ['loss/train_loss', 'metric/train_mae', 'loss/val_loss', 'metric/val_mae'],
@@ -305,7 +321,7 @@ class DCRNNSupervisor(object):
 
     def save(self, sess, val_loss):
         config = dict(self._kwargs)
-        global_step = np.asscalar(sess.run(tf.train.get_or_create_global_step()))
+        global_step = sess.run(tf.train.get_or_create_global_step()).item()
         prefix = os.path.join(self._log_dir, 'models-{:.4f}'.format(val_loss))
         config['train']['epoch'] = self._epoch
         config['train']['global_step'] = global_step
@@ -316,3 +332,4 @@ class DCRNNSupervisor(object):
         with open(os.path.join(self._log_dir, config_filename), 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
         return config['train']['model_filename']
+

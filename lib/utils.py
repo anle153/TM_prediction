@@ -191,6 +191,20 @@ def load_dataset(dataset_dir, batch_size, test_batch_size=None, **kwargs):
     data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
     data['scaler'] = scaler
 
+    print("|--- Check data")
+    if np.any(np.isinf(data['x_train'])):
+        print("INF")
+    if np.any(np.isnan(data['y_train'])):
+        print("NAN")
+    if np.any(np.isinf(data['x_val'])):
+        print("INF")
+    if np.any(np.isnan(data['y_val'])):
+        print("NAN")
+    if np.any(np.isinf(data['x_test'])):
+        print("INF")
+    if np.any(np.isnan(data['y_test'])):
+        print("NAN")
+
     return data
 
 

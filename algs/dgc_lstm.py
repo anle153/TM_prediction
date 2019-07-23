@@ -60,7 +60,7 @@ def get_corr_matrix(data, seq_len):
 
 
 def generate_data(config):
-    data = np.load(config['data']['dataset_dir'])
+    data = np.load(config['data']['raw_dataset_dir'])
     data[data <= 0] = 0.1
 
     if config['data']['data_name'] == 'Abilene':
@@ -103,7 +103,7 @@ def generate_data(config):
         )
 
     adj_mx = get_corr_matrix(train_data2d, seq_len)
-    np.save(os.path.join(config['data']['graph_pkl_filename'], ".npy"),
+    np.save(config['data']['graph_pkl_filename'],
             adj_mx)
 
 
@@ -116,7 +116,7 @@ def train_dgc_lstm(config):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 
-    adj_mx = np.load(os.path.join(config['data']['graph_pkl_filename'], "{}.npz".format('Corr_matrix')))
+    adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')
 
     with tf.Session(config=tf_config) as sess:
         model = DCRNNRegressor(adj_mx=adj_mx, **config)

@@ -121,10 +121,10 @@ def train_dgc_lstm(config):
 
     adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')
     adj_mx = adj_mx.astype('float32')
+    with tf.device('/device:GPU:1'):
+        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
     with tf.Session(config=tf_config) as sess:
-        with tf.device('/device:GPU:1'):
-            model = DCRNNSupervisor(adj_mx=adj_mx, **config)
-            model.train(sess)
+        model.train(sess)
 
 
 def test_dgc_lstm():

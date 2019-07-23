@@ -116,7 +116,7 @@ def train_dgc_lstm(config):
     if config['data']['generate_data']:
         generate_data(config)
 
-    tf_config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+    tf_config = tf.ConfigProto(allow_soft_placement=True)
     tf_config.gpu_options.allow_growth = True
 
     adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')

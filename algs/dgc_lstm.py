@@ -99,11 +99,8 @@ def generate_data(config):
             adj_mx)
 
 
-def train_dgc_lstm():
+def train_dgc_lstm(config):
     print('|-- Run model training dgc_lstm.')
-
-    with open(os.path.join(CONFIG_PATH, CONFIG_FILE)) as f:
-        config = yaml.load(f)
 
     if not os.path.isfile(os.path.join(config['data']['graph_pkl_filename'], "{}.npz".format('Corr_matrix'))):
         generate_data(config)

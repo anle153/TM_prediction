@@ -1,30 +1,38 @@
-import numpy as np
+import os
 
-from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm, generate_data
-from common.DataPreprocessing import results_processing, prepare_train_test_2d, data_scalling
+import yaml
+
+from algs.dgc_lstm import train_dgc_lstm
+
+HOME_PATH = os.path.expanduser('~/TM_prediction')
+CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
+CONFIG_FILE = 'config_dgclstm.yaml'
 
 
-def print_dgc_lstm_info():
+def print_dgc_lstm_info(config):
     print('----------------------- INFO -----------------------')
-    if not Config.ALL_DATA:
-        print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
-    else:
-        print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
-    print('|--- MODE:\t{}'.format(Config.RUN_MODE))
-    print('|--- ALG:\t{}'.format(Config.ALG))
-    print('|--- TAG:\t{}'.format(Config.TAG))
-    print('|--- DATA:\t{}'.format(Config.DATA_NAME))
-    print('|--- GPU:\t{}'.format(Config.GPU))
 
-    print('|--- MON_RATIO:\t{}'.format(Config.ARIMA_MON_RATIO))
+    print('|--- ALG:\t{}'.format('dgc_lstm'))
+    print('|--- DATA:\t{}'.format(config['data']['data_name']))
+    print('|--- GPU:\t{}'.format(config['gpu']))
+
+    print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
+    print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
+
+    print('----------------------- MODEL -----------------------')
+    print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))
+    print('|--- HORIZON:\t{}'.format(config['model']['horizon']))
+    print('|--- INPUT_DIM:\t{}'.format(config['model']['input_dim']))
+    print('|--- NUM_NODES:\t{}'.format(config['model']['num_nodes']))
+    print('|--- NUM_RNN_LAYERS:\t{}'.format(config['model']['num_rnn_layers']))
+    print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
+    print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
+
+    print('----------------------- TRAIN -----------------------')
+    print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
+
     print('            -----------            ')
 
-    if Config.ARIMA_IMS:
-        print('|--- IMS_STEP:\t{}'.format(Config.ARIMA_IMS_STEP))
-    if Config.RUN_MODE == Config.RUN_MODES[1]:
-        print('|--- TESTING_TIME:\t{}'.format(Config.ARIMA_TESTING_TIME))
-    else:
-        raise Exception('Unknown RUN_MODE!')
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
     if infor_correct != 'y' and infor_correct != 'yes':
@@ -59,6 +67,9 @@ def print_dgc_lstm_info():
 
 
 if __name__ == '__main__':
-    print_dgc_lstm_info()
-    test_arima(data)
+    with open(os.path.join(CONFIG_PATH, CONFIG_FILE)) as f:
+        config = yaml.load(f)
+
+    print_dgc_lstm_info(config)
+    train_dgc_lstm()
     # get_results(data)

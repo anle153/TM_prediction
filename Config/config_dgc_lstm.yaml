@@ -1,5 +1,7 @@
 base_dir: data/model
 log_level: INFO
+gpu: 0
+mon_ratio: 0.3
 data:
   batch_size: 64
   dataset_dir: Dataset/
@@ -41,6 +43,5 @@ train:
   - 40
   - 50
   test_every_n_epochs: 10
-  mon_ratio: 0.3
   results_path: results/
   results_name: Abilene-dgc-lstm

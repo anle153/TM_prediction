@@ -121,9 +121,10 @@ def train_dgc_lstm(config):
 
     adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')
     adj_mx = adj_mx.astype('float32')
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
-        model.train(sess)
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        with tf.Session(config=tf_config) as sess:
+            model = DCRNNSupervisor(adj_mx=adj_mx, **config)
+            model.train(sess)
 
 
 def test_dgc_lstm():
@@ -136,14 +137,14 @@ def test_dgc_lstm():
     tf_config.gpu_options.allow_growth = True
 
     adj_mx = np.load(os.path.join(config['data']['graph_pkl_filename'], ".npz"))
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        with tf.Session(config=tf_config) as sess:
+            model = DCRNNSupervisor(adj_mx=adj_mx, **config)
+            model.load(sess, config['train']['model_filename'])
+            outputs = model.evaluate(sess)
+            np.savez_compressed(os.path.join(config['test']['results_path'],
+                                             config['test']['results_name']),
+                                **outputs)
 
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
-        model.load(sess, config['train']['model_filename'])
-        outputs = model.evaluate(sess)
-        np.savez_compressed(os.path.join(config['test']['results_path'],
-                                         config['test']['results_name']),
-                            **outputs)
-
-        print('Predictions saved as {}.'.format(os.path.join(config['test']['results_path'],
-                                                             config['test']['results_name'] + '.npz')))
+            print('Predictions saved as {}.'.format(os.path.join(config['test']['results_path'],
+                                                                 config['test']['results_name'] + '.npz')))

@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import yaml
 from tqdm import tqdm
@@ -33,8 +34,8 @@ def create_data(data, seq_len, horizon, input_dim, mon_ratio, eps):
         _x = _data[idx: (idx + seq_len)]
         _label = _labels[idx: (idx + seq_len)]
 
-        x[idx, :, 0] = _x
-        x[idx, :, 1] = _label
+        x[idx, :, :, 0] = _x
+        x[idx, :, :, 1] = _label
 
         _y = _data[idx + seq_len:idx + seq_len + horizon]
 
@@ -43,11 +44,15 @@ def create_data(data, seq_len, horizon, input_dim, mon_ratio, eps):
     return x, y
 
 
-def get_corr_matrix(data, step):
-    corr_matrices = np.ones(shape=(data.shape[0] - step + 1, data.shape[1], data.shape[1]))
+def get_corr_matrix(data, seq_len):
+    corr_matrices = np.zeros(shape=(data.shape[0] - seq_len, data.shape[1], data.shape[1]))
 
-    for i in tqdm(range(data.shape[0] - step + 1)):
-        corr_matrices[i] = np.corrcoef(data[i:i + step])
+    for i in tqdm(range(data.shape[0] - seq_len)):
+        data_corr = data[i:i + seq_len]
+        data_hm = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
+                               columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
+
+        corr_matrices[i] = data_hm.corr()
 
     corr_matrix = np.mean(corr_matrices, axis=0)
 
@@ -55,19 +60,19 @@ def get_corr_matrix(data, step):
 
 
 def generate_data(config):
-    data = np.load(config['data']['data_path'])
+    data = np.load(config['data']['dataset_dir'])
     data[data <= 0] = 0.1
 
     if config['data']['data_name'] == 'Abilene':
-        day_size = config['abilene_day_size']
+        day_size = config['data']['Abilene_day_size']
     else:
-        day_size = config['geant_day_size']
+        day_size = config['data']['Geant_day_size']
 
     seq_len = config['model']['seq_len']
     horizon = config['model']['horizon']
     input_dim = config['model']['input_dim']
 
-    mon_ratio = config['train']['mon_ratio']
+    mon_ratio = config['mon_ratio']
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
@@ -79,11 +84,14 @@ def generate_data(config):
     # test_data2d_norm = scaler.transform(test_data2d)
 
     x_train, y_train = create_data(train_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                   mon_ratio=mon_ratio, eps=train_data2d.mean)
+                                   mon_ratio=mon_ratio, eps=train_data2d.mean())
     x_val, y_val = create_data(valid_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                               mon_ratio=mon_ratio, eps=train_data2d.mean)
+                               mon_ratio=mon_ratio, eps=train_data2d.mean())
     x_test, y_test = create_data(test_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                 mon_ratio=mon_ratio, eps=train_data2d.mean)
+                                 mon_ratio=mon_ratio, eps=train_data2d.mean())
+
+    if not os.path.exists(config['data']['norm_data_path']):
+        os.makedirs(config['data']['norm_data_path'])
 
     for cat in ["train", "val", "test"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
@@ -95,7 +103,7 @@ def generate_data(config):
         )
 
     adj_mx = get_corr_matrix(train_data2d, seq_len)
-    np.save(os.path.join(config['data']['adj_mx_path'], "{}.npz".format('Corr_matrix')),
+    np.save(os.path.join(config['data']['graph_pkl_filename'], ".npy"),
             adj_mx)
 
 

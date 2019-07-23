@@ -6,7 +6,7 @@ from algs.dgc_lstm import train_dgc_lstm
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
-CONFIG_FILE = 'config_dgclstm.yaml'
+CONFIG_FILE = 'config_dgc_lstm.yaml'
 
 
 def print_dgc_lstm_info(config):
@@ -31,7 +31,6 @@ def print_dgc_lstm_info(config):
     print('----------------------- TRAIN -----------------------')
     print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
 
-    print('            -----------            ')
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
@@ -71,5 +70,5 @@ if __name__ == '__main__':
         config = yaml.load(f)
 
     print_dgc_lstm_info(config)
-    train_dgc_lstm()
+    train_dgc_lstm(config)
     # get_results(data)

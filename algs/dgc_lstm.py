@@ -102,15 +102,16 @@ def generate_data(config):
             y=_y,
         )
 
-    adj_mx = get_corr_matrix(train_data2d, seq_len)
-    np.save(config['data']['graph_pkl_filename'],
-            adj_mx)
+    if not os.path.isfile(config['data']['graph_pkl_filename'] + '.npy'):
+        adj_mx = get_corr_matrix(train_data2d, seq_len)
+        np.save(config['data']['graph_pkl_filename'],
+                adj_mx)
 
 
 def train_dgc_lstm(config):
     print('|-- Run model training dgc_lstm.')
 
-    if not os.path.isfile(os.path.join(config['data']['graph_pkl_filename'], "{}.npz".format('Corr_matrix'))):
+    if config['data']['generate_data']:
         generate_data(config)
 
     tf_config = tf.ConfigProto()

@@ -63,6 +63,8 @@ def generate_data(config):
     data = np.load(config['data']['raw_dataset_dir'])
     data[data <= 0] = 0.1
 
+    data.astype("float64")
+
     if config['data']['data_name'] == 'Abilene':
         day_size = config['data']['Abilene_day_size']
     else:

@@ -79,4 +79,4 @@ y_train_norm = (y_train - mean_train) / std_train
 if np.any(np.isinf(x_train_norm)):
     print("INF")
 if np.any(np.isnan(x_train_norm)):
-    print("INF")
+    print("NAN")

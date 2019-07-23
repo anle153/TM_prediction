@@ -116,14 +116,13 @@ def train_dgc_lstm(config):
     if config['data']['generate_data']:
         generate_data(config)
 
-    tf_config = tf.ConfigProto()
+    tf_config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)
     tf_config.gpu_options.allow_growth = True
 
     adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')
     adj_mx = adj_mx.astype('float32')
-    with tf.device('GPU:1'):
-        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
     with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
         model.train(sess)
 
 

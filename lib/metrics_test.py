@@ -194,6 +194,5 @@ class TFRMSETestCase(unittest.TestCase):
             rmse = metrics.masked_mse_tf(preds=preds, labels=labels, null_val=0)
             self.assertAlmostEqual(0., sess.run(rmse), delta=1e-5)
 
-
 if __name__ == '__main__':
     unittest.main()

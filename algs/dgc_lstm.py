@@ -6,7 +6,7 @@ import tensorflow as tf
 import yaml
 from tqdm import tqdm
 
-from Models.dcrnn_supervisor import DCRNNRegressor
+from Models.dcrnn_supervisor import DCRNNSupervisor
 from common.DataPreprocessing import prepare_train_valid_test_2d
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
@@ -63,7 +63,7 @@ def generate_data(config):
     data = np.load(config['data']['raw_dataset_dir'])
     data[data <= 0] = 0.1
 
-    data.astype("float64")
+    data = data.astype("float32")
 
     if config['data']['data_name'] == 'Abilene':
         day_size = config['data']['Abilene_day_size']
@@ -120,9 +120,9 @@ def train_dgc_lstm(config):
     tf_config.gpu_options.allow_growth = True
 
     adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')
-
+    adj_mx = adj_mx.astype('float32')
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNRegressor(adj_mx=adj_mx, **config)
+        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
         model.train(sess)
 
 
@@ -135,10 +135,10 @@ def test_dgc_lstm():
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 
-    adj_mx = np.load(os.path.join(config['data']['graph_pkl_filename'], "{}.npz".format('Corr_matrix')))
+    adj_mx = np.load(os.path.join(config['data']['graph_pkl_filename'], ".npz"))
 
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNRegressor(adj_mx=adj_mx, **config)
+        model = DCRNNSupervisor(adj_mx=adj_mx, **config)
         model.load(sess, config['train']['model_filename'])
         outputs = model.evaluate(sess)
         np.savez_compressed(os.path.join(config['test']['results_path'],

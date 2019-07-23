@@ -1,3 +1,4 @@
+---
 base_dir: data/model
 log_level: INFO
 gpu: 0
@@ -18,7 +19,7 @@ model:
   horizon: 3
   input_dim: 2
   l1_decay: 0
-  max_diffusion_step: 3
+  max_diffusion_step: 2
   num_nodes: 144
   num_rnn_layers: 2
   output_dim: 1
@@ -37,14 +38,13 @@ train:
   max_grad_norm: 5
   max_to_keep: 100
   min_learning_rate: 2.0e-06
-  model_filename: train_model/pretrained/Abilene/
   optimizer: adam
   patience: 50
   steps:
-  - 20
-  - 30
-  - 40
-  - 50
+    - 20
+    - 30
+    - 40
+    - 50
   test_every_n_epochs: 10
   results_path: results/
   results_name: Abilene-dgc-lstm

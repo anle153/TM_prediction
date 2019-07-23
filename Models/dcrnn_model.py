@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import keras
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
@@ -45,8 +46,10 @@ class DCRNNModel(object):
                                          num_proj=output_dim, filter_type=filter_type)
         encoding_cells = [cell] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
-        encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
-        decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
+        # encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
+        # decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
+        encoding_cells = tf.keras.layers.StackedRNNCells(encoding_cells, state_is_tuple=True)
+        decoding_cells = tf.keras.layers.StackedRNNCells(decoding_cells, state_is_tuple=True)
 
         global_step = tf.train.get_or_create_global_step()
         # Outputs: (batch_size, timesteps, num_nodes, output_dim)
@@ -70,7 +73,8 @@ class DCRNNModel(object):
                     result = prev
                 return result
 
-            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float64)
+            # _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            _, enc_state = keras.layers.RNN(encoding_cells, inputs, dtype=tf.float32)
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 

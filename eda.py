@@ -48,11 +48,11 @@ if config['data']['data_name'] == 'Abilene':
 else:
     day_size = config['data']['Geant_day_size']
 
-seq_len = config['model']['seq_len']
-horizon = config['model']['horizon']
-input_dim = config['model']['input_dim']
+seq_len = int(config['model']['seq_len'])
+horizon = int(config['model']['horizon'])
+input_dim = int(config['model']['input_dim'])
 
-mon_ratio = config['mon_ratio']
+mon_ratio = float(config['mon_ratio'])
 
 print('|--- Splitting train-test set.')
 train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
@@ -138,12 +138,12 @@ def get_corr_matrix(data, seq_len):
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
         corr_mx = data_hm.corr()
-        print("|---- Corr MX")
-        print(corr_mx.shape)
-        print(corr_mx.max())
-        print(corr_mx.min())
-        print(corr_mx.mean())
-        print(corr_mx.std())
+        # print("|---- Corr MX")
+        # print(corr_mx.shape)
+        # print(corr_mx.max())
+        # print(corr_mx.min())
+        # print(corr_mx.mean())
+        # print(corr_mx.std())
 
         corr_matrices[i] = data_hm.corr()
 

@@ -144,6 +144,12 @@ def get_corr_matrix(data, seq_len):
 
         corr_matrices[i] = corr_mx
 
+    nan_idx = []
+    for i in range(corr_matrices.shape[0]):
+        if not np.any(np.isnan(corr_matrices[i])) and not np.any(np.isinf(corr_matrices[i])):
+            nan_idx.append(i)
+
+    corr_matrices = corr_matrices[i]
     corr_matrix = np.mean(corr_matrices, axis=0)
 
     return corr_matrix

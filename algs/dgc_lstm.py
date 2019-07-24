@@ -78,11 +78,11 @@ def generate_data(config):
     else:
         day_size = config['data']['Geant_day_size']
 
-    seq_len = config['model']['seq_len']
-    horizon = config['model']['horizon']
-    input_dim = config['model']['input_dim']
+    seq_len = int(config['model']['seq_len'])
+    horizon = int(config['model']['horizon'])
+    input_dim = int(config['model']['input_dim'])
 
-    mon_ratio = config['mon_ratio']
+    mon_ratio = float(config['mon_ratio'])
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)

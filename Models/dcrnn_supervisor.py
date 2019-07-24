@@ -175,7 +175,7 @@ class DCRNNSupervisor(object):
         return results
 
     def get_lr(self, sess):
-        return np.asscalar(sess.run(self._lr))
+        return sess.run(self._lr).item()
 
     def set_lr(self, sess, lr):
         sess.run(self._lr_update, feed_dict={
@@ -214,16 +214,16 @@ class DCRNNSupervisor(object):
                                                      training=True,
                                                      writer=self._writer)
             train_loss, train_mae = train_results['loss'], train_results['mae']
-            if train_loss > 1e5:
-                self._logger.warning('Gradient explosion detected. Ending...')
-                break
+            # if train_loss > 1e5:
+            #     self._logger.warning('Gradient explosion detected. Ending...')
+            #     break
 
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
             val_results = self.run_epoch_generator(sess, self._test_model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
-            val_loss, val_mae = np.asscalar(val_results['loss']), np.asscalar(val_results['mae'])
+            val_loss, val_mae = val_results['loss'].item(), val_results['mae'].item()
 
             utils.add_simple_summary(self._writer,
                                      ['loss/train_loss', 'metric/train_mae', 'loss/val_loss', 'metric/val_mae'],
@@ -306,7 +306,7 @@ class DCRNNSupervisor(object):
 
     def save(self, sess, val_loss):
         config = dict(self._kwargs)
-        global_step = np.asscalar(sess.run(tf.train.get_or_create_global_step()))
+        global_step = sess.run(tf.train.get_or_create_global_step()).item()
         prefix = os.path.join(self._log_dir, 'models-{:.4f}'.format(val_loss))
         config['train']['epoch'] = self._epoch
         config['train']['global_step'] = global_step

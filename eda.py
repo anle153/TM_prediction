@@ -139,9 +139,6 @@ def get_corr_matrix(data, seq_len):
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
         corr_mx = df.corr().values
-
-        print("|--- CORR MX ", corr_mx.min())
-
         corr_matrices[i] = corr_mx
 
     nan_idx = []

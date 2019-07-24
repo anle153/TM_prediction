@@ -137,15 +137,7 @@ def get_corr_matrix(data, seq_len):
         data_hm = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
-        corr_mx = data_hm.corr().values
-        print("|---- Corr MX")
-        print(corr_mx.shape)
-        print(corr_mx.max())
-        print(corr_mx.min())
-        print(corr_mx.mean())
-        print(corr_mx.std())
-
-        corr_matrices[i] = corr_mx
+        corr_matrices[i] = data_hm.corr().values
 
     corr_matrix = np.mean(corr_matrices, axis=0)
 

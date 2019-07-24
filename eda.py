@@ -146,7 +146,7 @@ def get_corr_matrix(data, seq_len):
         if not np.any(np.isnan(corr_matrices[i])) and not np.any(np.isinf(corr_matrices[i])):
             nan_idx.append(i)
 
-    corr_matrices = corr_matrices[i]
+    corr_matrices = corr_matrices[nan_idx]
     corr_matrix = np.mean(corr_matrices, axis=0)
 
     return corr_matrix

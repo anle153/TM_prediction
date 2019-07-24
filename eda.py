@@ -137,7 +137,7 @@ def get_corr_matrix(data, seq_len):
         data_hm = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
-        corr_mx = data_hm.corr()
+        corr_mx = data_hm.corr().values
         print("|---- Corr MX")
         print(corr_mx.shape)
         print(corr_mx.max())

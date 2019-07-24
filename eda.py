@@ -138,14 +138,14 @@ def get_corr_matrix(data, seq_len):
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
         corr_mx = data_hm.corr()
-        # print("|---- Corr MX")
-        # print(corr_mx.shape)
-        # print(corr_mx.max())
-        # print(corr_mx.min())
-        # print(corr_mx.mean())
-        # print(corr_mx.std())
+        print("|---- Corr MX")
+        print(corr_mx.shape)
+        print(corr_mx.max())
+        print(corr_mx.min())
+        print(corr_mx.mean())
+        print(corr_mx.std())
 
-        corr_matrices[i] = data_hm.corr()
+        corr_matrices[i] = corr_mx
 
     corr_matrix = np.mean(corr_matrices, axis=0)
 

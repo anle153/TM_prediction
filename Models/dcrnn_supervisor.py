@@ -14,7 +14,7 @@ from Models.dcrnn_model import DCRNNModel
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mae_loss
-
+from tqdm import tqdm
 
 class DCRNNSupervisor(object):
     """
@@ -150,7 +150,7 @@ class DCRNNSupervisor(object):
                 'outputs': model.outputs
             })
 
-        for _, (x, y) in enumerate(data_generator):
+        for _, (x, y) in tqdm(enumerate(data_generator)):
             feed_dict = {
                 model.inputs: x,
                 model.labels: y,

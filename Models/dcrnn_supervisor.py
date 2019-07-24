@@ -9,12 +9,13 @@ import time
 import numpy as np
 import tensorflow as tf
 import yaml
+from tqdm import tqdm
 
 from Models.dcrnn_model import DCRNNModel
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mae_loss
-from tqdm import tqdm
+
 
 class DCRNNSupervisor(object):
     """

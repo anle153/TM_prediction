@@ -4,7 +4,7 @@ log_level: INFO
 gpu: 1
 mon_ratio: 0.3
 data:
-  batch_size: 8
+  batch_size: 64
   raw_dataset_dir: Dataset/Abilene2d.npy
   dataset_dir: Dataset/Abilene2d/
   graph_pkl_filename: Dataset/Abilene2d/Abilene-adj-mx
@@ -12,7 +12,7 @@ data:
   test_batch_size: 64
   data_name: Abilene
   Abilene_day_size: 288
-  generate_data: True
+  generate_data: False
 model:
   cl_decay_steps: 2000
   filter_type: dual_random_walk
@@ -27,7 +27,7 @@ model:
   seq_len: 36
   use_curriculum_learning: true
 train:
-  base_lr: 0.0001
+  base_lr: 0.01
   dropout: 0
   epoch: 64
   epochs: 100

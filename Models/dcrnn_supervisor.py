@@ -128,7 +128,7 @@ class DCRNNSupervisor(object):
 
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
-        maes = []
+        mses = []
         outputs = []
         output_dim = self._model_kwargs.get('output_dim')
         preds = model.outputs
@@ -136,7 +136,7 @@ class DCRNNSupervisor(object):
         loss = self._loss_fn(preds=preds, labels=labels)
         fetches = {
             'loss': loss,
-            'mae': loss,
+            'mse': loss,
             'global_step': tf.train.get_or_create_global_step()
         }
         if training:
@@ -161,7 +161,7 @@ class DCRNNSupervisor(object):
             vals = sess.run(fetches, feed_dict=feed_dict)
 
             losses.append(vals['loss'])
-            maes.append(vals['mae'])
+            mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
             if return_output:
@@ -169,7 +169,7 @@ class DCRNNSupervisor(object):
 
         results = {
             'loss': np.mean(losses),
-            'mae': np.mean(maes)
+            'mse': np.mean(mses)
         }
         if return_output:
             results['outputs'] = outputs
@@ -214,7 +214,7 @@ class DCRNNSupervisor(object):
                                                      self._data['train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
-            train_loss, train_mae = train_results['loss'], train_results['mae']
+            train_loss, train_mse = train_results['loss'], train_results['mse']
             # if train_loss > 1e5:
             #     self._logger.warning('Gradient explosion detected. Ending...')
             #     break
@@ -224,14 +224,14 @@ class DCRNNSupervisor(object):
             val_results = self.run_epoch_generator(sess, self._test_model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
-            val_loss, val_mae = val_results['loss'].item(), val_results['mae'].item()
+            val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()
 
             utils.add_simple_summary(self._writer,
-                                     ['loss/train_loss', 'metric/train_mae', 'loss/val_loss', 'metric/val_mae'],
-                                     [train_loss, train_mae, val_loss, val_mae], global_step=global_step)
+                                     ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
+                                     [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] ({}) train_mae: {:.4f}, val_mae: {:.4f} lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, global_step, train_mae, val_mae, new_lr, (end_time - start_time))
+            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f} lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
             self._logger.info(message)
             if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
                 self.evaluate(sess)
@@ -248,7 +248,7 @@ class DCRNNSupervisor(object):
                     self._logger.warning('Early stopping at epoch: %d' % self._epoch)
                     break
 
-            history.append(val_mae)
+            history.append(val_mse)
             # Increases epoch.
             self._epoch += 1
 
@@ -277,18 +277,18 @@ class DCRNNSupervisor(object):
             y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])
             predictions.append(y_pred)
 
-            mae = metrics.masked_mae_np(y_pred, y_truth, null_val=0)
+            mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
             mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
             rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
             self._logger.info(
-                "Horizon {:02d}, MAE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                    horizon_i + 1, mae, mape, rmse
+                "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
+                    horizon_i + 1, mse, mape, rmse
                 )
             )
             utils.add_simple_summary(self._writer,
                                      ['%s_%d' % (item, horizon_i + 1) for item in
-                                      ['metric/rmse', 'metric/mape', 'metric/mae']],
-                                     [rmse, mape, mae],
+                                      ['metric/rmse', 'metric/mape', 'metric/mse']],
+                                     [rmse, mape, mse],
                                      global_step=global_step)
         outputs = {
             'predictions': predictions,

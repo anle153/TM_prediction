@@ -22,7 +22,7 @@ RESULTS_PATH = os.path.join(HOME_PATH, 'results')
 
 def create_data(data, seq_len, horizon, input_dim, mon_ratio, eps):
     _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
     _data = np.copy(data)
 
     _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)

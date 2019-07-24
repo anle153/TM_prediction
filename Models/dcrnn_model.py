@@ -15,7 +15,7 @@ class DCRNNModel(object):
 
         # Train and loss
         self._loss = None
-        self._mae = None
+        self._mse = None
         self._train_op = None
 
         max_diffusion_step = int(model_kwargs.get('max_diffusion_step', 2))
@@ -102,8 +102,8 @@ class DCRNNModel(object):
         return self._loss
 
     @property
-    def mae(self):
-        return self._mae
+    def mse(self):
+        return self._mse
 
     @property
     def merged(self):

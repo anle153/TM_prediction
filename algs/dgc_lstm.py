@@ -48,12 +48,20 @@ def get_corr_matrix(data, seq_len):
     corr_matrices = np.zeros(shape=(data.shape[0] - seq_len, data.shape[1], data.shape[1]))
 
     for i in tqdm(range(data.shape[0] - seq_len)):
+    # for i in tqdm(range(seq_len)):
         data_corr = data[i:i + seq_len]
-        data_hm = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
+        df = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
-        corr_matrices[i] = data_hm.corr()
+        corr_mx = df.corr().values
+        corr_matrices[i] = corr_mx
 
+    nan_idx = []
+    for i in range(corr_matrices.shape[0]):
+        if not np.any(np.isnan(corr_matrices[i])) and not np.any(np.isinf(corr_matrices[i])):
+            nan_idx.append(i)
+
+    corr_matrices = corr_matrices[nan_idx]
     corr_matrix = np.mean(corr_matrices, axis=0)
 
     return corr_matrix
@@ -106,6 +114,7 @@ def generate_data(config):
 
     if not os.path.isfile(config['data']['graph_pkl_filename'] + '.npy'):
         adj_mx = get_corr_matrix(train_data2d, seq_len)
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
         np.save(config['data']['graph_pkl_filename'],
                 adj_mx)
 

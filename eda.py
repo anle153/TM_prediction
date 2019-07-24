@@ -132,15 +132,15 @@ if np.any(np.isnan(y_test_norm)):
 def get_corr_matrix(data, seq_len):
     corr_matrices = np.zeros(shape=(data.shape[0] - seq_len, data.shape[1], data.shape[1]))
 
-    # for i in tqdm(range(data.shape[0] - seq_len)):
-    for i in tqdm(range(seq_len)):
+    for i in tqdm(range(data.shape[0] - seq_len)):
+    # for i in tqdm(range(seq_len)):
         data_corr = data[i:i + seq_len]
         df = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
 
         corr_mx = df.corr().values
 
-        print("|--- CORR MX ", corr_mx.shape)
+        print("|--- CORR MX ", corr_mx.min())
 
         corr_matrices[i] = corr_mx
 

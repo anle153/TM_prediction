@@ -76,7 +76,7 @@ if __name__ == '__main__':
         config = yaml.load(f)
 
     print_dgc_lstm_info(config)
-    if config['mdoe'] == 'train':
+    if config['mode'] == 'train':
         train_dgc_lstm(config)
     else:
         test_dgc_lstm(config)

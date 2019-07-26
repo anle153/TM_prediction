@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-from algs.dgc_lstm import train_dgc_lstm
+from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
@@ -12,6 +12,7 @@ CONFIG_FILE = 'config_dgc_lstm.yaml'
 def print_dgc_lstm_info(config):
     print('----------------------- INFO -----------------------')
 
+    print('|--- MODE:\t{}'.format(config['mode']))
     print('|--- ALG:\t{}'.format('dgc_lstm'))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
@@ -30,6 +31,11 @@ def print_dgc_lstm_info(config):
 
     print('----------------------- TRAIN -----------------------')
     print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
+    print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
+    print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
+    print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
+    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+    print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
 
 
     print('----------------------------------------------------')
@@ -70,5 +76,8 @@ if __name__ == '__main__':
         config = yaml.load(f)
 
     print_dgc_lstm_info(config)
-    train_dgc_lstm(config)
+    if config['mdoe'] == 'train':
+        train_dgc_lstm(config)
+    else:
+        test_dgc_lstm(config)
     # get_results(data)

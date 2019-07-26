@@ -3,7 +3,6 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import yaml
 from tqdm import tqdm
 
 from Models.dcrnn_supervisor import DCRNNSupervisor
@@ -137,23 +136,18 @@ def train_dgc_lstm(config):
         model.train(sess)
 
 
-def test_dgc_lstm():
+def test_dgc_lstm(config):
     print('|-- Run model testing dgc_lstm.')
-
-    with open(os.path.join(CONFIG_PATH, CONFIG_FILE)) as f:
-        config = yaml.load(f)
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 
-    adj_mx = np.load(os.path.join(config['data']['graph_pkl_filename'], ".npz"))
+    adj_mx = np.load(config['data']['graph_pkl_filename'] + '.npy')
+    adj_mx = adj_mx.astype('float32')
     with tf.Session(config=tf_config) as sess:
         model = DCRNNSupervisor(adj_mx=adj_mx, **config)
         model.load(sess, config['train']['model_filename'])
         outputs = model.evaluate(sess)
-        np.savez_compressed(os.path.join(config['test']['results_path'],
-                                         config['test']['results_name']),
-                            **outputs)
+        np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
 
-        print('Predictions saved as {}.'.format(os.path.join(config['test']['results_path'],
-                                                             config['test']['results_name'] + '.npz')))
+        print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))

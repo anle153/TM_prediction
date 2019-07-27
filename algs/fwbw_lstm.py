@@ -461,9 +461,11 @@ def test_fwbw_lstm(data):
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
-    _, valid_data_normalized2d, test_data_normalized2d, scalers = data_scalling(train_data2d,
-                                                                                valid_data2d,
-                                                                                test_data2d)
+    scalers = PowerTransformer()
+    scalers.fit(train_data2d)
+
+    test_data_normalized2d = scalers.transform(test_data2d)
+
     input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
 
     with tf.device('/device:GPU:{}'.format(Config.GPU)):

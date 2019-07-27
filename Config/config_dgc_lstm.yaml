@@ -12,7 +12,7 @@ data:
   norm_data_path: Dataset/Abilene2d/
   test_batch_size: 64
   data_name: Abilene
-  Abilene_day_size: 288
+  day_size: 288
   generate_data: True
   data_size: 0.2
 model:

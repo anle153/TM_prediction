@@ -87,6 +87,8 @@ def generate_data(config):
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+
     # print('|--- Normalizing the train set.')
     # scaler = PowerTransformer()
     # scaler.fit(train_data2d)

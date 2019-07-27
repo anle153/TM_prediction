@@ -101,9 +101,9 @@ def masked_mape_np(preds, labels, null_val=np.nan):
 # Builds loss function.
 def masked_mse_loss(scaler, null_val):
     def loss(preds, labels):
-        if scaler:
-            preds = scaler.inverse_transform(preds)
-            labels = scaler.inverse_transform(labels)
+        # if scaler:
+            # preds = scaler.inverse_transform(preds)
+            # labels = scaler.inverse_transform(labels)
         return masked_mse_tf(preds=preds, labels=labels, null_val=null_val)
 
     return loss

@@ -10,6 +10,8 @@ from common import Config_fwbw_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
+from sklearn.preprocessing import PowerTransformer
+
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
@@ -344,9 +346,12 @@ def train_fwbw_lstm(data):
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
-    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
-                                                                                 valid_data2d,
-                                                                                 test_data2d)
+
+    scalers = PowerTransformer()
+    scalers.fit(train_data2d)
+
+    train_data_normalized2d = scalers.transform(train_data2d)
+    valid_data_normalized2d = scalers.transform(valid_data2d)
 
     input_shape = (Config.FWBW_LSTM_STEP, Config.FWBW_LSTM_FEATURES)
 

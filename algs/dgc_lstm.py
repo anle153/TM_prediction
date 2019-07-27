@@ -83,7 +83,7 @@ def generate_data(config):
 
     mon_ratio = float(config['mon_ratio'])
 
-    data = data[:int(data.shape[0] * 0.2)]
+    data = data[:int(data.shape[0] * float(config['data']['data_size']))]
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)

@@ -13,7 +13,8 @@ data:
   test_batch_size: 64
   data_name: Abilene
   Abilene_day_size: 288
-  generate_data: False
+  generate_data: True
+  data_size: 0.2
 model:
   cl_decay_steps: 2000
   filter_type: dual_random_walk

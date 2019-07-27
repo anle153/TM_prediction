@@ -36,7 +36,7 @@ def create_data(data, seq_len, horizon, input_dim, mon_ratio, eps):
         x[idx, :, :, 0] = _x
         x[idx, :, :, 1] = _label
 
-        _y = _data[idx + seq_len:idx + seq_len + horizon]
+        _y = data[idx + seq_len:idx + seq_len + horizon]
 
         y[idx] = np.expand_dims(_y, axis=2)
 

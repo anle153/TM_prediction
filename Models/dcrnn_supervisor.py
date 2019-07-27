@@ -9,12 +9,11 @@ import time
 import numpy as np
 import tensorflow as tf
 import yaml
-from tqdm import tqdm
 
 from Models.dcrnn_model import DCRNNModel
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
-from lib.metrics import masked_mae_loss, masked_mse_loss
+from lib.metrics import masked_mse_loss
 
 
 class DCRNNSupervisor(object):
@@ -197,7 +196,8 @@ class DCRNNSupervisor(object):
         max_to_keep = train_kwargs.get('max_to_keep', 100)
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
         model_filename = train_kwargs.get('model_filename')
-        if model_filename is not None:
+        continue_train = train_kwargs.get('continue_train')
+        if continue_train is True and model_filename is not None:
             saver.restore(sess, model_filename)
             self._epoch = epoch + 1
         else:

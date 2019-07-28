@@ -41,13 +41,11 @@ with open(os.path.join(CONFIG_PATH, CONFIG_FILE)) as f:
 
 data = np.load(config['data']['raw_dataset_dir'])
 data[data <= 0] = 0.1
+data = data / 1000000
 
 data = data.astype("float32")
 
-if config['data']['data_name'] == 'Abilene':
-    day_size = config['data']['Abilene_day_size']
-else:
-    day_size = config['data']['Geant_day_size']
+day_size = config['data']['day_size']
 
 seq_len = int(config['model']['seq_len'])
 horizon = int(config['model']['horizon'])

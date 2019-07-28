@@ -1,5 +1,6 @@
 import os
-
+import sys
+import argparse
 import yaml
 
 from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm
@@ -38,7 +39,6 @@ def print_dgc_lstm_info(config):
     print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
     print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
 
-
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
     if infor_correct != 'y' and infor_correct != 'yes':
@@ -73,7 +73,16 @@ def print_dgc_lstm_info(config):
 
 
 if __name__ == '__main__':
-    with open(os.path.join(CONFIG_PATH, CONFIG_FILE)) as f:
+
+    sys.path.append(os.getcwd())
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
+    parser.add_argument('--config_file', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+                        help='Config file for pretrained model.')
+    parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
+    args = parser.parse_args()
+
+    with open(args.config_file) as f:
         config = yaml.load(f)
 
     print_dgc_lstm_info(config)

@@ -3,14 +3,13 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from sklearn.preprocessing import PowerTransformer
 from tqdm import tqdm
 
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config_fwbw_lstm as Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling, create_offline_fwbw_lstm
+from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_lstm
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
-
-from sklearn.preprocessing import PowerTransformer
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -231,6 +230,10 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     tm_pred = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
     tm_pred[0:initial_data.shape[0]] = initial_data
 
+    # Initialize predicted_traffic matrice
+    predicted_tm = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+    predicted_tm[0:initial_data.shape[0]] = initial_data
+
     # Initialize measurement matrix
     labels = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
     labels[0:initial_data.shape[0]] = np.ones(shape=initial_data.shape)
@@ -263,11 +266,14 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + Config.FWBW_LSTM_STEP],
                                                     labels=labels[ts: ts + Config.FWBW_LSTM_STEP])
 
-        fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step)
+        fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step, 1)
 
-        fw_outputs = np.squeeze(fw_outputs, axis=2)
+        fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-step)
 
-        pred_next_tm = np.copy(fw_outputs[:, -1])
+        pred_next_tm = np.copy(fw_outputs[:, -1])  # Shape(#n_flows,)
+
+        # Insert pred_next_tm to predicted traffic matrices
+        predicted_tm[ts] = pred_next_tm
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + Config.FWBW_LSTM_STEP - 1]
         corrected_data = data_correction_v3(rnn_input=np.copy(tm_pred[ts: ts + Config.FWBW_LSTM_STEP]),
@@ -308,7 +314,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
                                                                                                 Config.SCALER),
                                 index=False)
 
-    return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm
+    return tm_pred[Config.FWBW_LSTM_STEP:], labels[Config.FWBW_LSTM_STEP:], ims_tm, predicted_tm[Config.FWBW_LSTM_STEP:]
 
 
 def build_model(input_shape):
@@ -555,11 +561,13 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         ims_test_data = ims_tm_test_data(test_data=test_data)
         measured_matrix_ims = np.zeros(shape=ims_test_data.shape)
 
-        pred_tm2d, measured_matrix2d, ims_tm2d = predict_fwbw_lstm_v2(initial_data=init_data_normalize,
-                                                                      test_data=test_data_normalize,
-                                                                      model=fwbw_net.model)
+        pred_tm2d, measured_matrix2d, ims_tm2d, predicted_tm2d = predict_fwbw_lstm_v2(initial_data=init_data_normalize,
+                                                                                      test_data=test_data_normalize,
+                                                                                      model=fwbw_net.model)
 
         pred_tm_invert2d = scalers.inverse_transform(pred_tm2d)
+        predicted_tm_invert2d = scalers.inverse_transform(predicted_tm2d)
+
         # pred_tm_wo_invert2d = scalers.inverse_transform(pred_tm2d_wo)
         if np.any(np.isinf(pred_tm_invert2d)):
             raise ValueError('Value is infinity!')

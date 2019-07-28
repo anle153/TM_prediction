@@ -7,7 +7,7 @@ from tqdm import tqdm
 from common import Config_arima as Config
 from common.DataPreprocessing import data_scalling, prepare_train_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
-
+from sklearn.preprocessing import StandardScaler
 matplotlib.use('Agg')
 
 
@@ -86,7 +86,8 @@ def test_arima(data):
         test_data2d = test_data2d[0:-day_size * 3]
 
     # Data normalization
-    scaler = data_scalling(train_data2d)
+    scaler = StandardScaler()
+    scaler.fit(train_data2d)
 
     train_data_normalized2d = scaler.transform(train_data2d)
     test_data_normalized2d = scaler.transform(test_data2d)

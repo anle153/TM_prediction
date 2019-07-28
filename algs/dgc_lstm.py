@@ -70,6 +70,7 @@ def generate_data(config):
     data = np.load(config['data']['raw_dataset_dir'])
     data[data <= 0] = 0.1
 
+    # Convert traffic volume from byte to mega-byte
     data = data / 1000000
 
     data = data.astype("float32")

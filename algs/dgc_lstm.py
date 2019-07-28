@@ -75,10 +75,7 @@ def generate_data(config):
 
     data = data.astype("float32")
 
-    if config['data']['data_name'] == 'Abilene':
-        day_size = config['data']['Abilene_day_size']
-    else:
-        day_size = config['data']['Geant_day_size']
+    day_size = config['data']['day_size']
 
     seq_len = int(config['model']['seq_len'])
     horizon = int(config['model']['horizon'])

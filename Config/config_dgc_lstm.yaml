@@ -29,10 +29,10 @@ model:
   seq_len: 36
   use_curriculum_learning: true
 train:
-  base_lr: 0.0001
+  base_lr: 0.01
   dropout: 0
   epoch: 64
-  epochs: 200
+  epochs: 50000
   epsilon: 0.001
   global_step: 24375
   log_dir: logs/pretrained/Abilene/

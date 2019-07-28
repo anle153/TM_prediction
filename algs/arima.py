@@ -214,31 +214,31 @@ def test_arima(data):
                                                               "M_indicator_{}".format(running_time)),
                 measured_matrix2d)
 
-        err.append(error_ratio(y_true=test_data,
-                               y_pred=pred_tm_invert2d,
-                               measured_matrix=measured_matrix2d))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
-        rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert2d))
-
-        # Calculate error of ims
-        if Config.ARIMA_IMS:
-            ims_tm_invert2d = scaler.inverse_transform(ims_pred_tm2d)
-
-            err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                       y_true=ims_test_data,
-                                       measured_matrix=measured_matrix_ims))
-            r2_score_ims.append(calculate_r2_score(y_true=ims_test_data, y_pred=ims_tm_invert2d))
-            rmse_ims.append(calculate_rmse(y_true=ims_test_data, y_pred=ims_tm_invert2d))
-        else:
-            err_ims.append(0)
-            r2_score_ims.append(0)
-            rmse_ims.append(0)
-
-        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time],
-                                                          rmse[running_time], r2_score[running_time],
-                                                          err_ims[running_time],
-                                                          rmse_ims[running_time], r2_score_ims[running_time]))
+        # err.append(error_ratio(y_true=test_data,
+        #                        y_pred=pred_tm_invert2d,
+        #                        measured_matrix=measured_matrix2d))
+        # r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
+        # rmse.append(calculate_rmse(y_true=test_data, y_pred=pred_tm_invert2d))
+        #
+        # # Calculate error of ims
+        # if Config.ARIMA_IMS:
+        #     ims_tm_invert2d = scaler.inverse_transform(ims_pred_tm2d)
+        #
+        #     err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+        #                                y_true=ims_test_data,
+        #                                measured_matrix=measured_matrix_ims))
+        #     r2_score_ims.append(calculate_r2_score(y_true=ims_test_data, y_pred=ims_tm_invert2d))
+        #     rmse_ims.append(calculate_rmse(y_true=ims_test_data, y_pred=ims_tm_invert2d))
+        # else:
+        #     err_ims.append(0)
+        #     r2_score_ims.append(0)
+        #     rmse_ims.append(0)
+        #
+        # print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        # print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[running_time],
+        #                                                   rmse[running_time], r2_score[running_time],
+        #                                                   err_ims[running_time],
+        #                                                   rmse_ims[running_time], r2_score_ims[running_time]))
 
         # prediction_times['No'] = range(test_data_normalize.shape[0])
         # prediction_times['run_time'] = pred_times
@@ -247,27 +247,27 @@ def test_arima(data):
         #                                                                                     Config.TAG, Config.SCALER),
         #                         index=False)
 
-    results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
-    results_summary['err'] = err
-    results_summary['r2'] = r2_score
-    results_summary['rmse'] = rmse
-    results_summary['err_ims'] = err_ims
-    results_summary['r2_ims'] = r2_score_ims
-    results_summary['rmse_ims'] = rmse_ims
+    # results_summary['No.'] = range(Config.ARIMA_TESTING_TIME)
+    # results_summary['err'] = err
+    # results_summary['r2'] = r2_score
+    # results_summary['rmse'] = rmse
+    # results_summary['err_ims'] = err_ims
+    # results_summary['r2_ims'] = r2_score_ims
+    # results_summary['rmse_ims'] = rmse_ims
 
-    if Config.ARIMA_IMS:
-        result_file_name = "Test_results_ims_{}_random_in_{}_days.csv".format(Config.ARIMA_IMS_STEP,
-                                                                              Config.ARIMA_TEST_DAYS)
-    else:
-        result_file_name = "Test_results_random_in_{}_days.csv".format(Config.ARIMA_TEST_DAYS)
-
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
-                                                   result_file_name),
-                           index=False)
-
-    print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
-
-    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
-                                                           np.mean(np.array(rmse)),
-                                                           np.mean(np.array(r2_score))))
+    # if Config.ARIMA_IMS:
+    #     result_file_name = "Test_results_ims_{}_random_in_{}_days.csv".format(Config.ARIMA_IMS_STEP,
+    #                                                                           Config.ARIMA_TEST_DAYS)
+    # else:
+    #     result_file_name = "Test_results_random_in_{}_days.csv".format(Config.ARIMA_TEST_DAYS)
+    #
+    # results_summary.to_csv(Config.RESULTS_PATH +
+    #                        '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
+    #                                                result_file_name),
+    #                        index=False)
+    #
+    # print('Test: {}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER))
+    #
+    # print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+    #                                                        np.mean(np.array(rmse)),
+    #                                                        np.mean(np.array(r2_score))))

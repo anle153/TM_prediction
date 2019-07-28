@@ -38,14 +38,13 @@ class AbstractModel(object):
             if not os.path.isdir(self.checkpoints_path):
                 os.makedirs(self.checkpoints_path)
             self.checkpoints = ModelCheckpoint(
-                self.checkpoints_path + "weights-{epoch:02d}.hdf5",
+                self.checkpoints_path + "best_model.hdf5",
                 monitor='val_loss', verbose=1,
-                save_best_only=False,
-                save_weights_only=True,
+                save_best_only=True,
                 mode='auto', period=1)
             self.callbacks_list = [self.checkpoints]
         if early_stopping:
-            self.earlystop = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=50,
+            self.earlystop = EarlyStopping(monitor='val_loss', patience=50,
                                            verbose=1, mode='auto')
             self.callbacks_list.append(self.earlystop)
 

@@ -154,33 +154,23 @@ def get_corr_matrix(data, seq_len):
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-corr_count = []
+adj_mx = get_corr_matrix(train_data2d, 288)
 
-time_lag = [36, 72, 144, 288, 288 * 2, 288 * 3, 288 * 4, 288 * 5, 288 * 6, 288 * 7]
+adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
 
-for i in time_lag:
-    adj_mx = get_corr_matrix(train_data2d, i)
+print("|-- ADJ MX")
+print(adj_mx.shape)
+print(adj_mx.max())
+print(adj_mx.min())
+print(adj_mx.mean())
+print(adj_mx.std())
 
-    adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+adj_mx[adj_mx >= 0.5] = 1.0
+adj_mx[adj_mx < 0.5] = 0.0
 
-    print("|-- ADJ MX")
-    print(adj_mx.shape)
-    print(adj_mx.max())
-    print(adj_mx.min())
-    print(adj_mx.mean())
-    print(adj_mx.std())
+g = sns.heatmap(adj_mx, cmap="BrBG")
+plt.figure(figsize=(150, 150))
+plt.sca(g)
+plt.savefig('heatmap_seq_288.pdf')
 
-    adj_mx[adj_mx >= 0.5] = 1.0
-    adj_mx[adj_mx < 0.5] = 0.0
-
-    g = sns.heatmap(adj_mx, cmap="BrBG")
-    plt.figure(figsize=(150, 150))
-    plt.sca(g)
-    plt.savefig('heatmap_seq_{}.pdf'.format(i))
-
-    corr_count.append(adj_mx.sum())
-    plt.close()
-
-plt.plot(time_lag, corr_count)
-plt.savefig('corr_count.png')
 plt.close()

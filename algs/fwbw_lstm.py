@@ -9,7 +9,7 @@ from tqdm import tqdm
 from Models.fwbw_LSTM import fwbw_lstm_model
 from common import Config_fwbw_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_lstm
-from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
+from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -548,8 +548,8 @@ def prepare_test_set_last_day(test_data2d, test_data_normalized2d):
 
 
 def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary):
-    err, r2_score, rmse = [], [], []
-    err_ims, r2_score_ims, rmse_ims = [], [], []
+    mape, r2_score, rmse = [], [], []
+    mape_ims, r2_score_ims, rmse_ims = [], [], []
 
     # per_gain = []
 
@@ -574,41 +574,47 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         elif np.any(np.isnan(pred_tm_invert2d)):
             raise ValueError('Value is NaN!')
 
-        err.append(error_ratio(y_true=test_data, y_pred=pred_tm_invert2d, measured_matrix=measured_matrix2d))
-        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=pred_tm_invert2d))
-        rmse.append(calculate_rmse(y_true=test_data / 1000000, y_pred=pred_tm_invert2d / 1000000))
+        if np.any(np.isinf(predicted_tm_invert2d)):
+            raise ValueError('Value is infinity!')
+        elif np.any(np.isnan(predicted_tm_invert2d)):
+            raise ValueError('Value is NaN!')
+
+        r2_score.append(calculate_r2_score(y_true=test_data, y_pred=predicted_tm_invert2d))
+        rmse.append(calculate_rmse(y_true=test_data, y_pred=predicted_tm_invert2d))
+        mape.append(calculate_mape(y_true=test_data, y_pred=predicted_tm_invert2d))
 
         if Config.FWBW_LSTM_IMS:
             # Calculate error for multistep-ahead-prediction
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 
-            err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
-                                       y_true=ims_test_data,
-                                       measured_matrix=measured_matrix_ims))
+            # err_ims.append(error_ratio(y_pred=ims_tm_invert2d,
+            #                            y_true=ims_test_data,
+            #                            measured_matrix=measured_matrix_ims))
 
+            mape_ims.append(calculate_mape(y_true=ims_test_data, y_pred=ims_tm_invert2d))
             r2_score_ims.append(calculate_r2_score(y_true=ims_test_data, y_pred=ims_tm_invert2d))
-            rmse_ims.append(calculate_rmse(y_true=ims_test_data / 1000000, y_pred=ims_tm_invert2d / 1000000))
+            rmse_ims.append(calculate_rmse(y_true=ims_test_data, y_pred=ims_tm_invert2d))
         else:
-            err_ims.append(0)
+            mape_ims.append(0)
             r2_score_ims.append(0)
             rmse_ims.append(0)
 
-        print('Result: err\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
-        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(err[i], rmse[i], r2_score[i],
-                                                          err_ims[i], rmse_ims[i], r2_score_ims[i]))
+        print('Result: mape\trmse\tr2 \t\t err_ims\trmse_ims\tr2_ims')
+        print('        {}\t{}\t{} \t\t {}\t{}\t{}'.format(mape[i], rmse[i], r2_score[i],
+                                                          mape_ims[i], rmse_ims[i], r2_score_ims[i]))
 
     results_summary['No.'] = range(Config.FWBW_LSTM_TESTING_TIME)
-    results_summary['err'] = err
+    results_summary['mape'] = mape
     results_summary['r2'] = r2_score
     results_summary['rmse'] = rmse
-    results_summary['err_ims'] = err_ims
+    results_summary['mape_ims'] = mape_ims
     results_summary['r2_ims'] = r2_score_ims
     results_summary['rmse_ims'] = rmse_ims
 
     print('Test: {}-{}-{}-{}-{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG, Config.SCALER,
                                         Config.FWBW_LSTM_FLOW_SELECTION))
 
-    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(err)),
+    print('avg_err: {} - avg_rmse: {} - avg_r2: {}'.format(np.mean(np.array(mape)),
                                                            np.mean(np.array(rmse)),
                                                            np.mean(np.array(r2_score))))
 

@@ -77,5 +77,5 @@ def get_results(data):
 if __name__ == '__main__':
     data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
     print_arima_info()
-    test_arima(data)
+    # test_arima(data)
     get_results(data)

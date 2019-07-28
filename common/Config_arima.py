@@ -10,7 +10,7 @@ ARIMA_TEST_DAYS = 0.1
 
 
 RUN_MODES = ['train', 'test', 'plot']
-SCALERS = ['power-transform']
+SCALERS = ['Standard-scaler']
 DATA_SETS = ['Abilene2d', 'Geant2d']
 
 DATA_NAME = DATA_SETS[0]

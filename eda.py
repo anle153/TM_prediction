@@ -148,7 +148,8 @@ def get_corr_matrix(data, seq_len):
     corr_matrices = corr_matrices[nan_idx]
     corr_matrix = np.mean(corr_matrices, axis=0)
 
-    return corr_matrix
+    return
+
 
 
 adj_mx = get_corr_matrix(train_data2d, seq_len)
@@ -164,6 +165,9 @@ print(adj_mx.std())
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+adj_mx[adj_mx >= 0.5] = 1.0
+adj_mx[adj_mx < 0.5] = 0.0
 
 g = sns.heatmap(adj_mx, cmap="BrBG")
 plt.figure(figsize=(150, 150))

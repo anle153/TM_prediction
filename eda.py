@@ -1,10 +1,11 @@
+import os
+
 import numpy as np
 import pandas as pd
-import os
 import yaml
-from common.DataPreprocessing import prepare_train_valid_test_2d
 from tqdm import tqdm
 
+from common.DataPreprocessing import prepare_train_valid_test_2d
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
@@ -151,11 +152,10 @@ def get_corr_matrix(data, seq_len):
 
     return corr_matrix
 
+
 adj_mx = get_corr_matrix(train_data2d, seq_len)
 
-
 adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-
 
 print("|-- ADJ MX")
 print(adj_mx.shape)
@@ -164,3 +164,10 @@ print(adj_mx.min())
 print(adj_mx.mean())
 print(adj_mx.std())
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+g = sns.heatmap(adj_mx, cmap="BrBG")
+plt.figure(figsize=(150, 150))
+plt.sca(g)
+plt.savefig('heatmap.pdf')

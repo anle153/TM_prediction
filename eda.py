@@ -156,7 +156,9 @@ import matplotlib.pyplot as plt
 
 corr_count = []
 
-for i in range(36, 288 * 7, 36):
+time_lag = [36, 72, 144, 288, 288 * 2, 288 * 3, 288 * 4, 288 * 5, 288 * 6, 288 * 7]
+
+for i in time_lag:
     adj_mx = get_corr_matrix(train_data2d, i)
 
     adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
@@ -179,6 +181,6 @@ for i in range(36, 288 * 7, 36):
     corr_count.append(adj_mx.sum())
     plt.close()
 
-plt.plot(range(36, 288 * 7, 36), corr_count)
+plt.plot(time_lag, corr_count)
 plt.savefig('corr_count.png')
 plt.close()

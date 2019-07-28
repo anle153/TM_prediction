@@ -148,7 +148,7 @@ def get_corr_matrix(data, seq_len):
     corr_matrices = corr_matrices[nan_idx]
     corr_matrix = np.mean(corr_matrices, axis=0)
 
-    return
+    return corr_matrix
 
 
 adj_mx = get_corr_matrix(train_data2d, seq_len)

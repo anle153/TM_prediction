@@ -70,6 +70,8 @@ def generate_data(config):
     data = np.load(config['data']['raw_dataset_dir'])
     data[data <= 0] = 0.1
 
+    data = data / 1000000
+
     data = data.astype("float32")
 
     if config['data']['data_name'] == 'Abilene':

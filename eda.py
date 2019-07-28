@@ -151,7 +151,7 @@ def get_corr_matrix(data, seq_len):
     return corr_matrix
 
 
-adj_mx = get_corr_matrix(train_data2d, seq_len)
+adj_mx = get_corr_matrix(train_data2d, 288)
 
 adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
 

@@ -5,7 +5,7 @@ gpu: 0
 mon_ratio: 0.3
 mode: train
 data:
-  batch_size: 32
+  batch_size: 16
   raw_dataset_dir: Dataset/Abilene2d.npy
   dataset_dir: Dataset/Abilene2d/
   graph_pkl_filename: Dataset/Abilene2d/Abilene-adj-mx

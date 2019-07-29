@@ -47,7 +47,6 @@ def get_corr_matrix(data, seq_len):
     corr_matrices = np.zeros(shape=(data.shape[0] - seq_len, data.shape[1], data.shape[1]))
 
     for i in tqdm(range(data.shape[0] - seq_len)):
-    # for i in tqdm(range(seq_len)):
         data_corr = data[i:i + seq_len]
         df = pd.DataFrame(data_corr, index=range(data_corr.shape[0]),
                                columns=['{}'.format(x + 1) for x in range(data_corr.shape[1])])
@@ -118,6 +117,9 @@ def generate_data(config):
     if not os.path.isfile(config['data']['graph_pkl_filename'] + '.npy'):
         adj_mx = get_corr_matrix(train_data2d, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx >= 0.5] = 1.0
+        adj_mx[adj_mx < 0.5] = 0.0
+
         np.save(config['data']['graph_pkl_filename'],
                 adj_mx)
 

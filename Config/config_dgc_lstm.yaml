@@ -26,7 +26,7 @@ model:
   num_rnn_layers: 2
   output_dim: 1
   rnn_units: 64
-  seq_len: 36
+  seq_len: 288
   use_curriculum_learning: true
 train:
   base_lr: 0.01

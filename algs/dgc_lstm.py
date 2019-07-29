@@ -117,8 +117,9 @@ def generate_data(config):
     if not os.path.isfile(config['data']['graph_pkl_filename'] + '.npy'):
         adj_mx = get_corr_matrix(train_data2d, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx >= 0.5] = 1.0
-        adj_mx[adj_mx < 0.5] = 0.0
+        adj_mx[adj_mx >= adj_mx.mean()] = 1.0
+        adj_mx[adj_mx < adj_mx.mean()] = 0.0
+
 
         np.save(config['data']['graph_pkl_filename'],
                 adj_mx)

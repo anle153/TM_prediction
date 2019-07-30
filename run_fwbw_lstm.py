@@ -132,7 +132,7 @@ def generate_data(config):
         os.makedirs(config['data']['dataset_dir'])
 
     for cat in ["train", "val", "test"]:
-        _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat+ '_1']
+        _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat+ '_2']
         print(cat, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2:", _y_2.shape)
         np.savez_compressed(
             os.path.join(config['data']['dataset_dir'], "%s.npz" % cat),

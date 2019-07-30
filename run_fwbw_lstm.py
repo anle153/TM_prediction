@@ -38,7 +38,7 @@ def print_fwbw_lstm_info(config):
         print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
         print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
         print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
-        print('|--- CONTINUE_TRAIN:\t{}'.format(config['data']['continue_train']))
+        print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
 
     if config['mode'] == 'test':
         print('----------------------- TEST -----------------------')

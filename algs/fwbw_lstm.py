@@ -363,29 +363,12 @@ def train_fwbw_lstm(config, data):
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    print('|--- Compile model. Saving path %s --- ' % fwbw_net.saving_path)
-    # -------------------------------- Create offline training and validating dataset --------------------------
-
-    print('|--- Create offline train set for forward net!')
-
-    train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                             input_shape, config['mon_ratio'],
-                                                             train_data_normalized2d.std())
-    print('|--- Create offline valid set for forward net!')
-
-    valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                             input_shape, config['mon_ratio'],
-                                                             train_data_normalized2d.std())
 
     # Load model check point
 
     fwbw_net.train()
 
     # Plot the training history
-    if training_fw_history is not None:
-        fwbw_net.plot_training_history(training_fw_history)
-        fwbw_net.save_model_history(training_fw_history)
-
     if config['train']['continue_train']:
         fwbw_net.load(config['train']['model_filename'])
     # --------------------------------------------------------------------------------------------------------------

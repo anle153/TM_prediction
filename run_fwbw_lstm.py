@@ -46,6 +46,9 @@ def print_fwbw_lstm_info(config):
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
         print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
         print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
+        print('|--- LAMBDA 0:\t{}'.format(config['test']['lambda_0']))
+        print('|--- LAMBDA 1:\t{}'.format(config['test']['lambda_1']))
+        print('|--- LAMBDA 2:\t{}'.format(config['test']['lambda_2']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
@@ -65,6 +68,12 @@ if __name__ == '__main__':
 
     with open(args.config_file) as f:
         config = yaml.load(f)
+
+    seq_len = str(config['model']['seq_len'])
+
+    if seq_len not in config['data']['dataset_dir'] or seq_len not in config['data'][
+        'graph_pkl_filename'] or seq_len not in config['data']['log_dir']:
+        raise AttributeError('Check data path!')
 
     data = np.load(config['data']['raw_dataset_dir'])
     print_fwbw_lstm_info(config)

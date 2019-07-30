@@ -216,7 +216,6 @@ def load_dataset(dataset_dir, batch_size, test_batch_size=None, **kwargs):
         print("NAN")
         raise ValueError
 
-
     return data
 
 

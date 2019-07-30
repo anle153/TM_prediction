@@ -3,14 +3,15 @@ from keras.models import Model
 from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
+from lib import utils
 
 
-class fwbw_lstm_model(AbstractModel):
+class FWBW_LSTM_REGRESSION(AbstractModel):
 
     def __init__(self, saving_path, input_shape, hidden, drop_out,
-                 alg_name=None, tag=None, early_stopping=False, check_point=False):
-        super().__init__(alg_name=alg_name, tag=tag, early_stopping=early_stopping, check_point=check_point,
-                         saving_path=saving_path)
+                 early_stopping=False, check_point=False, **kwargs):
+        super().__init__(early_stopping=early_stopping, check_point=check_point,
+                         saving_path=saving_path, **kwargs)
 
         self.n_timestep = input_shape[0]
 
@@ -18,6 +19,9 @@ class fwbw_lstm_model(AbstractModel):
         self.input_shape = input_shape
         self.drop_out = drop_out
         self.model = None
+        self._data_kwargs = kwargs.get('data')
+
+        self._data = utils.load_dataset(**self._data_kwargs)
 
     def construct_fwbw_lstm_2(self):
         input_tensor = Input(shape=self.input_shape, name='input')
@@ -173,3 +177,17 @@ class fwbw_lstm_model(AbstractModel):
         plt.savefig(self.saving_path + '[val_loss]{}-{}.png'.format(self.alg_name, self.tag))
         plt.legend()
         plt.close()
+
+    def train(self):
+        training_fw_history = self.model.fit(x=train_x,
+                                             y=[train_y_1, train_y_2],
+                                             batch_size=config['data']['batch_size'],
+                                             epochs=config['train']['epochs'],
+                                             callbacks=fwbw_net.callbacks_list,
+                                             validation_data=(valid_x, [valid_y_1, valid_y_2]),
+                                             shuffle=True,
+                                             initial_epoch=from_epoch,
+                                             verbose=2)
+        if training_fw_history is not None:
+            fwbw_net.plot_training_history(training_fw_history)
+            fwbw_net.save_model_history(training_fw_history)

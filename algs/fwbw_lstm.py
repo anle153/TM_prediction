@@ -6,13 +6,13 @@ import tensorflow as tf
 from sklearn.preprocessing import PowerTransformer
 from tqdm import tqdm
 
-from Models.fwbw_LSTM import fwbw_lstm_model
+from Models.fwbw_lstm_supervised import FWBW_LSTM_REGRESSION
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_lstm
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
+config_gpu = tf.ConfigProto()
+config_gpu.gpu_options.allow_growth = True
+session = tf.Session(config=config_gpu)
 
 
 def prepare_input_online_prediction(data, labels):
@@ -34,12 +34,14 @@ def data_correction_v3(rnn_input, pred_backward, labels):
     _labels = np.copy(labels.T)
 
     beta = np.zeros(_rnn_input.shape)
-    for i in range(_rnn_input.shape[1] - Config.FWBW_LSTM_R):
-        mu = np.sum(_labels[:, i + 1:i + Config.FWBW_LSTM_R + 1], axis=1) / Config.FWBW_LSTM_R
+    for i in range(_rnn_input.shape[1] - int(config['model']['seq_len'] / 3.0)):
+        mu = np.sum(_labels[:, i + 1:i + int(config['model']['seq_len'] / 3.0) + 1], axis=1) / int(
+            config['model']['seq_len'] / 3.0)
 
-        h = np.arange(1, Config.FWBW_LSTM_R + 1)
+        h = np.arange(1, int(config['model']['seq_len'] / 3.0) + 1)
 
-        rho = (1 / (np.log(Config.FWBW_LSTM_R) + 1)) * np.sum(_labels[:, i + 1:i + Config.FWBW_LSTM_R + 1] / h, axis=1)
+        rho = (1 / (np.log(int(config['model']['seq_len'] / 3.0)) + 1)) * np.sum(
+            _labels[:, i + 1:i + int(config['model']['seq_len'] / 3.0) + 1] / h, axis=1)
 
         beta[:, i] = mu * rho
 
@@ -60,18 +62,21 @@ def data_correction_v3(rnn_input, pred_backward, labels):
     return corrected_data.T
 
 
-def data_correction_v4(rnn_input, pred_backward, labels, fw_mon_ratio):
+def data_correction_v4(rnn_input, pred_backward, labels, fw_mon_ratio, seq_len):
     # Shape = (#n_flows, #time-steps)
+
+    r = int(seq_len / 3)
+
     _rnn_input = np.copy(rnn_input.T)
     _labels = np.copy(labels.T)
 
     beta = np.zeros(_rnn_input.shape)
-    for i in range(_rnn_input.shape[1] - Config.FWBW_LSTM_R):
-        mu = np.sum(_labels[:, i + 1:i + Config.FWBW_LSTM_R + 1], axis=1) / Config.FWBW_LSTM_R
+    for i in range(_rnn_input.shape[1] - r):
+        mu = np.sum(_labels[:, i + 1:i + r + 1], axis=1) / r
 
-        h = np.arange(1, Config.FWBW_LSTM_R + 1)
+        h = np.arange(1, r + 1)
 
-        rho = (1 / (np.log(Config.FWBW_LSTM_R) + 1)) * np.sum(_labels[:, i + 1:i + Config.FWBW_LSTM_R + 1] / h, axis=1)
+        rho = (1 / (np.log(r) + 1)) * np.sum(_labels[:, i + 1:i + r + 1] / h, axis=1)
 
         beta[:, i] = mu * rho
 
@@ -94,16 +99,16 @@ def data_correction_v4(rnn_input, pred_backward, labels, fw_mon_ratio):
     return corrected_data.T
 
 
-def predict_fwbw_lstm_ims_v2(initial_data, initial_labels, model):
-    ims_tm_pred = np.zeros(shape=(initial_data.shape[0] + config['model']['horizon'], initial_data.shape[1]))
+def predict_fwbw_lstm_ims_v2(initial_data, initial_labels, model, seq_len, horizon):
+    ims_tm_pred = np.zeros(shape=(initial_data.shape[0] + horizon, initial_data.shape[1]))
     ims_tm_pred[0:initial_data.shape[0]] = initial_data
 
-    labels = np.zeros(shape=(initial_data.shape[0] + config['model']['horizon'], initial_data.shape[1]))
+    labels = np.zeros(shape=(initial_data.shape[0] + horizon, initial_data.shape[1]))
     labels[0:initial_labels.shape[0]] = initial_labels
 
-    for ts_ahead in range(config['model']['horizon']):
-        rnn_input = prepare_input_online_prediction(data=ims_tm_pred[ts_ahead:ts_ahead + config['model']['seq_len']],
-                                                    labels=labels[ts_ahead:ts_ahead + config['model']['seq_len']])
+    for ts_ahead in range(horizon):
+        rnn_input = prepare_input_online_prediction(data=ims_tm_pred[ts_ahead:ts_ahead + seq_len],
+                                                    labels=labels[ts_ahead:ts_ahead + seq_len])
         fw_outputs, _ = model.predict(rnn_input)
 
         fw_outputs = np.squeeze(fw_outputs, axis=2)  # Shape(#n_flows, #time-steps)
@@ -119,7 +124,7 @@ def predict_fwbw_lstm_ims_v2(initial_data, initial_labels, model):
         # pred_data = corrected_data * (1.0 - labels[ts_ahead:ts_ahead + config['model']['seq_len'] - 1])
         # ims_tm_pred[ts_ahead:ts_ahead + config['model']['seq_len'] - 1] = measured_data + pred_data
 
-        ims_tm_pred[ts_ahead + config['model']['seq_len']] = pred_next_tm
+        ims_tm_pred[ts_ahead + seq_len] = pred_next_tm
 
     return ims_tm_pred[-1, :]
 
@@ -147,7 +152,7 @@ def calculate_consecutive_loss(measured_matrix):
     return consecutive_losses
 
 
-def set_measured_flow(rnn_input, pred_forward, labels, ):
+def set_measured_flow(rnn_input, pred_forward, labels, mon_ratio):
     """
 
     :param rnn_input: shape(#n_flows, #time-steps)
@@ -173,7 +178,7 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
                                 measured_matrix=labels)
 
     sampling = np.zeros(shape=n_flows)
-    m = int(config['mon_ratio'] * n_flows)
+    m = int(mon_ratio * n_flows)
 
     w = w.flatten()
     sorted_idx_w = np.argsort(w)
@@ -182,7 +187,7 @@ def set_measured_flow(rnn_input, pred_forward, labels, ):
     return sampling
 
 
-def set_measured_flow_fairness(rnn_input, labels):
+def set_measured_flow_fairness(rnn_input, labels, mon_ratio):
     """
 
     :param rnn_input: shape(#n_flows, #time-steps)
@@ -197,7 +202,7 @@ def set_measured_flow_fairness(rnn_input, labels):
     w = 1 / cl
 
     sampling = np.zeros(shape=n_flows)
-    m = int(config['mon_ratio'] * n_flows)
+    m = int(mon_ratio * n_flows)
 
     w = w.flatten()
     sorted_idx_w = np.argsort(w)
@@ -206,7 +211,7 @@ def set_measured_flow_fairness(rnn_input, labels):
     return sampling
 
 
-def calculate_flows_weights(fw_losses, measured_matrix):
+def calculate_flows_weights(fw_losses, measured_matrix, flow_slection_params):
     """
 
     :param fw_losses: shape(#n_flows)
@@ -216,13 +221,13 @@ def calculate_flows_weights(fw_losses, measured_matrix):
 
     cl = calculate_consecutive_loss(measured_matrix).astype(float)
 
-    w = 1 / (fw_losses * Config.FWBW_LSTM_HYPERPARAMS[0] +
-             cl * Config.FWBW_LSTM_HYPERPARAMS[1])
+    w = 1 / (fw_losses * flow_slection_params[0] +
+             cl * flow_slection_params[1])
 
     return w
 
 
-def predict_fwbw_lstm_v2(initial_data, test_data, model):
+def predict_fwbw_lstm_v2(initial_data, test_data, model, seq_len, horizon, mon_ratio, flow_selection):
     tf_a = np.array([1.0, 0.0])
 
     # Initialize traffic matrix data
@@ -238,7 +243,7 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
     labels[0:initial_data.shape[0]] = np.ones(shape=initial_data.shape)
 
     # Forward losses
-    ims_tm = np.zeros(shape=(test_data.shape[0] - config['model']['horizon'] + 1, test_data.shape[1]))
+    ims_tm = np.zeros(shape=(test_data.shape[0] - horizon + 1, test_data.shape[1]))
 
     raw_data = np.zeros(shape=(initial_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
@@ -255,15 +260,15 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
 
         _start = time.time()
 
-        if Config.FWBW_LSTM_IMS and (ts < test_data.shape[0] - config['model']['horizon'] + 1):
-            ims_tm[ts] = predict_fwbw_lstm_ims_v2(initial_data=np.copy(tm_pred[ts: ts + config['model']['seq_len']]),
-                                                  initial_labels=np.copy(labels[ts: ts + config['model']['seq_len']]),
-                                                  model=model)
+        if ts < test_data.shape[0] - horizon + 1:
+            ims_tm[ts] = predict_fwbw_lstm_ims_v2(initial_data=np.copy(tm_pred[ts: ts + seq_len]),
+                                                  initial_labels=np.copy(labels[ts: ts + seq_len]),
+                                                  model=model, seq_len=seq_len, horizon=horizon)
 
         # Create 3D input for rnn
         # Shape(#n_flows, #time-steps, #features)
-        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + config['model']['seq_len']],
-                                                    labels=labels[ts: ts + config['model']['seq_len']])
+        rnn_input = prepare_input_online_prediction(data=tm_pred[ts: ts + seq_len],
+                                                    labels=labels[ts: ts + seq_len])
 
         fw_outputs, bw_outputs = model.predict(rnn_input)  # Shape(#n_flows, #time-step, 1)
 
@@ -275,33 +280,33 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
         predicted_tm[ts] = pred_next_tm
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + config['model']['seq_len'] - 1]
-        corrected_data = data_correction_v3(rnn_input=np.copy(tm_pred[ts: ts + config['model']['seq_len']]),
+        corrected_data = data_correction_v3(rnn_input=np.copy(tm_pred[ts: ts + seq_len]),
                                             pred_backward=bw_outputs,
-                                            labels=labels[ts: ts + config['model']['seq_len']])
+                                            labels=labels[ts: ts + seq_len])
         # corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + config['model']['seq_len']]),
         #                                     pred_backward=bw_outputs,
         #                                     labels=labels[ts: ts + config['model']['seq_len']])
 
-        measured_data = tm_pred[ts:ts + config['model']['seq_len'] - 1] * labels[ts:ts + config['model']['seq_len'] - 1]
-        pred_data = corrected_data * (1.0 - labels[ts:ts + config['model']['seq_len'] - 1])
-        tm_pred[ts:ts + config['model']['seq_len'] - 1] = measured_data + pred_data
+        measured_data = tm_pred[ts:ts + seq_len - 1] * labels[ts:ts + seq_len - 1]
+        pred_data = corrected_data * (1.0 - labels[ts:ts + seq_len - 1])
+        tm_pred[ts:ts + seq_len - 1] = measured_data + pred_data
 
         # Partial monitoring
-        if config['test']['flow_selection'] == Config.FLOW_SELECTIONS[0]:
+        if flow_selection == 'Random':
             sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
-                                        p=[config['mon_ratio'], 1 - config['mon_ratio']])
-        elif config['test']['flow_selection'] == Config.FLOW_SELECTIONS[1]:
-            sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + config['model']['seq_len']].T),
-                                                  labels=labels[ts: ts + config['model']['seq_len']].T)
+                                        p=[mon_ratio, 1 - mon_ratio])
+        elif flow_selection == 'Fairness':
+            sampling = set_measured_flow_fairness(rnn_input=np.copy(tm_pred[ts: ts + seq_len].T),
+                                                  labels=labels[ts: ts + seq_len].T)
         else:
-            sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + config['model']['seq_len']].T),
+            sampling = set_measured_flow(rnn_input=np.copy(tm_pred[ts: ts + seq_len].T),
                                          pred_forward=fw_outputs,
-                                         labels=labels[ts: ts + config['model']['seq_len']].T)
+                                         labels=labels[ts: ts + seq_len].T)
 
         new_input = pred_next_tm * (1.0 - sampling) + test_data[ts] * sampling
 
-        tm_pred[ts + config['model']['seq_len']] = new_input
-        labels[ts + config['model']['seq_len']] = sampling
+        tm_pred[ts + seq_len] = new_input
+        labels[ts + seq_len] = sampling
 
         prediction_times.append(time.time() - _start)
 
@@ -314,32 +319,28 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model):
                                                                                    Config.SCALER),
         index=False)
 
-    return tm_pred[config['model']['seq_len']:], labels[config['model']['seq_len']:], ims_tm, predicted_tm[
-                                                                                              config['model'][
-                                                                                                  'seq_len']:]
+    return tm_pred[seq_len:], labels[seq_len:], ims_tm, predicted_tm[seq_len:]
 
 
-def build_model(input_shape):
+def build_model(input_shape, model_rnn_units, model_dropout, saving_path):
     print('|--- Build models fwbw-lstm.')
 
     # fwbw-lstm model
-    fwbw_net = fwbw_lstm_model(input_shape=input_shape,
-                               hidden=config['model']['rnn_units'],
-                               drop_out=config['train']['dropout'],
-                               alg_name=config['alg'], tag=Config.TAG, check_point=True,
-                               saving_path=config['train']['log_dir'] + '{}-{}-{}-{}/'.format(
-                                   config['data']['data_name'], config['alg'],
-                                                                                     Config.TAG, Config.SCALER))
+    fwbw_net = FWBW_LSTM_REGRESSION(input_shape=input_shape,
+                                    hidden=model_rnn_units,
+                                    drop_out=model_dropout,
+                                    check_point=True,
+                                    saving_path=saving_path)
     fwbw_net.construct_fwbw_lstm()
     print(fwbw_net.model.summary())
     fwbw_net.plot_models()
     return fwbw_net
 
 
-def load_trained_models(input_shape, ckp):
+def load_trained_models(input_shape, model_filename):
     fwbw_net = build_model(input_shape)
-    print('|--- Load trained model from: {}'.format(fwbw_net.checkpoints_path))
-    fwbw_net.model.load_weights(fwbw_net.checkpoints_path + "weights-{:02d}.hdf5".format(ckp))
+    print('|--- Load trained model from: {}'.format(model_filename))
+    fwbw_net.model.load(model_filename)
 
     return fwbw_net
 
@@ -347,10 +348,7 @@ def load_trained_models(input_shape, ckp):
 def train_fwbw_lstm(config, data):
     print('|-- Run model training fwbw_lstm.')
 
-    if config['data']['data_name'] == Config.DATA_SETS[0]:
-        day_size = Config.ABILENE_DAY_SIZE
-    else:
-        day_size = Config.GEANT_DAY_SIZE
+    day_size = config['data']['day_size']
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
@@ -369,55 +367,31 @@ def train_fwbw_lstm(config, data):
 
     # --------------------------------------------Training fw model-------------------------------------------------
 
-    if not Config.FWBW_LSTM_VALID_TEST or \
-            not os.path.isfile(
-                fwbw_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.FWBW_LSTM_BEST_CHECKPOINT)):
-        print('|--- Compile model. Saving path %s --- ' % fwbw_net.saving_path)
-        # -------------------------------- Create offline training and validating dataset --------------------------
+    print('|--- Compile model. Saving path %s --- ' % fwbw_net.saving_path)
+    # -------------------------------- Create offline training and validating dataset --------------------------
 
-        print('|--- Create offline train set for forward net!')
+    print('|--- Create offline train set for forward net!')
 
-        train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm(train_data_normalized2d,
-                                                                 input_shape, config['mon_ratio'],
-                                                                 train_data_normalized2d.std())
-        print('|--- Create offline valid set for forward net!')
+    train_x, train_y_1, train_y_2 = create_offline_fwbw_lstm(train_data_normalized2d,
+                                                             input_shape, config['mon_ratio'],
+                                                             train_data_normalized2d.std())
+    print('|--- Create offline valid set for forward net!')
 
-        valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
-                                                                 input_shape, config['mon_ratio'],
-                                                                 train_data_normalized2d.std())
+    valid_x, valid_y_1, valid_y_2 = create_offline_fwbw_lstm(valid_data_normalized2d,
+                                                             input_shape, config['mon_ratio'],
+                                                             train_data_normalized2d.std())
 
-        # Load model check point
-        from_epoch = fwbw_net.load_model_from_check_point()
-        if from_epoch > 0:
-            print('|--- Continue training forward model from epoch %i --- ' % from_epoch)
-            training_fw_history = fwbw_net.model.fit(x=train_x,
-                                                     y=[train_y_1, train_y_2],
-                                                     batch_size=Config.FWBW_LSTM_BATCH_SIZE,
-                                                     epochs=Config.FWBW_LSTM_N_EPOCH,
-                                                     callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(valid_x, [valid_y_1, valid_y_2]),
-                                                     shuffle=True,
-                                                     initial_epoch=from_epoch,
-                                                     verbose=2)
-        else:
-            print('|--- Training new forward model.')
+    # Load model check point
 
-            training_fw_history = fwbw_net.model.fit(x=train_x,
-                                                     y=[train_y_1, train_y_2],
-                                                     batch_size=Config.FWBW_LSTM_BATCH_SIZE,
-                                                     epochs=Config.FWBW_LSTM_N_EPOCH,
-                                                     callbacks=fwbw_net.callbacks_list,
-                                                     validation_data=(valid_x, [valid_y_1, valid_y_2]),
-                                                     shuffle=True,
-                                                     verbose=2)
+    fwbw_net.train()
 
-        # Plot the training history
-        if training_fw_history is not None:
-            fwbw_net.plot_training_history(training_fw_history)
-            fwbw_net.save_model_history(training_fw_history)
+    # Plot the training history
+    if training_fw_history is not None:
+        fwbw_net.plot_training_history(training_fw_history)
+        fwbw_net.save_model_history(training_fw_history)
 
-    else:
-        fwbw_net.load_model_from_check_point(_from_epoch=Config.FWBW_LSTM_BEST_CHECKPOINT)
+    if config['train']['continue_train']:
+        fwbw_net.load(config['train']['model_filename'])
     # --------------------------------------------------------------------------------------------------------------
 
     if not os.path.exists(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],
@@ -441,30 +415,27 @@ def train_fwbw_lstm(config, data):
     return
 
 
-def ims_tm_test_data(test_data):
+def ims_tm_test_data(test_data, horizon):
     ims_test_set = np.zeros(
-        shape=(test_data.shape[0] - config['model']['horizon'] + 1, test_data.shape[1]))
+        shape=(test_data.shape[0] - horizon + 1, test_data.shape[1]))
 
-    for i in range(config['model']['horizon'] - 1, test_data.shape[0], 1):
-        ims_test_set[i - config['model']['horizon'] + 1] = test_data[i]
+    for i in range(horizon - 1, test_data.shape[0], 1):
+        ims_test_set[i - horizon + 1] = test_data[i]
 
     return ims_test_set
 
 
-def test_fwbw_lstm(data):
+def test_fwbw_lstm(config, data):
     print('|-- Run model testing.')
 
     data_name = config['data']['data_name']
-    if 'Abilene' in data_name:
-        day_size = Config.ABILENE_DAY_SIZE
-    else:
-        day_size = Config.GEANT_DAY_SIZE
+    day_size = config['data']['day_size']
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
     print('|--- Normalizing the train set.')
 
-    if config['data']['data_name'] == Config.DATA_SETS[0]:
+    if config['data']['data_name'] == 'Abilene':
         print('|--- Remove last 3 days in test data.')
         test_data2d = test_data2d[0:-day_size * 3]
 
@@ -476,7 +447,7 @@ def test_fwbw_lstm(data):
     input_shape = (config['model']['seq_len'], config['model']['input_dim'])
 
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        fwbw_net = load_trained_models(input_shape, Config.FWBW_LSTM_BEST_CHECKPOINT)
+        fwbw_net = load_trained_models(input_shape, config['train']['model_filename'])
 
     if not os.path.exists(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],
                                                                                  config['alg'], Config.TAG,
@@ -489,7 +460,7 @@ def test_fwbw_lstm(data):
 
     results_summary = run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary)
 
-    if Config.FWBW_LSTM_IMS:
+    if config['model']['horizon']:
         result_file_name = 'Test_results_ims_{}_{}.csv'.format(config['model']['horizon'],
                                                                config['test']['flow_selection'])
     else:
@@ -503,16 +474,12 @@ def test_fwbw_lstm(data):
     return
 
 
-def prepare_test_set_last_5days(test_data2d, test_data_normalized2d):
-    if config['data']['data_name'] == Config.DATA_SETS[0]:
-        day_size = Config.ABILENE_DAY_SIZE
-    else:
-        day_size = Config.GEANT_DAY_SIZE
+def prepare_test_set_last_5days(test_data2d, test_data_normalized2d, day_size, seq_len):
 
     idx = test_data2d.shape[0] - day_size * 5 - 10
 
     test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 5])
-    init_data_normalize = np.copy(test_data_normalized2d[idx - config['model']['seq_len']: idx])
+    init_data_normalize = np.copy(test_data_normalized2d[idx - seq_len: idx])
     test_data = test_data2d[idx:idx + day_size * 5]
 
     return test_data_normalize, init_data_normalize, test_data
@@ -554,7 +521,7 @@ def run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_sum
         rmse.append(calculate_rmse(y_true=test_data, y_pred=predicted_tm_invert2d))
         mape.append(calculate_mape(y_true=test_data, y_pred=predicted_tm_invert2d))
 
-        if Config.FWBW_LSTM_IMS:
+        if config['model']['horizon']:
             # Calculate error for multistep-ahead-prediction
             ims_tm_invert2d = scalers.inverse_transform(ims_tm2d)
 

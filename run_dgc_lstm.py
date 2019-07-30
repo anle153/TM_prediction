@@ -95,6 +95,12 @@ if __name__ == '__main__':
     with open(args.config_file) as f:
         config = yaml.load(f)
 
+    seq_len = str(config['model']['seq_len'])
+
+    if seq_len not in config['data']['dataset_dir'] or seq_len not in config['data'][
+        'graph_pkl_filename'] or seq_len not in config['data']['log_dir']:
+        raise AttributeError('Check data path!')
+
     print_dgc_lstm_info(config)
     if config['mode'] == 'train':
         train_dgc_lstm(config)

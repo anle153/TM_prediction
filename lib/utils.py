@@ -221,6 +221,7 @@ def load_dataset(dataset_dir, batch_size, test_batch_size=None, **kwargs):
 
 def load_dataset_fwbw_lstm(dataset_dir, batch_size, test_batch_size=None, **kwargs):
     data = {}
+    print(dataset_dir)
     for category in ['train', 'val', 'test']:
         cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
         data['x_' + category] = cat_data['x']

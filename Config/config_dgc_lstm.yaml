@@ -34,7 +34,7 @@ train:
   epochs: 50000
   epsilon: 0.001
   global_step: 24375
-  log_dir: logs/pretrained/Abilene/
+  log_dir: logs/pretrained/Abilene/seq_72/
   lr_decay_ratio: 0.1
   max_grad_norm: 5
   max_to_keep: 100
@@ -49,7 +49,6 @@ train:
   test_every_n_epochs: 10
   results_path: results/
   results_name: Abilene-dgc-lstm
-  model_filename: logs/pretrained/Abilene/models-5087771.0000-22725.data-00000-of-00001
   continue_train: False
 test:
   results_path: results/dgclstm-abilene/models-5087771.0000-22725.data-00000-of-00001/results

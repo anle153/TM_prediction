@@ -1,12 +1,12 @@
 ---
-alg: DCRNN
+alg: FWBW-LSTM
 base_dir: data/model
 log_level: INFO
-gpu: 0
+gpu: 1
 mon_ratio: 0.3
 mode: train
 data:
-  batch_size: 16
+  batch_size: 512
   raw_dataset_dir: Dataset/Abilene2d.npy
   dataset_dir: Dataset/Abilene2d/seq_72/
   graph_pkl_filename: Dataset/Abilene2d/seq_72/Abilene-adj-mx

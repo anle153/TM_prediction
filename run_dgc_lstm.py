@@ -15,7 +15,7 @@ def print_dgc_lstm_info(config):
     print('----------------------- INFO -----------------------')
 
     print('|--- MODE:\t{}'.format(config['mode']))
-    print('|--- ALG:\t{}'.format('dgc_lstm'))
+    print('|--- ALG:\t{}'.format(config['alg']))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
     print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))

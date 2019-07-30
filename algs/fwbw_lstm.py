@@ -322,19 +322,19 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model, seq_len, horizon, mon_r
     return tm_pred[seq_len:], labels[seq_len:], ims_tm, predicted_tm[seq_len:]
 
 
-def build_model(**kwargs):
+def build_model(config):
     print('|--- Build models fwbw-lstm.')
 
     # fwbw-lstm model
-    fwbw_net = FwbwLstmRegression(kwargs)
+    fwbw_net = FwbwLstmRegression(**config)
     fwbw_net.construct_fwbw_lstm()
     print(fwbw_net.model.summary())
     fwbw_net.plot_models()
     return fwbw_net
 
 
-def load_trained_models(**kwargs):
-    fwbw_net = build_model(kwargs)
+def load_trained_models(config):
+    fwbw_net = build_model(**config)
     print('|--- Load trained model from: {}'.format(model_filename))
     fwbw_net.model.load(model_filename)
 
@@ -359,7 +359,7 @@ def train_fwbw_lstm(config, data):
     input_shape = (config['model']['seq_len'], config['model']['input_dim'])
 
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        fwbw_net = build_model(**config)
+        fwbw_net = build_model(config)
 
     # --------------------------------------------Training fw model-------------------------------------------------
 

@@ -1,6 +1,7 @@
+import argparse
 import os
 import sys
-import argparse
+
 import yaml
 
 from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm
@@ -37,7 +38,10 @@ def print_dgc_lstm_info(config):
     print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
     print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
     print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
-    print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
+
+    if config['mode'] == 'test':
+        print('----------------------- TEST -----------------------')
+        print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')

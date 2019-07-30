@@ -346,18 +346,6 @@ def train_fwbw_lstm(config, data):
 
     day_size = config['data']['day_size']
 
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
-    print('|--- Normalizing the train set.')
-
-    scalers = PowerTransformer()
-    scalers.fit(train_data2d)
-
-    train_data_normalized2d = scalers.transform(train_data2d)
-    valid_data_normalized2d = scalers.transform(valid_data2d)
-
-    input_shape = (config['model']['seq_len'], config['model']['input_dim'])
-
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         fwbw_net = build_model(config)
 

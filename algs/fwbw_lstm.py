@@ -6,7 +6,7 @@ import tensorflow as tf
 from sklearn.preprocessing import PowerTransformer
 from tqdm import tqdm
 
-from Models.fwbw_lstm_supervised import FWBW_LSTM_REGRESSION
+from Models.fwbw_lstm_supervised import FwbwLstmRegression
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_lstm
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
@@ -326,7 +326,7 @@ def build_model(input_shape, model_rnn_units, model_dropout, saving_path):
     print('|--- Build models fwbw-lstm.')
 
     # fwbw-lstm model
-    fwbw_net = FWBW_LSTM_REGRESSION(input_shape=input_shape,
+    fwbw_net = FwbwLstmRegression(input_shape=input_shape,
                                     hidden=model_rnn_units,
                                     drop_out=model_dropout,
                                     check_point=True,

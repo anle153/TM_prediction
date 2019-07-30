@@ -7,67 +7,43 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import model_from_json
 
 
-def plot_training_history(alg_name, tag, saving_path, model_history):
-    plt.plot(model_history.history['loss'], label='mse')
-    plt.plot(model_history.history['val_loss'], label='val_mse')
-    plt.savefig(saving_path + '[MSE]{}-{}.png'.format(alg_name, tag))
-    plt.legend()
-    plt.close()
-
-    plt.plot(model_history.history['val_loss'], label='val_mae')
-    plt.legend()
-    plt.savefig(saving_path + '[val_loss]{}-{}.png'.format(alg_name, tag))
-    plt.close()
-
 
 class AbstractModel(object):
 
-    def __init__(self, saving_path, early_stopping=False, check_point=False, **kwargs):
+    def __init__(self, **kwargs):
         self._kwargs = kwargs
-        self.saving_path = os.path.expanduser(saving_path)
+        self._kwargs = kwargs
+        self._data_kwargs = kwargs.get('data')
+        self._train_kwargs = kwargs.get('train')
+        self._test_kwargs = kwargs.get('test')
+        self._model_kwargs = kwargs.get('model')
+
+        self.saving_path = self._train_kwargs.get('log_dir')
+
         if not os.path.exists(self.saving_path):
             os.makedirs(self.saving_path)
 
         self.callbacks_list = []
 
-        self.checkpoints_path = self.saving_path + 'checkpoints/'
+        if not os.path.isdir(self.saving_path):
+            os.makedirs(self.saving_path)
+        self.checkpoints = ModelCheckpoint(
+            self.saving_path + "best_model.hdf5",
+            monitor='val_loss', verbose=1,
+            save_best_only=True,
+            mode='auto', period=1)
+        self.callbacks_list = [self.checkpoints]
 
-        if check_point:
-            if not os.path.isdir(self.checkpoints_path):
-                os.makedirs(self.checkpoints_path)
-            self.checkpoints = ModelCheckpoint(
-                self.checkpoints_path + "best_model.hdf5",
-                monitor='val_loss', verbose=1,
-                save_best_only=True,
-                mode='auto', period=1)
-            self.callbacks_list = [self.checkpoints]
-        if early_stopping:
-            self.earlystop = EarlyStopping(monitor='val_loss', patience=50,
-                                           verbose=1, mode='auto')
-            self.callbacks_list.append(self.earlystop)
+        self.earlystop = EarlyStopping(monitor='val_loss', patience=50,
+                                       verbose=1, mode='auto')
+        self.callbacks_list.append(self.earlystop)
 
         self.time_callback = TimeHistory()
         self.callbacks_list.append(self.time_callback)
 
-    def load(self, model_json_file='trained_model.json', model_weight_file='trained_model.h5'):
-
-        assert os.path.isfile(self.saving_path + model_json_file) & os.path.isfile(
-            self.saving_path + model_weight_file)
-
-        json_file = open(self.saving_path + model_json_file, 'r')
-        model_json = json_file.read()
-        json_file.close()
-
-        self.model = model_from_json(model_json)
-        self.model.load_weights(self.saving_path + model_weight_file)
-
-        return True
 
     def plot_training_history(self, model_history):
-        plot_training_history(alg_name=self.alg_name,
-                              tag=self.tag,
-                           saving_path=self.saving_path,
-                           model_history=model_history)
+        pass
 
     def save_model_history(self, model_history):
 

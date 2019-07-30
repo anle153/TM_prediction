@@ -7,13 +7,12 @@ mode: train
 data:
   batch_size: 16
   raw_dataset_dir: Dataset/Abilene2d.npy
-  dataset_dir: Dataset/Abilene2d/
+  dataset_dir: Dataset/Abilene2d/seq_72/
   graph_pkl_filename: Dataset/Abilene2d/Abilene-adj-mx
-  norm_data_path: Dataset/Abilene2d/
   test_batch_size: 64
   data_name: Abilene
   day_size: 288
-  generate_data: False
+  generate_data: True
   data_size: 0.2
 model:
   cl_decay_steps: 2000
@@ -26,7 +25,7 @@ model:
   num_rnn_layers: 2
   output_dim: 1
   rnn_units: 64
-  seq_len: 288
+  seq_len: 72
   use_curriculum_learning: true
 train:
   base_lr: 0.01

@@ -102,14 +102,14 @@ def generate_data(config):
     x_test, y_test = create_data(test_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                  mon_ratio=mon_ratio, eps=train_data2d.mean())
 
-    if not os.path.exists(config['data']['norm_data_path']):
-        os.makedirs(config['data']['norm_data_path'])
+    if not os.path.exists(config['data']['dataset_dir']):
+        os.makedirs(config['data']['dataset_dir'])
 
     for cat in ["train", "val", "test"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
         print(cat, "x: ", _x.shape, "y:", _y.shape)
         np.savez_compressed(
-            os.path.join(config['data']['norm_data_path'], "%s.npz" % cat),
+            os.path.join(config['data']['dataset_dir'], "%s.npz" % cat),
             x=_x,
             y=_y,
         )
@@ -119,7 +119,6 @@ def generate_data(config):
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
         adj_mx[adj_mx >= adj_mx.mean()] = 1.0
         adj_mx[adj_mx < adj_mx.mean()] = 0.0
-
 
         np.save(config['data']['graph_pkl_filename'],
                 adj_mx)

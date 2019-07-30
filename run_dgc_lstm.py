@@ -21,7 +21,8 @@ def print_dgc_lstm_info(config):
     print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
-    print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
+    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+
 
     print('----------------------- MODEL -----------------------')
     print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))
@@ -32,16 +33,21 @@ def print_dgc_lstm_info(config):
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
 
-    print('----------------------- TRAIN -----------------------')
-    print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
-    print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
-    print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
-    print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
-    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+    if config['mode'] == 'train':
+        print('----------------------- TRAIN -----------------------')
+        print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
+        print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
+        print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
+        print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
+        print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
+        print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
+        print('|--- CONTINUE_TRAIN:\t{}'.format(config['data']['continue_train']))
 
     if config['mode'] == 'test':
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
+        print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
+        print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')

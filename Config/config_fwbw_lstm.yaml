@@ -53,3 +53,5 @@ train:
   continue_train: False
 test:
   results_path: results/dgclstm-abilene/models-5087771.0000-22725.data-00000-of-00001/results
+  run_times: 50
+  flow_selection: Random

@@ -6,21 +6,19 @@ import numpy as np
 import yaml
 
 from algs.fwbw_lstm import train_fwbw_lstm, test_fwbw_lstm
-from common import Config_fwbw_lstm as Config
 
 
 def print_fwbw_lstm_info(config):
     print('----------------------- INFO -----------------------')
 
     print('|--- MODE:\t{}'.format(config['mode']))
-    print('|--- ALG:\t{}'.format(Config.ALG))
-    print('|--- TAG:\t{}'.format(Config.TAG))
+    print('|--- ALG:\t{}'.format(config['alg']))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
     print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
-    print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
+    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
 
     print('----------------------- MODEL -----------------------')
 
@@ -31,19 +29,23 @@ def print_fwbw_lstm_info(config):
     print('|--- NUM_RNN_LAYERS:\t{}'.format(config['model']['num_rnn_layers']))
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
-    print('|--- FLOW_SELECTION:\t{}'.format(config['model']['seq_len']))
 
-    print('----------------------- TRAIN -----------------------')
-
-    print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
-    print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
-    print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
-    print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
-    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+    if config['mode'] == 'train':
+        print('----------------------- TRAIN -----------------------')
+        print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
+        print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
+        print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
+        print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
+        print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
+        print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
+        print('|--- CONTINUE_TRAIN:\t{}'.format(config['data']['continue_train']))
 
     if config['mode'] == 'test':
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
+        print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
+        print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
+        print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
@@ -67,7 +69,7 @@ if __name__ == '__main__':
     data = np.load(config['data']['raw_dataset_dir'])
     print_fwbw_lstm_info(config)
 
-    if Config.RUN_MODE == Config.RUN_MODES[0]:
-        train_fwbw_lstm(data)
+    if config['mode'] == 'train':
+        train_fwbw_lstm(config, data)
     else:
         test_fwbw_lstm(data)

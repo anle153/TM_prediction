@@ -198,8 +198,8 @@ class FwbwLstmRegression(AbstractModel):
                                              batch_size=self._batch_size,
                                              epochs=self._epochs,
                                              callbacks=self.callbacks_list,
-                                             validation_data=(self._data['x_valid'],
-                                                              [self._data['y_valid_1'], self._data['y_valid_2']]),
+                                             validation_data=(self._data['x_val'],
+                                                              [self._data['y_val_1'], self._data['y_val_2']]),
                                              shuffle=True,
                                              verbose=2)
         if training_fw_history is not None:

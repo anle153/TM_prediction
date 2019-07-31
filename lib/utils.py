@@ -195,12 +195,13 @@ def prepare_train_valid_test_2d(data, day_size):
 def create_data_dcrnn(data, seq_len, horizon, input_dim, mon_ratio, eps):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
+    _labels = _labels.astype('float32')
     _data = np.copy(data)
 
     _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
 
-    x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim))
-    y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1))
+    x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
+    y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
     for idx in range(_data.shape[0] - seq_len - horizon):
         _x = _data[idx: (idx + seq_len)]

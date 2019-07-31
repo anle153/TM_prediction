@@ -340,9 +340,9 @@ class DCRNNSupervisor(object):
         kwargs.update(self._train_kwargs)
         return self._train(sess, **kwargs)
 
-    def test(self, sess, **kwargs):
+    def test(self, sess, test_data, test_data_normalized, **kwargs):
         kwargs.update(self._test_kwargs)
-        return self._test(sess, **kwargs)
+        return self._test(sess, test_data, test_data_normalized, **kwargs)
 
     def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
                min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,
@@ -413,21 +413,20 @@ class DCRNNSupervisor(object):
             sys.stdout.flush()
         return np.min(history)
 
-    def prepare_test_set(self, test_data2d, test_data_normalized2d):
+    def prepare_test_set(self):
 
         day_size = self._data_kwargs.get('day_size')
         seq_len = self._model_kwargs.get('seq_len')
 
-        idx = test_data2d.shape[0] - day_size * 5 - 10
+        idx = self._data['test_data'].shape[0] - day_size * 5 - 10
 
-        test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 5])
-        init_data_normalize = np.copy(test_data_normalized2d[idx - seq_len: idx])
-        test_data = test_data2d[idx:idx + day_size * 5]
+        test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + day_size * 5])
+        init_data_normalize = np.copy(self._data['test_data_norm'][idx - seq_len: idx])
+        test_data = self._data['test_data'][idx:idx + day_size * 5]
 
         return test_data_normalize, init_data_normalize, test_data
 
-    def _test(self, sess, test_data, test_data_normalized, result_path, run_times, r, lamda_0, lamda_1,
-              **train_kwargs):
+    def _test(self, sess, run_times, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
         mape, r2_score, rmse = [], [], []
@@ -435,8 +434,7 @@ class DCRNNSupervisor(object):
 
         for i in range(run_times):
             print('|--- Running time: {}'.format(i))
-            test_data_normalize, init_data_normalize, test_data = self.prepare_test_set(test_data,
-                                                                                        test_data_normalized)
+            test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
 
             test_results = self.run_tm_prediction(sess,
                                                   model=self._test_model,

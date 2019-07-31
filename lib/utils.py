@@ -261,6 +261,11 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
 
+    data = {}
+
+    data['test_data'] = test_data2d
+    data['test_data_norm'] = test_data2d_norm
+
     x_train, y_train = create_data_dcrnn(train_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                          mon_ratio=mon_ratio, eps=train_data2d_norm.std())
     x_val, y_val = create_data_dcrnn(valid_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
@@ -268,7 +273,6 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     x_test, y_test = create_data_dcrnn(test_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
-    data = {}
     for category in ['train', 'val', 'test']:
         _x, _y = locals()["x_" + category], locals()["y_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape)

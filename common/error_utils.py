@@ -7,7 +7,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 CONFIDENCE = 0.95
 
 
-
 def flow_measurement_percentage(measured_matrix):
     """
     Calculate the measurement percentage of the flow over the lookback

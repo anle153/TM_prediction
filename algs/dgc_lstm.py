@@ -96,11 +96,11 @@ def generate_data(config):
     # test_data2d_norm = scaler.transform(test_data2d)
 
     x_train, y_train = create_data(train_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                   mon_ratio=mon_ratio, eps=train_data2d.mean())
+                                   mon_ratio=mon_ratio, eps=train_data2d.std())
     x_val, y_val = create_data(valid_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                               mon_ratio=mon_ratio, eps=train_data2d.mean())
+                               mon_ratio=mon_ratio, eps=train_data2d.std())
     x_test, y_test = create_data(test_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                 mon_ratio=mon_ratio, eps=train_data2d.mean())
+                                 mon_ratio=mon_ratio, eps=train_data2d.std())
 
     if not os.path.exists(config['data']['dataset_dir']):
         os.makedirs(config['data']['dataset_dir'])

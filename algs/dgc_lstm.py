@@ -146,7 +146,7 @@ def test_dgc_lstm(config):
     with tf.Session(config=tf_config) as sess:
         model = DCRNNSupervisor(**config)
         model.load(sess, config['train']['model_filename'])
-        outputs = model.evaluate(sess)
+        outputs = model.test(sess)
         np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
 
         print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))

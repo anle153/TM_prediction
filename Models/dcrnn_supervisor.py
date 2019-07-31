@@ -45,6 +45,9 @@ class DCRNNSupervisor(object):
         self._input_dim = int(self._model_kwargs.get('input_dim'))
         self._nodes = int(self._model_kwargs.get('num_nodes'))
 
+        # Test's args
+        self._flow_selection = self._test_kwargs.get('flow_selection')
+
         # Data preparation
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
                                               horizon=self._model_kwargs.get('horizon'),
@@ -200,21 +203,64 @@ class DCRNNSupervisor(object):
 
         return x, y
 
-    def run_tm_prediction(self, sess, model, data, return_output=True, training=False, writer=None):
+    @staticmethod
+    def calculate_consecutive_loss(labels):
+        """
+
+        :param labels: shape(#time-steps, #n_flows)
+        :return: consecutive_losses: shape(#n_flows)
+        """
+
+        consecutive_losses = []
+        for flow_id in range(labels.shape[1]):
+            flows_labels = labels[:, flow_id]
+            if flows_labels[-1] == 1:
+                consecutive_losses.append(1)
+            else:
+                measured_idx = np.argwhere(flows_labels == 1)
+                if measured_idx.size == 0:
+                    consecutive_losses.append(labels.shape[0])
+                else:
+                    consecutive_losses.append(labels.shape[0] - measured_idx[-1][0])
+
+        consecutive_losses = np.asarray(consecutive_losses)
+        return consecutive_losses
+
+    def set_measured_flow_fairness(self, labels):
+        """
+
+        :param rnn_input: shape(#n_flows, #time-steps)
+        :param labels: shape(n_flows, #time-steps)
+        :return:
+        """
+
+        cl = self.calculate_consecutive_loss(labels).astype(float)
+
+        w = 1 / cl
+
+        sampling = np.zeros(shape=self._nodes)
+        m = int(self._mon_ratio * self._nodes)
+
+        w = w.flatten()
+        sorted_idx_w = np.argsort(w)
+        sampling[sorted_idx_w[:m]] = 1
+
+        return sampling
+
+    def run_tm_prediction(self, sess, model, data, writer=None):
 
         init_data = data[0]
         test_data = data[1]
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
         tm_pred[0:init_data.shape[0]] = init_data
 
         # Initialize predicted_traffic matrice
-        predicted_tm = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
-        predicted_tm[0:init_data.shape[0]] = init_data
+        predicted_tm = np.zeros(shape=(test_data.shape[0] - self._horizon, self._horizon, test_data.shape[1]))
 
         # Initialize measurement matrix
-        labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
         labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
         losses = []
@@ -229,18 +275,10 @@ class DCRNNSupervisor(object):
             'mse': loss,
             'global_step': tf.train.get_or_create_global_step()
         }
-        if training:
-            fetches.update({
-                'train_op': self._train_op
-            })
-            merged = model.merged
-            if merged is not None:
-                fetches.update({'merged': merged})
 
-        if return_output:
-            fetches.update({
-                'outputs': model.outputs
-            })
+        fetches.update({
+            'outputs': model.outputs
+        })
 
         for ts in tqdm(range(test_data.shape[0] - self._horizon)):
 
@@ -260,14 +298,34 @@ class DCRNNSupervisor(object):
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
 
+            pred = vals['outputs']
+            predicted_tm[ts] = pred[0, :, :, 0]
+            pred = pred[0, 0, :, 0]
+
+            if self._flow_selection == 'Random':
+                sampling = np.random.choice([1.0, 0.0], size=(test_data.shape[1]),
+                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+            else:
+                sampling = self.set_measured_flow_fairness(labels=labels[ts: ts + self._seq_len])
+
+            labels[ts + self._seq_len] = sampling
+            # invert of sampling: for choosing value from the original data
+            inv_sampling = 1.0 - sampling
+            pred_input = pred * inv_sampling
+
+            ground_true = test_data[ts]
+
+            measured_input = ground_true * sampling
+
+            # Merge value from pred_input and measured_input
+            new_input = pred_input + measured_input
+
+            # Concatenating new_input into current rnn_input
+            tm_pred[ts + self._seq_len] = new_input
+
             outputs.append(vals['outputs'])
 
-        results = {
-            'loss': np.mean(losses),
-            'mse': np.mean(mses)
-        }
-        if return_output:
-            results['outputs'] = outputs
+        results = {'loss': np.mean(losses), 'mse': np.mean(mses), 'outputs': outputs, 'predicted_tm': predicted_tm}
         return results
 
     def get_lr(self, sess):
@@ -368,7 +426,7 @@ class DCRNNSupervisor(object):
 
         return test_data_normalize, init_data_normalize, test_data
 
-    def _test(self, sess, test_data, test_data_normalized, result_path, run_times, flow_selection, r, lamda_0, lamda_1,
+    def _test(self, sess, test_data, test_data_normalized, result_path, run_times, r, lamda_0, lamda_1,
               **train_kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
@@ -382,12 +440,12 @@ class DCRNNSupervisor(object):
 
             test_results = self.run_tm_prediction(sess,
                                                   model=self._test_model,
-                                                  data=(init_data_normalize, test_data_normalize),
-                                                  return_output=True,
-                                                  training=False)
+                                                  data=(init_data_normalize, test_data_normalize)
+                                                  )
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-            test_loss, y_preds = test_results['loss'], test_results['outputs']
+            test_loss, y_preds, predicted_tm = test_results['loss'], test_results['outputs'], test_results[
+                'predicted_tm']
             utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
 
             y_preds = np.concatenate(y_preds, axis=0)

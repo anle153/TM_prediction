@@ -4,7 +4,7 @@ base_dir: data/model
 log_level: INFO
 gpu: 0
 mon_ratio: 0.3
-mode: train
+mode: test
 data:
   batch_size: 64
   raw_dataset_dir: Dataset/Abilene2d.npy

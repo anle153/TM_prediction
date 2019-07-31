@@ -89,6 +89,8 @@ if __name__ == '__main__':
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
     parser.add_argument('--config_file', default='data/model/pretrained/METR-LA/config.yaml', type=str,
                         help='Config file for pretrained model.')
+    parser.add_argument('--mode', default='train', type=str,
+                        help='Run mode.')
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
@@ -102,7 +104,7 @@ if __name__ == '__main__':
         raise AttributeError('Check data path!')
 
     print_dgc_lstm_info(config)
-    if config['mode'] == 'train':
+    if args.mode == 'train':
         train_dgc_lstm(config)
     else:
         test_dgc_lstm(config)

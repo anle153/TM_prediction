@@ -21,7 +21,7 @@ class DCRNNSupervisor(object):
     Do experiments using Graph Random Walk RNN model.
     """
 
-    def __init__(self, adj_mx, **kwargs):
+    def __init__(self, **kwargs):
 
         self._kwargs = kwargs
         self._data_kwargs = kwargs.get('data')
@@ -48,13 +48,13 @@ class DCRNNSupervisor(object):
             with tf.variable_scope('DCRNN', reuse=False):
                 self._train_model = DCRNNModel(is_training=True, scaler=scaler,
                                                batch_size=self._data_kwargs['batch_size'],
-                                               adj_mx=adj_mx, **self._model_kwargs)
+                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._test_model = DCRNNModel(is_training=False, scaler=scaler,
                                               batch_size=self._data_kwargs['test_batch_size'],
-                                              adj_mx=adj_mx, **self._model_kwargs)
+                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),

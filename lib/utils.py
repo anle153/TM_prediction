@@ -238,65 +238,6 @@ def get_corr_matrix(data, seq_len):
     return corr_matrix
 
 
-def generate_data(config):
-    data = np.load(config['data']['raw_dataset_dir'])
-    data[data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    data = data / 1000000
-
-    data = data.astype("float32")
-
-    day_size = config['data']['day_size']
-
-    seq_len = int(config['model']['seq_len'])
-    horizon = int(config['model']['horizon'])
-    input_dim = int(config['model']['input_dim'])
-
-    mon_ratio = float(config['mon_ratio'])
-
-    data = data[:int(data.shape[0] * float(config['data']['data_size']))]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
-
-    # print('|--- Normalizing the train set.')
-    # scaler = PowerTransformer()
-    # scaler.fit(train_data2d)
-    # train_data2d_norm = scaler.transform(train_data2d)
-    # valid_data2d_norm = scaler.transform(valid_data2d)
-    # test_data2d_norm = scaler.transform(test_data2d)
-
-    x_train, y_train = create_data(train_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                   mon_ratio=mon_ratio, eps=train_data2d.mean())
-    x_val, y_val = create_data(valid_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                               mon_ratio=mon_ratio, eps=train_data2d.mean())
-    x_test, y_test = create_data(test_data2d, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                 mon_ratio=mon_ratio, eps=train_data2d.mean())
-
-    if not os.path.exists(config['data']['dataset_dir']):
-        os.makedirs(config['data']['dataset_dir'])
-
-    for cat in ["train", "val", "test"]:
-        _x, _y = locals()["x_" + cat], locals()["y_" + cat]
-        print(cat, "x: ", _x.shape, "y:", _y.shape)
-        np.savez_compressed(
-            os.path.join(config['data']['dataset_dir'], "%s.npz" % cat),
-            x=_x,
-            y=_y,
-        )
-
-    if not os.path.isfile(config['data']['graph_pkl_filename'] + '.npy'):
-        adj_mx = get_corr_matrix(train_data2d, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx >= adj_mx.mean()] = 1.0
-        adj_mx[adj_mx < adj_mx.mean()] = 0.0
-
-        np.save(config['data']['graph_pkl_filename'],
-                adj_mx)
-
-
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                        raw_dataset_dir, day_size, dataset_dir, batch_size, test_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
@@ -365,6 +306,13 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     if np.any(np.isnan(data['test_loader'].ys)):
         print("NAN")
         raise ValueError
+
+    adj_mx = get_corr_matrix(train_data2d, seq_len)
+    adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+    adj_mx[adj_mx >= adj_mx.mean()] = 1.0
+    adj_mx[adj_mx < adj_mx.mean()] = 0.0
+
+    data['adj_mx'] = adj_mx
 
     return data
 

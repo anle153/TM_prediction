@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from Models.lstm_supervised import lstm
 from common import Config_lstm as Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_lstm_nn_data, data_scalling
+from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
@@ -194,71 +194,7 @@ def train_lstm(config, data):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)
 
-    if not Config.LSTM_VALID_TEST or \
-            not os.path.isfile(
-                lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_BEST_CHECKPOINT)):
-        if os.path.isfile(path=lstm_net.checkpoints_path + 'weights-{:02d}.hdf5'.format(Config.LSTM_N_EPOCH)):
-            lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
-
-        else:
-            print('|---Compile model. Saving path {} --- '.format(lstm_net.saving_path))
-            from_epoch = lstm_net.load_model_from_check_point()
-            # -------------------------------- Create offline training and validating dataset --------------------------
-            print('|--- Create offline train set for lstm-nn!')
-            trainX, trainY = create_offline_lstm_nn_data(train_data_normalized2d, input_shape, Config.LSTM_MON_RATIO,
-                                                         train_data_normalized2d.std())
-            print('|--- Create offline valid set for lstm-nn!')
-            validX, validY = create_offline_lstm_nn_data(valid_data_normalized2d, input_shape, Config.LSTM_MON_RATIO,
-                                                         train_data_normalized2d.std())
-            # ----------------------------------------------------------------------------------------------------------
-
-            if from_epoch > 0:
-                print('|--- Continue training.')
-                training_history = lstm_net.model.fit(x=trainX,
-                                                      y=trainY,
-                                                      batch_size=Config.LSTM_BATCH_SIZE,
-                                                      epochs=Config.LSTM_N_EPOCH,
-                                                      callbacks=lstm_net.callbacks_list,
-                                                      validation_data=(validX, validY),
-                                                      shuffle=True,
-                                                      initial_epoch=from_epoch,
-                                                      verbose=2)
-            else:
-                print('|--- Training new model.')
-
-                training_history = lstm_net.model.fit(x=trainX,
-                                                      y=trainY,
-                                                      batch_size=Config.LSTM_BATCH_SIZE,
-                                                      epochs=Config.LSTM_N_EPOCH,
-                                                      callbacks=lstm_net.callbacks_list,
-                                                      validation_data=(validX, validY),
-                                                      shuffle=True,
-                                                      verbose=2)
-
-            if training_history is not None:
-                lstm_net.plot_training_history(training_history)
-                lstm_net.save_model_history(training_history)
-
-    else:
-        lstm_net.load_model_from_check_point(_from_epoch=Config.LSTM_BEST_CHECKPOINT)
-    print(lstm_net.model.summary())
-
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-                                                                      Config.ALG, Config.TAG, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-                                                                Config.ALG, Config.TAG, Config.SCALER))
-
-    results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
-                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
-                                            'rmse_ims'])
-
-    results_summary = run_test(valid_data2d, valid_data_normalized2d, lstm_net, scalers, results_summary)
-
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/Valid_results_{}.csv'.format(Config.DATA_NAME,
-                                                                     Config.ALG, Config.TAG, Config.SCALER,
-                                                                     Config.LSTM_FLOW_SELECTION),
-                           index=False)
+    lstm_net.train()
 
     return
 

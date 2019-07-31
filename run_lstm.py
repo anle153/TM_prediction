@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import yaml
 
-from algs.lstm_nn import train_lstm, test_lstm
+from algs.lstm import train_lstm, test_lstm
 
 
 def print_lstm_info(config):

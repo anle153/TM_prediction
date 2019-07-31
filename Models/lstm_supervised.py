@@ -35,7 +35,7 @@ class lstm(AbstractModel):
 
         self.model = None
 
-        self._data = utils.load_dataset_fwbw_lstm(**self._data_kwargs)
+        self._data = utils.load_dataset_lstm(**self._data_kwargs)
 
     def normal_model_contruction(self):
         """

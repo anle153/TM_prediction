@@ -353,9 +353,6 @@ def train_fwbw_lstm(config, data):
 
     fwbw_net.train()
 
-    # Plot the training history
-    if config['train']['continue_train']:
-        fwbw_net.load(config['train']['model_filename'])
     # --------------------------------------------------------------------------------------------------------------
 
     if not os.path.exists(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],

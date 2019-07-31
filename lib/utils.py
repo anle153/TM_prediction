@@ -394,6 +394,77 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
+def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+    data_x = np.zeros(((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim))
+    data_y = np.zeros(((data.shape[0] - seq_len) * data.shape[1], seq_len, 1))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(_data.shape[0] - seq_len):
+            _x = _data[idx: (idx + seq_len), flow]
+            _label = _labels[idx: (idx + seq_len), flow]
+
+            data_x[i, :, 0] = _x
+            data_x[i, :, 1] = _label
+
+            _y = data[(idx + 1):(idx + seq_len + 1), flow]
+
+            data_y[i] = np.array(_y).reshape((seq_len, 1))
+
+            i += 1
+
+    return data_x, data_y
+
+
+def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
+                      raw_dataset_dir, dataset_dir, day_size, batch_size, test_batch_size=None, **kwargs):
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    # Convert traffic volume from byte to mega-byte
+    raw_data = raw_data
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * 0.2)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+
+    print('|--- Normalizing the train set.')
+    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    train_data2d_norm = scaler.transform(train_data2d)
+    valid_data2d_norm = scaler.transform(valid_data2d)
+    test_data2d_norm = scaler.transform(test_data2d)
+
+    x_train, y_train = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_val, y_val = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_test, y_test = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                      mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    data = {}
+
+    for cat in ["train", "val", "test"]:
+        _x, _y = locals()["x_" + cat], locals()["y_" + cat]
+
+        data['x_' + cat][..., 0] = _x
+        data['y_' + cat][..., 0] = _y
+    # data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+    # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
+    # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
+    data['scaler'] = scaler
+
+    return data
+
+
 def load_graph_data(pkl_filename):
     sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(pkl_filename)
     return sensor_ids, sensor_id_to_ind, adj_mx

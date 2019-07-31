@@ -537,6 +537,7 @@ class DCRNNSupervisor(object):
         config['train']['log_dir'] = self._log_dir
         config['train']['model_filename'] = self._saver.save(sess, prefix, global_step=global_step,
                                                              write_meta_graph=False)
+        config['model'] = 'test'
         config_filename = 'config_{}.yaml'.format(self._epoch)
         with open(os.path.join(self._log_dir, config_filename), 'w') as f:
             yaml.dump(config, f, default_flow_style=False)

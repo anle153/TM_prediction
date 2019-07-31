@@ -33,7 +33,7 @@ def print_dgc_lstm_info(mode, config):
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
 
-    if config['mode'] == 'train':
+    if mode == 'train':
         print('----------------------- TRAIN -----------------------')
         print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
         print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
@@ -43,7 +43,7 @@ def print_dgc_lstm_info(mode, config):
         print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
         print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
 
-    if config['mode'] == 'test':
+    if mode == 'test':
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))

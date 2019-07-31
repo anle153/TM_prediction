@@ -240,7 +240,7 @@ def get_corr_matrix(data, seq_len):
 
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
-                       raw_dataset_dir, day_size, dataset_dir, batch_size, test_batch_size=None, **kwargs):
+                       raw_dataset_dir, data_size, day_size, dataset_dir, batch_size, test_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -249,7 +249,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 
     raw_data = raw_data.astype("float32")
 
-    raw_data = raw_data[:int(raw_data.shape[0] * 0.2)]
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
@@ -351,7 +351,8 @@ def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
 
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
-                           raw_dataset_dir, dataset_dir, day_size, batch_size, test_batch_size=None, **kwargs):
+                           raw_dataset_dir, dataset_dir, day_size, data_size,
+                           batch_size, test_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -360,7 +361,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
 
     raw_data = raw_data.astype("float32")
 
-    raw_data = raw_data[:int(raw_data.shape[0] * 0.2)]
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
@@ -423,7 +424,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
-                      raw_dataset_dir, dataset_dir, day_size, batch_size, test_batch_size=None, **kwargs):
+                      raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, test_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -432,7 +433,7 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
 
     raw_data = raw_data.astype("float32")
 
-    raw_data = raw_data[:int(raw_data.shape[0] * 0.2)]
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
 
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)

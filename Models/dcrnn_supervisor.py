@@ -9,6 +9,7 @@ import time
 import numpy as np
 import tensorflow as tf
 import yaml
+from tqdm import tqdm
 
 from Models.dcrnn_model import DCRNNModel
 from lib import utils, metrics
@@ -36,11 +37,19 @@ class DCRNNSupervisor(object):
         self._writer = tf.summary.FileWriter(self._log_dir)
         self._logger.info(kwargs)
 
+        self._mon_ratio = float(self._kwargs.get('mon_ratio'))
+
+        # Model's args
+        self._seq_len = int(self._model_kwargs.get('seq_len'))
+        self._horizon = int(self._model_kwargs.get('horizon'))
+        self._input_dim = int(self._model_kwargs.get('input_dim'))
+        self._nodes = int(self._model_kwargs.get('num_nodes'))
+
         # Data preparation
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
                                               horizon=self._model_kwargs.get('horizon'),
                                               input_dim=self._model_kwargs.get('input_dim'),
-                                              mon_ratio=self._kwargs.get('mon_ratio'),
+                                              mon_ratio=self._mon_ratio,
                                               **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -179,7 +188,35 @@ class DCRNNSupervisor(object):
             results['outputs'] = outputs
         return results
 
-    def run_tm_prediction(self, sess, model, data_generator, return_output=True, training=False, writer=None):
+    def _prepare_input_online_prediction(self, ground_truth, data, labels):
+
+        x = np.zeros(shape=(1, self._seq_len, self._nodes, self._input_dim))
+        y = np.zeros(shape=(1, self._horizon, self._nodes, 1))
+
+        x[0, :, :, 0] = data[-self._seq_len:]
+        x[0, :, :, 1] = labels[-self._seq_len:]
+
+        y[0, :, :, 0] = ground_truth[-self._horizon:]
+
+        return x, y
+
+    def run_tm_prediction(self, sess, model, data, return_output=True, training=False, writer=None):
+
+        init_data = data[0]
+        test_data = data[1]
+
+        # Initialize traffic matrix data
+        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        tm_pred[0:init_data.shape[0]] = init_data
+
+        # Initialize predicted_traffic matrice
+        predicted_tm = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        predicted_tm[0:init_data.shape[0]] = init_data
+
+        # Initialize measurement matrix
+        labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
+
         losses = []
         mses = []
         outputs = []
@@ -205,7 +242,12 @@ class DCRNNSupervisor(object):
                 'outputs': model.outputs
             })
 
-        for _, (x, y) in enumerate(data_generator):
+        for ts in tqdm(range(test_data.shape[0] - self._horizon)):
+
+            x, y = self._prepare_input_online_prediction(ground_truth=test_data[ts + 1:ts + 1 + self._horizon],
+                                                         data=tm_pred[ts:ts + self._seq_len],
+                                                         labels=labels[ts:ts + self._seq_len])
+
             feed_dict = {
                 model.inputs: x,
                 model.labels: y,
@@ -217,8 +259,8 @@ class DCRNNSupervisor(object):
             mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
-            if return_output:
-                outputs.append(vals['outputs'])
+
+            outputs.append(vals['outputs'])
 
         results = {
             'loss': np.mean(losses),
@@ -313,72 +355,70 @@ class DCRNNSupervisor(object):
             sys.stdout.flush()
         return np.min(history)
 
-    def _test(self, sess, result_path, run_times, flow_selection, r, lamda_0, lamda_1, **train_kwargs):
-        history = []
-        min_val_loss = float('inf')
-        wait = 0
+    def prepare_test_set(self, test_data2d, test_data_normalized2d):
 
-        max_to_keep = train_kwargs.get('max_to_keep', 100)
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
-        model_filename = train_kwargs.get('model_filename')
-        continue_train = train_kwargs.get('continue_train')
-        if continue_train is True and model_filename is not None:
-            saver.restore(sess, model_filename)
-            self._epoch = epoch + 1
-        else:
-            sess.run(tf.global_variables_initializer())
-        self._logger.info('Start training ...')
+        day_size = self._data_kwargs.get('day_size')
+        seq_len = self._model_kwargs.get('seq_len')
 
-        while self._epoch <= epochs:
-            # Learning rate schedule.
-            new_lr = max(min_learning_rate, base_lr * (lr_decay_ratio ** np.sum(self._epoch >= np.array(steps))))
-            self.set_lr(sess=sess, lr=new_lr)
+        idx = test_data2d.shape[0] - day_size * 5 - 10
 
-            start_time = time.time()
-            train_results = self.run_epoch_generator(sess, self._train_model,
-                                                     self._data['train_loader'].get_iterator(),
-                                                     training=True,
-                                                     writer=self._writer)
-            train_loss, train_mse = train_results['loss'], train_results['mse']
-            # if train_loss > 1e5:
-            #     self._logger.warning('Gradient explosion detected. Ending...')
-            #     break
+        test_data_normalize = np.copy(test_data_normalized2d[idx:idx + day_size * 5])
+        init_data_normalize = np.copy(test_data_normalized2d[idx - seq_len: idx])
+        test_data = test_data2d[idx:idx + day_size * 5]
 
-            global_step = sess.run(tf.train.get_or_create_global_step())
-            # Compute validation error.
-            val_results = self.run_epoch_generator(sess, self._test_model,
-                                                   self._data['val_loader'].get_iterator(),
-                                                   training=False)
-            val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()
+        return test_data_normalize, init_data_normalize, test_data
 
-            utils.add_simple_summary(self._writer,
-                                     ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
-                                     [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
-            end_time = time.time()
-            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f} lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
-            self._logger.info(message)
-            if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
-                self.evaluate(sess)
-            if val_loss <= min_val_loss:
-                wait = 0
-                if save_model > 0:
-                    model_filename = self.save(sess, val_loss)
+    def _test(self, sess, test_data, test_data_normalized, result_path, run_times, flow_selection, r, lamda_0, lamda_1,
+              **train_kwargs):
+
+        global_step = sess.run(tf.train.get_or_create_global_step())
+        mape, r2_score, rmse = [], [], []
+        mape_ims, r2_score_ims, rmse_ims = [], [], []
+
+        for i in range(run_times):
+            print('|--- Running time: {}'.format(i))
+            test_data_normalize, init_data_normalize, test_data = self.prepare_test_set(test_data,
+                                                                                        test_data_normalized)
+
+            test_results = self.run_tm_prediction(sess,
+                                                  model=self._test_model,
+                                                  data=(init_data_normalize, test_data_normalize),
+                                                  return_output=True,
+                                                  training=False)
+
+            # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
+            test_loss, y_preds = test_results['loss'], test_results['outputs']
+            utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
+
+            y_preds = np.concatenate(y_preds, axis=0)
+            scaler = self._data['scaler']
+            predictions = []
+            y_truths = []
+            for horizon_i in range(self._data['y_test'].shape[1]):
+                y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :, 0])
+                y_truths.append(y_truth)
+
+                y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])
+                predictions.append(y_pred)
+
+                mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
+                mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
+                rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
                 self._logger.info(
-                    'Val loss decrease from %.4f to %.4f, saving to %s' % (min_val_loss, val_loss, model_filename))
-                min_val_loss = val_loss
-            else:
-                wait += 1
-                if wait > patience:
-                    self._logger.warning('Early stopping at epoch: %d' % self._epoch)
-                    break
-
-            history.append(val_mse)
-            # Increases epoch.
-            self._epoch += 1
-
-            sys.stdout.flush()
-        return np.min(history)
+                    "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
+                        horizon_i + 1, mse, mape, rmse
+                    )
+                )
+                utils.add_simple_summary(self._writer,
+                                         ['%s_%d' % (item, horizon_i + 1) for item in
+                                          ['metric/rmse', 'metric/mape', 'metric/mse']],
+                                         [rmse, mape, mse],
+                                         global_step=global_step)
+            outputs = {
+                'predictions': predictions,
+                'groundtruth': y_truths
+            }
+        return outputs
 
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())

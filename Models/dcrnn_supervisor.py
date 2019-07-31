@@ -340,9 +340,9 @@ class DCRNNSupervisor(object):
         kwargs.update(self._train_kwargs)
         return self._train(sess, **kwargs)
 
-    def test(self, sess, test_data, test_data_normalized, **kwargs):
+    def test(self, sess, **kwargs):
         kwargs.update(self._test_kwargs)
-        return self._test(sess, test_data, test_data_normalized, **kwargs)
+        return self._test(sess, **kwargs)
 
     def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
                min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,

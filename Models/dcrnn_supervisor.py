@@ -426,13 +426,13 @@ class DCRNNSupervisor(object):
 
         return test_data_normalize, init_data_normalize, test_data
 
-    def _test(self, sess, run_times, **kwargs):
+    def _test(self, sess, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
         mape, r2_score, rmse = [], [], []
         mape_ims, r2_score_ims, rmse_ims = [], [], []
 
-        for i in range(run_times):
+        for i in range(self._test_kwargs.get('run_times')):
             print('|--- Running time: {}'.format(i))
             test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
 

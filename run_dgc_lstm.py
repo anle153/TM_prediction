@@ -11,10 +11,10 @@ CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
 CONFIG_FILE = 'config_dgc_lstm.yaml'
 
 
-def print_dgc_lstm_info(config):
+def print_dgc_lstm_info(mode, config):
     print('----------------------- INFO -----------------------')
 
-    print('|--- MODE:\t{}'.format(config['mode']))
+    print('|--- MODE:\t{}'.format(mode))
     print('|--- ALG:\t{}'.format(config['alg']))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         'graph_pkl_filename'] or seq_len not in config['train']['log_dir']:
         raise AttributeError('Check data path!')
 
-    print_dgc_lstm_info(config)
+    print_dgc_lstm_info(args.mode, config)
     if args.mode == 'train':
         train_dgc_lstm(config)
     else:

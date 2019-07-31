@@ -4,7 +4,6 @@ base_dir: data/model
 log_level: INFO
 gpu: 0
 mon_ratio: 0.3
-mode: test
 data:
   batch_size: 64
   raw_dataset_dir: Dataset/Abilene2d.npy
@@ -53,3 +52,5 @@ train:
   continue_train: False
 test:
   results_path: results/dgclstm-abilene/models-5087771.0000-22725.data-00000-of-00001/results
+  run_times: 50
+  flow_selection: Random

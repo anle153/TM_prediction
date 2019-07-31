@@ -57,7 +57,7 @@ def print_fwbw_lstm_info(config):
         raise RuntimeError('Information is not correct!')
 
 
-def create_data(data, seq_len, input_dim, mon_ratio, eps):
+def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf,
@@ -90,7 +90,6 @@ def create_data(data, seq_len, input_dim, mon_ratio, eps):
     return data_x, data_y_1, data_y_2
 
 
-
 def generate_data(config):
     data = np.load(config['data']['raw_dataset_dir'])
     data[data <= 0] = 0.1
@@ -121,12 +120,12 @@ def generate_data(config):
     # valid_data2d_norm = scaler.transform(valid_data2d)
     # test_data2d_norm = scaler.transform(test_data2d)
 
-    x_train, y_train_1, y_train_2 = create_data(train_data2d, seq_len=seq_len, input_dim=input_dim,
-                                   mon_ratio=mon_ratio, eps=train_data2d.mean())
-    x_val, y_val_1, y_val_2= create_data(valid_data2d, seq_len=seq_len, input_dim=input_dim,
-                               mon_ratio=mon_ratio, eps=train_data2d.mean())
-    x_test, y_test_1, y_test_2 = create_data(test_data2d, seq_len=seq_len, input_dim=input_dim,
-                                 mon_ratio=mon_ratio, eps=train_data2d.mean())
+    x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data2d, seq_len=seq_len, input_dim=input_dim,
+                                                          mon_ratio=mon_ratio, eps=train_data2d.mean())
+    x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data2d, seq_len=seq_len, input_dim=input_dim,
+                                                    mon_ratio=mon_ratio, eps=train_data2d.mean())
+    x_test, y_test_1, y_test_2 = create_data_fwbw_lstm(test_data2d, seq_len=seq_len, input_dim=input_dim,
+                                                       mon_ratio=mon_ratio, eps=train_data2d.mean())
 
     if not os.path.exists(config['data']['dataset_dir']):
         os.makedirs(config['data']['dataset_dir'])

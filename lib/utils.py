@@ -313,6 +313,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     adj_mx[adj_mx >= adj_mx.mean()] = 1.0
     adj_mx[adj_mx < adj_mx.mean()] = 0.0
 
+    adj_mx = adj_mx.astype('float32')
+
     data['adj_mx'] = adj_mx
 
     return data

@@ -175,6 +175,21 @@ def get_total_trainable_parameter_size():
     return total_parameters
 
 
+def prepare_train_valid_test_2d(data, day_size):
+    n_timeslots = data.shape[0]
+    n_days = n_timeslots / day_size
+
+    train_size = int(n_days * 0.6)
+
+    valid_size = int(n_days * 0.2)
+
+    train_set = data[0:train_size * day_size, :]
+    valid_set = data[train_size * day_size:(train_size * day_size + valid_size * day_size), :]
+    test_set = data[(train_size * day_size + valid_size * day_size):, :]
+
+    return train_set, valid_set, test_set
+
+
 def load_dataset(dataset_dir, batch_size, test_batch_size=None, **kwargs):
     data = {}
     for category in ['train', 'val', 'test']:
@@ -219,20 +234,74 @@ def load_dataset(dataset_dir, batch_size, test_batch_size=None, **kwargs):
     return data
 
 
-def load_dataset_fwbw_lstm(dataset_dir, batch_size, test_batch_size=None, **kwargs):
+def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf,
+                               size=data.shape,
+                               p=(mon_ratio, 1 - mon_ratio))
+    data_x = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, input_dim))
+    data_y_1 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, 1))
+    data_y_2 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len))
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(1, _data.shape[0] - seq_len):
+            _x = _data[idx: (idx + seq_len), flow]
+            _label = _labels[idx: (idx + seq_len), flow]
+
+            data_x[i, :, 0] = _x
+            data_x[i, :, 1] = _label
+
+            _y_1 = data[(idx + 1):(idx + seq_len + 1), flow]
+            _y_2 = data[(idx - 1):(idx + seq_len - 1), flow]
+
+            data_y_1[i] = np.reshape(_y_1, newshape=(seq_len, 1))
+            data_y_2[i] = _y_2
+            i += 1
+
+    return data_x, data_y_1, data_y_2
+
+
+def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
+                           raw_dataset_dir, dataset_dir, day_size, batch_size, test_batch_size=None, **kwargs):
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    # Convert traffic volume from byte to mega-byte
+    raw_data = raw_data
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * 0.2)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+
+    print('|--- Normalizing the train set.')
+    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    train_data2d_norm = scaler.transform(train_data2d)
+    valid_data2d_norm = scaler.transform(valid_data2d)
+    test_data2d_norm = scaler.transform(test_data2d)
+
+    x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data2d, seq_len=seq_len, input_dim=input_dim,
+                                                          mon_ratio=mon_ratio, eps=train_data2d.mean())
+    x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data2d, seq_len=seq_len, input_dim=input_dim,
+                                                    mon_ratio=mon_ratio, eps=train_data2d.mean())
+    x_test, y_test_1, y_test_2 = create_data_fwbw_lstm(test_data2d, seq_len=seq_len, input_dim=input_dim,
+                                                       mon_ratio=mon_ratio, eps=train_data2d.mean())
     data = {}
-    print(dataset_dir)
-    for category in ['train', 'val', 'test']:
-        cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
-        data['x_' + category] = cat_data['x']
-        data['y_' + category + '_1'] = cat_data['y_1']
-        data['y_' + category + '_2'] = cat_data['y_2']
-    scaler = StandardScaler(mean=data['x_train'][..., 0].mean(), std=data['x_train'][..., 0].std())
-    # Data format
-    for category in ['train', 'val', 'test']:
-        data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
-        data['y_' + category+ '_1'][..., 0] = scaler.transform(data['y_' + category+ '_1'][..., 0])
-        data['y_' + category+ '_2'][..., 0] = scaler.transform(data['y_' + category+ '_2'][..., 0])
+
+    for cat in ["train", "val", "test"]:
+        _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
+
+        data['x_' + cat][..., 0] = _x
+        data['y_' + cat + '_1'][..., 0] = _y_1
+        data['y_' + cat + '_2'][..., 0] = _y_2
     # data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
     # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
     # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)

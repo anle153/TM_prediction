@@ -245,7 +245,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     raw_data[raw_data <= 0] = 0.1
 
     # Convert traffic volume from byte to mega-byte
-    raw_data = raw_data
+    # raw_data = raw_data / 1000000
 
     raw_data = raw_data.astype("float32")
 
@@ -272,8 +272,6 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     for category in ['train', 'val', 'test']:
         _x, _y = locals()["x_" + category], locals()["y_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape)
-
-        cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
         data['x_' + category] = _x
         data['y_' + category] = _y
     # Data format

@@ -7,7 +7,7 @@ from sklearn.preprocessing import PowerTransformer
 from tqdm import tqdm
 
 from Models.fwbw_lstm_supervised import FwbwLstmRegression
-from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_lstm
+from common.DataPreprocessing import prepare_train_valid_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 config_gpu = tf.ConfigProto()
@@ -344,13 +344,10 @@ def load_trained_models(config):
 def train_fwbw_lstm(config, data):
     print('|-- Run model training fwbw_lstm.')
 
-    day_size = config['data']['day_size']
-
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         fwbw_net = build_model(config)
 
     # --------------------------------------------Training fw model-------------------------------------------------
-
 
     # Load model check point
 

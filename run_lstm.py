@@ -1,43 +1,52 @@
+import argparse
+import os
+import sys
+
 import numpy as np
+import yaml
 
-from algs.lstm_nn import train_lstm_nn, test_lstm_nn
-from common import Config_lstm as Config
+from algs.lstm_nn import train_lstm, test_lstm
 
 
-def print_lstm_info():
+def print_lstm_info(config):
     print('----------------------- INFO -----------------------')
-    if not Config.ALL_DATA:
-        print('|--- Train/Test with {}d of data'.format(Config.NUM_DAYS))
-    else:
-        print('|--- Train/Test with ALL of data'.format(Config.NUM_DAYS))
-    print('|--- MODE:\t{}'.format(Config.RUN_MODE))
-    print('|--- ALG:\t{}'.format(Config.ALG))
-    print('|--- TAG:\t{}'.format(Config.TAG))
-    print('|--- DATA:\t{}'.format(Config.DATA_NAME))
-    print('|--- GPU:\t{}'.format(Config.GPU))
 
-    print('|--- MON_RATIO:\t{}'.format(Config.LSTM_MON_RATIO))
-    print('            -----------            ')
-    if Config.LSTM_IMS:
-        print('|--- IMS_STEP:\t{}'.format(Config.LSTM_IMS_STEP))
+    print('|--- MODE:\t{}'.format(config['mode']))
+    print('|--- ALG:\t{}'.format(config['alg']))
+    print('|--- DATA:\t{}'.format(config['data']['data_name']))
+    print('|--- GPU:\t{}'.format(config['gpu']))
+    print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
-    print('|--- LSTM_DEEP:\t{}'.format(Config.LSTM_DEEP))
-    if Config.LSTM_DEEP:
-        print('|--- LSTM_DEEP_NLAYERS:\t{}'.format(Config.LSTM_DEEP_NLAYERS))
-    print('|--- LSTM_DROPOUT:\t{}'.format(Config.LSTM_DROPOUT))
-    print('|--- LSTM_HIDDEN_UNIT:\t{}'.format(Config.LSTM_HIDDEN_UNIT))
+    print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
+    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
 
-    print('|--- FLOW_SELECTION:\t{}'.format(Config.LSTM_FLOW_SELECTION))
+    print('----------------------- MODEL -----------------------')
 
-    if Config.RUN_MODE == Config.RUN_MODES[0]:
-        print('|--- N_EPOCH:\t{}'.format(Config.LSTM_N_EPOCH))
-        print('|--- BATCH_SIZE:\t{}'.format(Config.LSTM_BATCH_SIZE))
-        print('|--- LSTM_STEP:\t{}'.format(Config.LSTM_STEP))
-    elif Config.RUN_MODE == Config.RUN_MODES[1]:
-        print('|--- TESTING_TIME:\t{}'.format(Config.LSTM_TESTING_TIME))
-        print('|--- BEST_CHECKPOINT:\t{}'.format(Config.LSTM_BEST_CHECKPOINT))
-    else:
-        raise Exception('Unknown RUN_MODE!')
+    print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))
+    print('|--- HORIZON:\t{}'.format(config['model']['horizon']))
+    print('|--- INPUT_DIM:\t{}'.format(config['model']['input_dim']))
+    print('|--- NUM_NODES:\t{}'.format(config['model']['num_nodes']))
+    print('|--- NUM_RNN_LAYERS:\t{}'.format(config['model']['num_rnn_layers']))
+    print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
+    print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
+
+    if config['mode'] == 'train':
+        print('----------------------- TRAIN -----------------------')
+        print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
+        print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
+        print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
+        print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
+        print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
+        print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
+        print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
+
+    if config['mode'] == 'test':
+        print('----------------------- TEST -----------------------')
+        print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
+        print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
+        print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
+        print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
+
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
     if infor_correct != 'y' and infor_correct != 'yes':
@@ -45,10 +54,28 @@ def print_lstm_info():
 
 
 if __name__ == '__main__':
-    data = np.load(Config.DATA_PATH + '{}.npy'.format(Config.DATA_NAME))
-    print_lstm_info()
+    sys.path.append(os.getcwd())
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
+    parser.add_argument('--config_file', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+                        help='Config file for pretrained model.')
+    parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
+    args = parser.parse_args()
 
-    if Config.RUN_MODE == Config.RUN_MODES[0]:
-        train_lstm_nn(data)
+    with open(args.config_file) as f:
+        config = yaml.load(f)
+
+    seq_len = str(config['model']['seq_len'])
+
+    if seq_len not in config['data']['dataset_dir'] or seq_len not in config['data'][
+        'graph_pkl_filename'] or seq_len not in config['train']['log_dir']:
+        raise AttributeError('Check data path!')
+
+    data = np.load(config['data']['raw_dataset_dir'])
+
+    print_lstm_info(config)
+
+    if config['mode'] == 'train':
+        train_lstm(config, data)
     else:
-        test_lstm_nn(data)
+        test_lstm(config, data)

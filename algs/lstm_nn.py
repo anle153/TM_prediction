@@ -5,7 +5,7 @@ import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 
-from Models.RNN_LSTM import lstm
+from Models.lstm_supervised import lstm
 from common import Config_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_lstm_nn_data, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
@@ -171,15 +171,10 @@ def predict_lstm_nn(init_data, test_data, model):
     return tm_pred[Config.LSTM_STEP:, :], labels[Config.LSTM_STEP:, :], ims_tm
 
 
-def build_model(input_shape):
+def build_model(config):
     print('|--- Build models.')
 
-    net = lstm(input_shape=input_shape,
-               hidden=Config.LSTM_HIDDEN_UNIT,
-               drop_out=Config.LSTM_DROPOUT,
-               alg_name=Config.ALG, tag=Config.TAG, check_point=True,
-               saving_path=Config.MODEL_SAVE + '{}-{}-{}-{}/'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                                     Config.SCALER))
+    net = lstm(**config)
 
     if Config.LSTM_DEEP:
         net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
@@ -193,25 +188,11 @@ def build_model(input_shape):
     return net
 
 
-def train_lstm_nn(data):
+def train_lstm(config, data):
     print('|-- Run model training.')
 
-    if Config.DATA_NAME == Config.DATA_SETS[0]:
-        day_size = Config.ABILENE_DAY_SIZE
-    else:
-        day_size = Config.GEANT_DAY_SIZE
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
-    print('|--- Normalizing the train set.')
-    train_data_normalized2d, valid_data_normalized2d, _, scalers = data_scalling(train_data2d,
-                                                                                 valid_data2d,
-                                                                                 test_data2d)
-
-    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
-
-    with tf.device('/device:GPU:{}'.format(Config.GPU)):
-        lstm_net = build_model(input_shape)
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        lstm_net = build_model(config)
 
     if not Config.LSTM_VALID_TEST or \
             not os.path.isfile(
@@ -299,7 +280,7 @@ def load_trained_model(input_shape, best_ckp):
     return lstm_net
 
 
-def test_lstm_nn(data):
+def test_lstm(config, data):
     print('|-- Run model testing.')
 
     if Config.DATA_NAME == Config.DATA_SETS[0]:

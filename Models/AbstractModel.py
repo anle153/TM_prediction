@@ -2,10 +2,7 @@ import os
 import time
 
 import keras.callbacks as keras_callbacks
-import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.models import model_from_json
-
 
 
 class AbstractModel(object):
@@ -40,7 +37,6 @@ class AbstractModel(object):
 
         self.time_callback = TimeHistory()
         self.callbacks_list.append(self.time_callback)
-
 
     def plot_training_history(self, model_history):
         pass

@@ -5,13 +5,13 @@ import sys
 import numpy as np
 import yaml
 
-from algs.lstm import train_lstm, test_lstm
+from algs.lstm import train_lstm, test_lstm, evaluate_lstm
 
 
-def print_lstm_info(config):
+def print_lstm_info(mode, config):
     print('----------------------- INFO -----------------------')
 
-    print('|--- MODE:\t{}'.format(config['mode']))
+    print('|--- MODE:\t{}'.format(mode))
     print('|--- ALG:\t{}'.format(config['alg']))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
@@ -30,7 +30,7 @@ def print_lstm_info(config):
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
 
-    if config['mode'] == 'train':
+    if mode == 'train':
         print('----------------------- TRAIN -----------------------')
         print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
         print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
@@ -40,7 +40,7 @@ def print_lstm_info(config):
         print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
         print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
 
-    if config['mode'] == 'test':
+    else:
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
@@ -59,6 +59,8 @@ if __name__ == '__main__':
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
     parser.add_argument('--config_file', default='data/model/pretrained/METR-LA/config.yaml', type=str,
                         help='Config file for pretrained model.')
+    parser.add_argument('--mode', default='train', type=str,
+                        help='Run mode.')
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
@@ -73,9 +75,11 @@ if __name__ == '__main__':
 
     data = np.load(config['data']['raw_dataset_dir'])
 
-    print_lstm_info(config)
+    print_lstm_info(args.mode, config)
 
-    if config['mode'] == 'train':
-        train_lstm(config, data)
+    if args.mode == 'train':
+        train_lstm(config)
+    elif args.mode == 'evaluate':
+        evaluate_lstm(config)
     else:
-        test_lstm(config, data)
+        test_lstm(config)

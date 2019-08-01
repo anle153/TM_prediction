@@ -231,14 +231,9 @@ class lstm(AbstractModel):
         rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
         self._logger.info(
             "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                horizon_i + 1, mse, mape, rmse
+                1, mse, mape, rmse
             )
         )
-        utils.add_simple_summary(self._writer,
-                                 ['%s_%d' % (item, horizon_i + 1) for item in
-                                  ['metric/rmse', 'metric/mape', 'metric/mse']],
-                                 [rmse, mape, mse],
-                                 global_step=global_step)
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

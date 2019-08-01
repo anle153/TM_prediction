@@ -1,13 +1,9 @@
-import os
-
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 
 from Models.lstm_supervised import lstm
 from common import Config_lstm as Config
-from common.DataPreprocessing import prepare_train_valid_test_2d, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
 config = tf.ConfigProto()
@@ -188,7 +184,7 @@ def build_model(config):
     return net
 
 
-def train_lstm(config, data):
+def train_lstm(config):
     print('|-- Run model training.')
 
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
@@ -216,53 +212,7 @@ def load_trained_model(input_shape, best_ckp):
     return lstm_net
 
 
-def test_lstm(config, data):
-    print('|-- Run model testing.')
-
-    if Config.DATA_NAME == Config.DATA_SETS[0]:
-        day_size = Config.ABILENE_DAY_SIZE
-    else:
-        day_size = Config.GEANT_DAY_SIZE
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
-    if Config.DATA_NAME == Config.DATA_SETS[0]:
-        print('|--- Remove last 3 days in test data.')
-        test_data2d = test_data2d[0:-day_size * 3]
-
-    print('|--- Normalizing the train set.')
-    _, _, test_data_normalized2d, scalers = data_scalling(train_data2d,
-                                                          valid_data2d,
-                                                          test_data2d)
-
-    print("|--- Create LSTM model.")
-    input_shape = (Config.LSTM_STEP, Config.LSTM_FEATURES)
-
-    with tf.device('/device:GPU:{}'.format(Config.GPU)):
-
-        lstm_net = load_trained_model(input_shape, Config.LSTM_BEST_CHECKPOINT)
-
-    if not os.path.exists(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-                                                                      Config.ALG, Config.TAG, Config.SCALER)):
-        os.makedirs(Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-                                                                Config.ALG, Config.TAG, Config.SCALER))
-
-    results_summary = pd.DataFrame(index=range(Config.LSTM_TESTING_TIME),
-                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
-                                            'rmse_ims'])
-
-    results_summary = run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_summary)
-
-    if Config.LSTM_IMS:
-        result_file_name = 'Test_results_ims_{}_{}.csv'.format(Config.LSTM_IMS_STEP, Config.LSTM_FLOW_SELECTION)
-    else:
-        result_file_name = 'Test_results_{}.csv'.format(Config.LSTM_FLOW_SELECTION)
-
-    results_summary.to_csv(Config.RESULTS_PATH +
-                           '{}-{}-{}-{}/{}'.format(Config.DATA_NAME, Config.ALG, Config.TAG,
-                                                   Config.SCALER, result_file_name),
-                           index=False)
-
+def test_lstm(config):
     return
 
 
@@ -355,3 +305,10 @@ def run_test(test_data2d, test_data_normalized2d, lstm_net, scalers, results_sum
                                                            np.mean(np.array(rmse)),
                                                            np.mean(np.array(r2_score))))
     return results_summary
+
+
+def evaluate_lstm(config):
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        lstm_net = build_model(config)
+        lstm_net.load()
+        lstm_net.evaluate()

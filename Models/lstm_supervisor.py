@@ -262,7 +262,7 @@ class lstm(AbstractModel):
 
         return test_data_normalize, init_data_normalize, test_data
 
-    def _prepare_input_online_prediction(self, ground_truth, data, m_indicator):
+    def _prepare_input_online_prediction(self, data, m_indicator):
 
         x = np.zeros(shape=(1, self._seq_len, self._nodes, self._input_dim))
         y = np.zeros(shape=(1, 1, self._nodes, 1))
@@ -270,9 +270,7 @@ class lstm(AbstractModel):
         x[0, :, :, 0] = data[-self._seq_len:]
         x[0, :, :, 1] = m_indicator[-self._seq_len:]
 
-        y[0, :, :, 0] = ground_truth[-1:]
-
-        return x, y
+        return x
 
     def _set_measured_flow_fairness(self, m_indicator):
         """
@@ -318,20 +316,20 @@ class lstm(AbstractModel):
         consecutive_losses = np.asarray(consecutive_losses)
         return consecutive_losses
 
-    def _ims_tm_prediction(self, init_data, model, init_labels):
-        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + Config.LSTM_IMS_STEP, init_data.shape[1]))
-        multi_steps_tm[0:Config.LSTM_STEP] = init_data
+    def _ims_tm_prediction(self, init_data, init_labels):
+        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]))
+        multi_steps_tm[0:self._seq_len] = init_data
 
-        labels = np.zeros(shape=(init_labels.shape[0] + Config.LSTM_IMS_STEP, init_labels.shape[1]))
-        labels[0:Config.LSTM_STEP] = init_labels
+        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, init_labels.shape[1]))
+        m_indicator[0:self._seq_len] = init_labels
 
-        for ts_ahead in range(Config.LSTM_IMS_STEP):
-            rnn_input = prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead + Config.LSTM_STEP],
-                                                        labels=labels[ts_ahead:ts_ahead + Config.LSTM_STEP])
-            predictX = model.predict(rnn_input)
-            multi_steps_tm[ts_ahead + Config.LSTM_STEP] = predictX[:, -1, 0]
+        for ts_ahead in range(self._horizon):
+            rnn_input = self._prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead+self._seq_len],
+                                                              m_indicator=m_indicator[ts_ahead:ts_ahead+self._seq_len])
+            predictX = self.model.predict(rnn_input)
+            multi_steps_tm[ts_ahead + self._seq_len] = predictX[:, -1, 0]
 
-        return multi_steps_tm[-1, :]
+        return multi_steps_tm[-self._horizon:]
 
     def _run_tm_prediction(self, init_data, test_data):
         tf_a = np.array([1.0, 0.0])
@@ -347,25 +345,16 @@ class lstm(AbstractModel):
         y_preds = []
 
         # Predict the TM from time slot look_back
-        for ts in tqdm(range(test_data.shape[0])):
+        for ts in tqdm(range(test_data.shape[0]-self._horizon)):
             # This block is used for iterated multi-step traffic matrices prediction
-            _start = time.time()
 
-            if ts < test_data.shape[0] - self._horizon + 1:
-                ims_tm[ts] = self._ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + self._seq_len]),
-                                               init_labels=np.copy(m_indicator[ts:ts + self._seq_len]))
-
-            # Create 3D input for rnn
-            rnn_input = self._prepare_input_online_prediction(ground_truth=test_data[ts + 1:ts + 1 + 1],
-                                                              data=tm_pred[ts:ts + self._seq_len],
-                                                              m_indicator=m_indicator[ts:ts + self._seq_len])
+            predicted_tm = self._ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + self._seq_len]),
+                                           init_labels=np.copy(m_indicator[ts:ts + self._seq_len]))
 
             # Get the TM prediction of next time slot
-            predictX = self.model.predict(rnn_input)
 
-            pred = predictX[:, -1, 0]
-
-            y_preds.append(np.reshape(pred, newshape=(1, self._nodes)))
+            y_preds.append(predicted_tm)
+            pred = predicted_tm[-1, :]
 
             # Using part of current prediction as input to the next estimation
             # Randomly choose the flows which is measured (using the correct data from test_set)

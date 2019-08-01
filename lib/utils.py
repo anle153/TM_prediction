@@ -388,9 +388,9 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
     for cat in ["train", "val", "test"]:
         _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
 
-        data['x_' + cat][..., 0] = _x
-        data['y_' + cat + '_1'][..., 0] = _y_1
-        data['y_' + cat + '_2'][..., 0] = _y_2
+        data['x_' + cat] = _x
+        data['y_' + cat + '_1'] = _y_1
+        data['y_' + cat + '_2'] = _y_2
     # data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
     # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
     # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
@@ -465,8 +465,8 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
     for cat in ["train", "val", "test"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
 
-        data['x_' + cat][..., 0] = _x
-        data['y_' + cat][..., 0] = _y
+        data['x_' + cat] = _x
+        data['y_' + cat] = _y
     # data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
     # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
     # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)

@@ -264,13 +264,15 @@ class lstm(AbstractModel):
 
     def _prepare_input_online_prediction(self, data, m_indicator):
 
-        x = np.zeros(shape=(1, self._seq_len, self._nodes, self._input_dim))
-        y = np.zeros(shape=(1, 1, self._nodes, 1))
+        dataX = np.zeros(shape=(data.shape[1], self._seq_len, 2))
+        for flow_id in range(data.shape[1]):
+            x = data[-self._seq_len:, flow_id]
+            label = m_indicator[-self._seq_len:, flow_id]
 
-        x[0, :, :, 0] = data[-self._seq_len:]
-        x[0, :, :, 1] = m_indicator[-self._seq_len:]
+            sample = np.array([x, label]).T
+            dataX[flow_id] = sample
 
-        return x
+        return dataX
 
     def _set_measured_flow_fairness(self, m_indicator):
         """

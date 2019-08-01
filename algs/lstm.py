@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from Models.lstm_supervised import lstm
+from Models.lstm_supervisor import lstm
 from common import Config_lstm as Config
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
 
@@ -313,3 +313,9 @@ def evaluate_lstm(config):
         lstm_net.load()
         lstm_net.evaluate()
 
+
+def test_lstm(config):
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        lstm_net = build_model(config)
+        lstm_net.load()
+        lstm_net.test()

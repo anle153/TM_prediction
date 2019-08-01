@@ -5,7 +5,7 @@ import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 
-from Models.lstm_supervised import lstm
+from Models.lstm_supervisor import lstm
 from common import Config_res_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_reslstm_nn_data, data_scalling
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse

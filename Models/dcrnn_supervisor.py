@@ -481,7 +481,7 @@ class DCRNNSupervisor(object):
                 'predictions': predictions,
                 'groundtruth': y_truths
             }
-        return outputs
+        return
 
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())

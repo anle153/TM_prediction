@@ -312,3 +312,4 @@ def evaluate_lstm(config):
         lstm_net = build_model(config)
         lstm_net.load()
         lstm_net.evaluate()
+

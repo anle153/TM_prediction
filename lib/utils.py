@@ -239,8 +239,8 @@ def get_corr_matrix(data, seq_len):
     return corr_matrix
 
 
-def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
-                       raw_dataset_dir, data_size, day_size, dataset_dir, batch_size, test_batch_size=None, **kwargs):
+def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
+                       raw_dataset_dir, data_size, day_size, dataset_dir, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -270,10 +270,16 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                                          mon_ratio=mon_ratio, eps=train_data2d_norm.std())
     x_val, y_val = create_data_dcrnn(valid_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                      mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_test, y_test = create_data_dcrnn(test_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+    x_eval, y_eval = create_data_dcrnn(test_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
-    for category in ['train', 'val', 'test']:
+    idx = test_data2d_norm.shape[0] - day_size * test_size - 10
+    test_data_norm = test_data2d_norm[idx - seq_len:idx + day_size * test_size]
+
+    x_test, y_test = create_data_dcrnn(test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+
+    for category in ['train', 'val', 'eval', 'test']:
         _x, _y = locals()["x_" + category], locals()["y_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape)
         data['x_' + category] = _x
@@ -281,8 +287,9 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     # Data format
 
     data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
-    data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], eval_batch_size, shuffle=False)
+    data['test_loader'] = DataLoader(data['x_test'], data['y_test'], 1, shuffle=False)
+    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
     print("|--- Check data")
@@ -307,6 +314,14 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
         raise ValueError
 
     if np.any(np.isnan(data['test_loader'].ys)):
+        print("NAN")
+        raise ValueError
+
+    if np.any(np.isinf(data['eval_loader'].xs)):
+        print("INF")
+        raise ValueError
+
+    if np.any(np.isnan(data['eval_loader'].ys)):
         print("NAN")
         raise ValueError
 
@@ -356,7 +371,7 @@ def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
                            raw_dataset_dir, dataset_dir, day_size, data_size,
-                           batch_size, test_batch_size=None, **kwargs):
+                           batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -428,7 +443,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
-                      raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, test_batch_size=None, **kwargs):
+                      raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 

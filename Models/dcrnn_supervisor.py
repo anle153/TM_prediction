@@ -54,6 +54,7 @@ class DCRNNSupervisor(object):
                                               horizon=self._model_kwargs.get('horizon'),
                                               input_dim=self._model_kwargs.get('input_dim'),
                                               mon_ratio=self._mon_ratio,
+                                              test_size=self._test_size,
                                               **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -67,17 +68,17 @@ class DCRNNSupervisor(object):
                                                batch_size=self._data_kwargs['batch_size'],
                                                adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
+        with tf.name_scope('Evaluation'):
+            with tf.variable_scope('DCRNN', reuse=True):
+                self._eval_model = DCRNNModel(is_training=False, scaler=scaler,
+                                              batch_size=self._data_kwargs['eval_batch_size'],
+                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+
         with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._test_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=self._data_kwargs['test_batch_size'],
+                                              batch_size=1,
                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('OnlineTest'):
-            with tf.variable_scope('DCRNN', reuse=True):
-                self._online_test_model = DCRNNModel(is_training=False, scaler=scaler,
-                                                     batch_size=1,
-                                                     adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -347,9 +348,9 @@ class DCRNNSupervisor(object):
         kwargs.update(self._train_kwargs)
         return self._train(sess, **kwargs)
 
-    def online_predict(self, sess, **kwargs):
+    def test(self, sess, **kwargs):
         kwargs.update(self._test_kwargs)
-        return self._online_predict(sess, **kwargs)
+        return self._test(sess, **kwargs)
 
     def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
                min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,
@@ -432,7 +433,7 @@ class DCRNNSupervisor(object):
 
         return test_data_normalize, init_data_normalize, test_data
 
-    def _online_predict(self, sess, **kwargs):
+    def _test(self, sess, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
         mape, r2_score, rmse = [], [], []
@@ -443,7 +444,7 @@ class DCRNNSupervisor(object):
             test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
 
             test_results = self.run_tm_prediction(sess,
-                                                  model=self._online_test_model,
+                                                  model=self._test_model,
                                                   data=(init_data_normalize, test_data_normalize)
                                                   )
 
@@ -484,8 +485,8 @@ class DCRNNSupervisor(object):
 
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())
-        test_results = self.run_epoch_generator(sess, self._test_model,
-                                                self._data['test_loader'].get_iterator(),
+        test_results = self.run_epoch_generator(sess, self._eval_model,
+                                                self._data['eval_loader'].get_iterator(),
                                                 return_output=True,
                                                 training=False)
 
@@ -497,8 +498,8 @@ class DCRNNSupervisor(object):
         scaler = self._data['scaler']
         predictions = []
         y_truths = []
-        for horizon_i in range(self._data['y_test'].shape[1]):
-            y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :, 0])
+        for horizon_i in range(self._data['y_eval'].shape[1]):
+            y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)
 
             y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])

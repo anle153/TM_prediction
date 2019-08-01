@@ -42,7 +42,6 @@ def print_lstm_info(mode, config):
 
     else:
         print('----------------------- TEST -----------------------')
-        print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
         print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
         print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))

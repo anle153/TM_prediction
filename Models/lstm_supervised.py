@@ -31,6 +31,7 @@ class lstm(AbstractModel):
         # Model's Args
         self._hidden = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
+        self._horizon = self._model_kwargs.get('horizon')
         self._input_dim = self._model_kwargs.get('input_dim')
         self._input_shape = (self._seq_len, self._input_dim)
         self._output_dim = self._model_kwargs.get('output_dim')
@@ -46,8 +47,12 @@ class lstm(AbstractModel):
         self._test_size = self._test_kwargs.get('test_size')
         self._results_path = self._test_kwargs.get('results_path')
 
+        self._mon_ratio = self._kwargs.get('mon_ratio')
+
         # Load data
-        self._data = utils.load_dataset_lstm(**self._data_kwargs)
+        self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
+                                             input_dim=self._input_dim, mon_ratio=self._mon_ratio,
+                                             **self._data_kwargs)
 
         # Model
         self.model = None

@@ -4,7 +4,7 @@ import sys
 
 import yaml
 
-from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm
+from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm, evaluate_dgc_lstm
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
@@ -43,7 +43,7 @@ def print_dgc_lstm_info(mode, config):
         print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
         print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
 
-    if mode == 'test':
+    else:
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
@@ -106,6 +106,8 @@ if __name__ == '__main__':
     print_dgc_lstm_info(args.mode, config)
     if args.mode == 'train':
         train_dgc_lstm(config)
+    elif args.mode == 'evaluate':
+        evaluate_dgc_lstm(config)
     else:
         test_dgc_lstm(config)
     # get_results(data)

@@ -146,8 +146,18 @@ def test_dgc_lstm(config):
     with tf.Session(config=tf_config) as sess:
         model = DCRNNSupervisor(**config)
         model.load(sess, config['train']['model_filename'])
-        # outputs = model.online_predict(sess)
-        outputs = model.evaluate(sess)
+        outputs = model.online_predict(sess)
         # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
         #
         # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
+
+
+def evaluate_dgc_lstm(config):
+    print('|-- Run model testing dgc_lstm.')
+
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.load(sess, config['train']['model_filename'])
+        outputs = model.evaluate(sess)

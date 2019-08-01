@@ -50,8 +50,8 @@ class lstm(AbstractModel):
         self._mon_ratio = self._kwargs.get('mon_ratio')
 
         # Load data
-        self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
-                                             input_dim=self._input_dim, mon_ratio=self._mon_ratio,
+        self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon, input_dim=self._input_dim,
+                                             mon_ratio=self._mon_ratio, test_size=self._test_size,
                                              **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -230,9 +230,9 @@ class lstm(AbstractModel):
     def evaluate(self):
         scaler = self._data['scaler']
 
-        y_pred = self.model.predict(self._data['x_test'])
+        y_pred = self.model.predict(self._data['x_eval'])
         y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(self._data['y_test'])
+        y_truth = scaler.inverse_transform(self._data['y_eval'])
 
         mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
         mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)

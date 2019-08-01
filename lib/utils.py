@@ -442,7 +442,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
     return data_x, data_y
 
 
-def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
+def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
                       raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
@@ -474,10 +474,16 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
     x_val, y_val = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                     mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_test, y_test = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+    x_eval, y_eval = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
-    for cat in ["train", "val", "test"]:
+    idx = test_data2d_norm.shape[0] - day_size * test_size - 10
+    test_data_norm = test_data2d_norm[idx - seq_len:idx + day_size * test_size]
+
+    x_test, y_test = create_data_dcrnn(test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+
+    for cat in ["train", "val", "test", "eval"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
         print(cat, "x: ", _x.shape, "y:", _y.shape)
 

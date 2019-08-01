@@ -80,5 +80,7 @@ if __name__ == '__main__':
         train_lstm(config)
     elif args.mode == 'evaluate':
         evaluate_lstm(config)
-    else:
+    elif args.mode == "test":
         test_lstm(config)
+    else:
+        raise RuntimeError("Mode needs to be train/evaluate/test!")

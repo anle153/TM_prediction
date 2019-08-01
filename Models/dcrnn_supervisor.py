@@ -347,9 +347,9 @@ class DCRNNSupervisor(object):
         kwargs.update(self._train_kwargs)
         return self._train(sess, **kwargs)
 
-    def test(self, sess, **kwargs):
+    def online_predict(self, sess, **kwargs):
         kwargs.update(self._test_kwargs)
-        return self._test(sess, **kwargs)
+        return self._online_predict(sess, **kwargs)
 
     def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
                min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,
@@ -432,7 +432,7 @@ class DCRNNSupervisor(object):
 
         return test_data_normalize, init_data_normalize, test_data
 
-    def _test(self, sess, **kwargs):
+    def _online_predict(self, sess, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
         mape, r2_score, rmse = [], [], []

@@ -444,10 +444,16 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
     test_data2d = test_data2d[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
+    data = {}
+
+    data['test_data'] = test_data2d
+
     scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data2d_norm
 
     x_train, y_train = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
@@ -455,7 +461,6 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
                                     mon_ratio=mon_ratio, eps=train_data2d_norm.std())
     x_test, y_test = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    data = {}
 
     for cat in ["train", "val", "test"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]

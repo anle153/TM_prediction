@@ -1,9 +1,12 @@
+import os
+import time
+
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
-from lib import utils
+from lib import utils, metrics
 
 
 class lstm(AbstractModel):
@@ -19,23 +22,63 @@ class lstm(AbstractModel):
 
         self._alg_name = self._kwargs.get('alg')
 
-        self._hidden = self._model_kwargs.get('rnn_units')
+        # logging.
+        self._log_dir = self._get_log_dir(kwargs)
+        log_level = self._kwargs.get('log_level', 'INFO')
+        self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
+        self._logger.info(kwargs)
 
+        # Model's Args
+        self._hidden = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
         self._input_dim = self._model_kwargs.get('input_dim')
         self._input_shape = (self._seq_len, self._input_dim)
-
         self._output_dim = self._model_kwargs.get('output_dim')
 
+        # Train's args
         self._drop_out = self._train_kwargs.get('dropout')
-
         self._epochs = self._train_kwargs.get('epochs')
-
         self._batch_size = self._data_kwargs.get('batch_size')
 
+        # Test's args
+        self._run_times = self._test_kwargs.get('run_times')
+        self._flow_selection = self._test_kwargs.get('flow_selection')
+        self._test_size = self._test_kwargs.get('test_size')
+        self._results_path = self._test_kwargs.get('results_path')
+
+        # Load data
+        self._data = utils.load_dataset_lstm(**self._data_kwargs)
+
+        # Model
         self.model = None
 
-        self._data = utils.load_dataset_lstm(**self._data_kwargs)
+    @staticmethod
+    def _get_log_dir(kwargs):
+        log_dir = kwargs['train'].get('log_dir')
+        if log_dir is None:
+            batch_size = kwargs['data'].get('batch_size')
+            learning_rate = kwargs['train'].get('base_lr')
+            max_diffusion_step = kwargs['model'].get('max_diffusion_step')
+            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
+            rnn_units = kwargs['model'].get('rnn_units')
+            structure = '-'.join(
+                ['%d' % rnn_units for _ in range(num_rnn_layers)])
+            horizon = kwargs['model'].get('horizon')
+            filter_type = kwargs['model'].get('filter_type')
+            filter_type_abbr = 'L'
+            if filter_type == 'random_walk':
+                filter_type_abbr = 'R'
+            elif filter_type == 'dual_random_walk':
+                filter_type_abbr = 'DR'
+            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
+                filter_type_abbr, max_diffusion_step, horizon,
+                structure, learning_rate, batch_size,
+                time.strftime('%m%d%H%M%S'))
+            base_dir = kwargs.get('base_dir')
+            log_dir = os.path.join(base_dir, run_id)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        return log_dir
 
     def normal_model_contruction(self):
         """
@@ -175,6 +218,27 @@ class lstm(AbstractModel):
         if training_fw_history is not None:
             self.plot_training_history(training_fw_history)
             self.save_model_history(training_fw_history)
+
+    def evaluate(self):
+        scaler = self._data['scaler']
+
+        y_pred = self.model.predict(self._data['x_test'])
+        y_pred = scaler.inverse_transform(y_pred)
+        y_truth = scaler.inverse_transform(self._data['y_test'])
+
+        mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
+        mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
+        self._logger.info(
+            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
+                horizon_i + 1, mse, mape, rmse
+            )
+        )
+        utils.add_simple_summary(self._writer,
+                                 ['%s_%d' % (item, horizon_i + 1) for item in
+                                  ['metric/rmse', 'metric/mape', 'metric/mse']],
+                                 [rmse, mape, mse],
+                                 global_step=global_step)
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

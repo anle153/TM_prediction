@@ -47,6 +47,7 @@ class DCRNNSupervisor(object):
 
         # Test's args
         self._flow_selection = self._test_kwargs.get('flow_selection')
+        self._test_size = self._test_kwargs.get('test_size')
 
         # Data preparation
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
@@ -71,6 +72,12 @@ class DCRNNSupervisor(object):
                 self._test_model = DCRNNModel(is_training=False, scaler=scaler,
                                               batch_size=self._data_kwargs['test_batch_size'],
                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
+
+        with tf.name_scope('OnlineTest'):
+            with tf.variable_scope('DCRNN', reuse=True):
+                self._online_test_model = DCRNNModel(is_training=False, scaler=scaler,
+                                                     batch_size=1,
+                                                     adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -191,13 +198,13 @@ class DCRNNSupervisor(object):
             results['outputs'] = outputs
         return results
 
-    def _prepare_input_online_prediction(self, ground_truth, data, labels):
+    def _prepare_input_online_prediction(self, ground_truth, data, m_indicator):
 
         x = np.zeros(shape=(1, self._seq_len, self._nodes, self._input_dim))
         y = np.zeros(shape=(1, self._horizon, self._nodes, 1))
 
         x[0, :, :, 0] = data[-self._seq_len:]
-        x[0, :, :, 1] = labels[-self._seq_len:]
+        x[0, :, :, 1] = m_indicator[-self._seq_len:]
 
         y[0, :, :, 0] = ground_truth[-self._horizon:]
 
@@ -260,8 +267,8 @@ class DCRNNSupervisor(object):
         predicted_tm = np.zeros(shape=(test_data.shape[0] - self._horizon, self._horizon, test_data.shape[1]))
 
         # Initialize measurement matrix
-        labels = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
-        labels[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
+        m_indicator = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
+        m_indicator[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
         losses = []
         mses = []
@@ -284,7 +291,7 @@ class DCRNNSupervisor(object):
 
             x, y = self._prepare_input_online_prediction(ground_truth=test_data[ts + 1:ts + 1 + self._horizon],
                                                          data=tm_pred[ts:ts + self._seq_len],
-                                                         labels=labels[ts:ts + self._seq_len])
+                                                         m_indicator=m_indicator[ts:ts + self._seq_len])
 
             feed_dict = {
                 model.inputs: x,
@@ -306,9 +313,9 @@ class DCRNNSupervisor(object):
                 sampling = np.random.choice([1.0, 0.0], size=(test_data.shape[1]),
                                             p=[self._mon_ratio, 1 - self._mon_ratio])
             else:
-                sampling = self.set_measured_flow_fairness(labels=labels[ts: ts + self._seq_len])
+                sampling = self.set_measured_flow_fairness(labels=m_indicator[ts: ts + self._seq_len])
 
-            labels[ts + self._seq_len] = sampling
+            m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
             inv_sampling = 1.0 - sampling
             pred_input = pred * inv_sampling
@@ -416,13 +423,12 @@ class DCRNNSupervisor(object):
     def prepare_test_set(self):
 
         day_size = self._data_kwargs.get('day_size')
-        seq_len = self._model_kwargs.get('seq_len')
 
-        idx = self._data['test_data'].shape[0] - day_size * 5 - 10
+        idx = self._data['test_data'].shape[0] - day_size * self._test_size - 10
 
-        test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + day_size * 5])
-        init_data_normalize = np.copy(self._data['test_data_norm'][idx - seq_len: idx])
-        test_data = self._data['test_data'][idx:idx + day_size * 5]
+        test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + day_size * self._test_size])
+        init_data_normalize = np.copy(self._data['test_data_norm'][idx - self._seq_len: idx])
+        test_data = self._data['test_data'][idx:idx + day_size * self._test_size]
 
         return test_data_normalize, init_data_normalize, test_data
 
@@ -437,7 +443,7 @@ class DCRNNSupervisor(object):
             test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
 
             test_results = self.run_tm_prediction(sess,
-                                                  model=self._test_model,
+                                                  model=self._online_test_model,
                                                   data=(init_data_normalize, test_data_normalize)
                                                   )
 

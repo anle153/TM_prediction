@@ -318,6 +318,21 @@ class lstm(AbstractModel):
         consecutive_losses = np.asarray(consecutive_losses)
         return consecutive_losses
 
+    def _ims_tm_prediction(self, init_data, model, init_labels):
+        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + Config.LSTM_IMS_STEP, init_data.shape[1]))
+        multi_steps_tm[0:Config.LSTM_STEP] = init_data
+
+        labels = np.zeros(shape=(init_labels.shape[0] + Config.LSTM_IMS_STEP, init_labels.shape[1]))
+        labels[0:Config.LSTM_STEP] = init_labels
+
+        for ts_ahead in range(Config.LSTM_IMS_STEP):
+            rnn_input = prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead + Config.LSTM_STEP],
+                                                        labels=labels[ts_ahead:ts_ahead + Config.LSTM_STEP])
+            predictX = model.predict(rnn_input)
+            multi_steps_tm[ts_ahead + Config.LSTM_STEP] = predictX[:, -1, 0]
+
+        return multi_steps_tm[-1, :]
+
     def _run_tm_prediction(self, init_data, test_data):
         tf_a = np.array([1.0, 0.0])
         m_indicator = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
@@ -336,9 +351,9 @@ class lstm(AbstractModel):
             # This block is used for iterated multi-step traffic matrices prediction
             _start = time.time()
 
-            # if ts < test_data.shape[0] - self._horizon + 1:
-            #     ims_tm[ts] = ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + self._seq_len]),
-            #                                    init_labels=np.copy(m_indicator[ts:ts + self._seq_len]))
+            if ts < test_data.shape[0] - self._horizon + 1:
+                ims_tm[ts] = self._ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + self._seq_len]),
+                                               init_labels=np.copy(m_indicator[ts:ts + self._seq_len]))
 
             # Create 3D input for rnn
             rnn_input = self._prepare_input_online_prediction(ground_truth=test_data[ts + 1:ts + 1 + 1],

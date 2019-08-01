@@ -327,8 +327,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     adj_mx = get_corr_matrix(train_data2d, seq_len)
     adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-    adj_mx[adj_mx >= adj_mx.mean()] = 1.0
-    adj_mx[adj_mx < adj_mx.mean()] = 0.0
+    # adj_mx[adj_mx >= adj_mx.mean()] = 1.0
+    # adj_mx[adj_mx < adj_mx.mean()] = 0.0
 
     adj_mx = adj_mx.astype('float32')
 

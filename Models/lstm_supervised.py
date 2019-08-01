@@ -53,6 +53,9 @@ class lstm(AbstractModel):
         self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
                                              input_dim=self._input_dim, mon_ratio=self._mon_ratio,
                                              **self._data_kwargs)
+        for k, v in self._data.items():
+            if hasattr(v, 'shape'):
+                self._logger.info((k, v.shape))
 
         # Model
         self.model = None

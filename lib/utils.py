@@ -464,6 +464,7 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
 
     for cat in ["train", "val", "test"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
+        print(cat, "x: ", _x.shape, "y:", _y.shape)
 
         data['x_' + cat] = _x
         data['y_' + cat] = _y

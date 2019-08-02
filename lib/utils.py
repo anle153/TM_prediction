@@ -439,9 +439,9 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
             i += 1
 
-    y_test = np.zeros(shape=((data.shape[0] - horizon), horizon, data.shape[1]))
-    for t in range(data.shape[0] - horizon):
-        y_test[t] = data[t:t + horizon]
+    y_test = np.zeros(shape=((data.shape[0] - seq_len - horizon), horizon, data.shape[1]))
+    for t in range(data.shape[0] - seq_len - horizon):
+        y_test[t] = data[t + seq_len:t + seq_len + horizon]
 
     return data_x, data_y, y_test
 

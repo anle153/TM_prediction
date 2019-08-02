@@ -339,8 +339,6 @@ class lstm(AbstractModel):
 
         tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
 
-        ims_tm = np.zeros(shape=(test_data.shape[0] - self._horizon + 1, test_data.shape[1]))
-
         tm_pred[0:init_data.shape[0]] = init_data
         m_indicator[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
 
@@ -396,7 +394,7 @@ class lstm(AbstractModel):
         scaler = self._data['scaler']
 
         for i in range(self._run_times):
-            print('|--- Running time: {}'.format(i))
+            print('|--- Running time: {}/{}'.format(i, self._run_times))
 
             test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
 
@@ -409,10 +407,10 @@ class lstm(AbstractModel):
             predictions = []
             y_truths = []
             for horizon_i in range(self._data['y_test'].shape[1]):
-                y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :, 0])
+                y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :])
                 y_truths.append(y_truth)
 
-                y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])
+                y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :])
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)

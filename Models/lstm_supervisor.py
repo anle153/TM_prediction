@@ -335,9 +335,9 @@ class lstm(AbstractModel):
 
     def _run_tm_prediction(self, init_data, test_data):
         tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        m_indicator = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
 
-        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0], test_data.shape[1]))
+        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
 
         tm_pred[0:init_data.shape[0]] = init_data
         m_indicator[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
@@ -345,7 +345,7 @@ class lstm(AbstractModel):
         y_preds = []
 
         # Predict the TM from time slot look_back
-        for ts in tqdm(range(test_data.shape[0]-self._horizon)):
+        for ts in tqdm(range(test_data.shape[0] - self._horizon)):
             # This block is used for iterated multi-step traffic matrices prediction
 
             predicted_tm = self._ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + self._seq_len]),

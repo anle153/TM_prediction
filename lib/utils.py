@@ -433,7 +433,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
             data_x[i, :, 0] = _x
             data_x[i, :, 1] = _label
 
-            data_y[i] = data[(idx + seq_len + 1), flow]
+            data_y[i] = data[idx + seq_len, flow]
 
             i += 1
 

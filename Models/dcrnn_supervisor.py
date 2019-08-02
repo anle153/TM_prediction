@@ -12,6 +12,7 @@ import yaml
 from tqdm import tqdm
 
 from Models.dcrnn_model import DCRNNModel
+from common.error_utils import error_ratio
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
@@ -260,7 +261,7 @@ class DCRNNSupervisor(object):
 
         return sampling
 
-    def run_tm_prediction(self, sess, model, data, writer=None):
+    def _run_tm_prediction(self, sess, model, data, writer=None):
 
         init_data = data[0]
         test_data = data[1]
@@ -338,7 +339,13 @@ class DCRNNSupervisor(object):
 
             outputs.append(vals['outputs'])
 
-        results = {'loss': np.mean(losses), 'mse': np.mean(mses), 'outputs': outputs, 'predicted_tm': predicted_tm}
+        results = {'loss': np.mean(losses),
+                   'mse': np.mean(mses),
+                   'outputs': outputs,
+                   'predicted_tm': predicted_tm,
+                   'tm_pred': tm_pred[:-self._seq_len],
+                   'm_indicator': m_indicator[:-self._seq_len]
+                   }
         return results
 
     def get_lr(self, sess):
@@ -441,17 +448,13 @@ class DCRNNSupervisor(object):
     def _test(self, sess, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
-        mape, r2_score, rmse = [], [], []
-        mape_ims, r2_score_ims, rmse_ims = [], [], []
-
         for i in range(self._test_kwargs.get('run_times')):
             print('|--- Running time: {}'.format(i))
             test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
 
-            test_results = self.run_tm_prediction(sess,
-                                                  model=self._online_test_model,
-                                                  data=(init_data_normalize, test_data_normalize)
-                                                  )
+            test_results = self._run_tm_prediction(sess,
+                                                   model=self._online_test_model,
+                                                   data=(init_data_normalize, test_data_normalize))
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
             test_loss, y_preds, predicted_tm = test_results['loss'], test_results['outputs'], test_results[
@@ -482,10 +485,13 @@ class DCRNNSupervisor(object):
                                           ['metric/rmse', 'metric/mape', 'metric/mse']],
                                          [rmse, mape, mse],
                                          global_step=global_step)
-            outputs = {
-                'predictions': predictions,
-                'groundtruth': y_truths
-            }
+
+            test_data = test_data[:-self._horizon]
+            tm_pred = scaler.inverse_transform(test_results['tm_pred'])
+            m_indicator = test_results['m_indicator']
+            er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
+            print('ER: {}'.format(er))
+
         return
 
     def evaluate(self, sess, **kwargs):

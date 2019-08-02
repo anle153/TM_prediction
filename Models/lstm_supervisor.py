@@ -8,6 +8,7 @@ from keras.utils import plot_model
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel
+from common.error_utils import error_ratio
 from lib import utils, metrics
 
 
@@ -421,6 +422,11 @@ class lstm(AbstractModel):
                         horizon_i + 1, mse, mape, rmse
                     )
                 )
+
+            test_data = test_data[:-3]
+            tm_pred = scaler.inverse_transform(tm_pred)
+            er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
+            print('ER: {}'.format(er))
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

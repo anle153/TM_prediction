@@ -39,12 +39,12 @@ def train_lstm(config):
 def evaluate_lstm(config):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)
-        lstm_net.load()
-        lstm_net.evaluate()
+    lstm_net.load()
+    lstm_net.evaluate()
 
 
 def test_lstm(config):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)
-        lstm_net.load()
-        lstm_net.test()
+    lstm_net.load()
+    lstm_net.test()

@@ -117,9 +117,11 @@ class lstm(AbstractModel):
         self.model = Sequential()
         self.model.add(LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True))
         self.model.add(Dropout(self._drop_out))
-        self.model.add(TimeDistributed(Dense(64)))
-        self.model.add(TimeDistributed(Dense(32)))
-        self.model.add(TimeDistributed(Dense(1)))
+        self.model.add(Flatten())
+        self.model.add(Dense(128))
+        self.model.add(Dense(64))
+        self.model.add(Dense(32))
+        self.model.add(Dense(1))
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
@@ -330,7 +332,7 @@ class lstm(AbstractModel):
             rnn_input = self._prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead+self._seq_len],
                                                               m_indicator=m_indicator[ts_ahead:ts_ahead+self._seq_len])
             predictX = self.model.predict(rnn_input)
-            multi_steps_tm[ts_ahead + self._seq_len] = predictX[:, -1, 0]
+            multi_steps_tm[ts_ahead + self._seq_len] = predictX
 
         return multi_steps_tm[-self._horizon:]
 
@@ -355,7 +357,7 @@ class lstm(AbstractModel):
             # Get the TM prediction of next time slot
 
             y_preds.append(np.expand_dims(predicted_tm, axis=0))
-            pred = predicted_tm[0, :]
+            pred = predicted_tm[0]
 
             # Using part of current prediction as input to the next estimation
             # Randomly choose the flows which is measured (using the correct data from test_set)

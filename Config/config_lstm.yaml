@@ -14,7 +14,7 @@ data:
   data_name: Abilene
   day_size: 288
   generate_data: True
-  data_size: 1.0
+  data_size: 0.2
 model:
   cl_decay_steps: 2000
   filter_type: dual_random_walk
@@ -55,4 +55,4 @@ test:
   results_path: results/dgclstm-abilene/models-5087771.0000-22725.data-00000-of-00001/results
   run_times: 50
   flow_selection: Random
-  test_size: 5
+  test_size: 2

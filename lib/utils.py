@@ -418,7 +418,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
     data_x = np.zeros(((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim))
-    data_y = np.zeros(((data.shape[0] - seq_len) * data.shape[1], seq_len, 1))
+    data_y = np.zeros(((data.shape[0] - seq_len) * data.shape[1], 1))
 
     _data = np.copy(data)
 
@@ -433,9 +433,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
             data_x[i, :, 0] = _x
             data_x[i, :, 1] = _label
 
-            _y = data[(idx + 1):(idx + seq_len + 1), flow]
-
-            data_y[i] = np.array(_y).reshape((seq_len, 1))
+            data_y[i] = data[(idx + seq_len + 1), flow]
 
             i += 1
 

@@ -355,8 +355,8 @@ class lstm(AbstractModel):
 
             # Get the TM prediction of next time slot
 
-            y_preds.append(predicted_tm)
-            pred = predicted_tm[-1, :]
+            y_preds.append(np.expand_dims(predicted_tm, axis=0))
+            pred = predicted_tm[0, :]
 
             # Using part of current prediction as input to the next estimation
             # Randomly choose the flows which is measured (using the correct data from test_set)
@@ -406,7 +406,6 @@ class lstm(AbstractModel):
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 
             y_preds = np.concatenate(y_preds, axis=0)
-            scaler = self._data['scaler']
             predictions = []
             y_truths = []
             for horizon_i in range(self._data['y_test'].shape[1]):

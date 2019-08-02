@@ -414,7 +414,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
+def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
     data_x = np.zeros(((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim))
@@ -439,7 +439,11 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
             i += 1
 
-    return data_x, data_y
+    y_test = np.zeros(shape=((data.shape[0] - horizon), horizon, data.shape[1]))
+    for t in range(data.shape[0] - horizon):
+        y_test[t] = data[t:t + horizon]
+
+    return data_x, data_y, y_test
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
@@ -470,18 +474,18 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['test_data_norm'] = test_data2d_norm
 
-    x_train, y_train = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                      mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_train, y_train, _ = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                           mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_val, y_val, _ = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_eval, y_eval, _ = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
     idx = test_data2d_norm.shape[0] - day_size * test_size - 10
     test_data_norm = test_data2d_norm[idx - seq_len:idx + day_size * test_size]
 
-    x_test, y_test = create_data_dcrnn(test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_test, _, y_test = create_data_lstm(test_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std(), horizon=horizon)
 
     for cat in ["train", "val", "test", "eval"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]

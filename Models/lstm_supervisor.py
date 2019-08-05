@@ -425,12 +425,16 @@ class lstm(AbstractModel):
                     )
                 )
 
-            test_data = test_data[:-3]
             tm_pred = scaler.inverse_transform(tm_pred)
-            er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
+            er = error_ratio(y_pred=tm_pred,
+                             y_true=scaler.inverse_transform(test_data_normalize[:self._horizon]),
+                             measured_matrix=m_indicator)
             print('ER: {}'.format(er))
-            a = np.argwhere(test_data == tm_pred)
-            print(a.shape[0] / test_data.size)
+            mape = metrics.masked_mape_np(preds=tm_pred,
+                                          labels=scaler.inverse_transform(test_data_normalize[:self._horizon]),
+                                          null_val=0)
+            print('MAPE: {}'.format(mape))
+
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

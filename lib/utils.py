@@ -334,6 +334,9 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['adj_mx'] = adj_mx
 
+    print('Mean test data: {}'.format(data['test_data'].mean()))
+    print('Mean test data norm: {}'.format(data['test_data_norm'].mean()))
+
     return data
 
 
@@ -495,6 +498,8 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
     # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
     data['scaler'] = scaler
+    print('Mean test data: {}'.format(data['test_data'].mean()))
+    print('Mean test data norm: {}'.format(data['test_data_norm'].mean()))
 
     return data
 

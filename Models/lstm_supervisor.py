@@ -427,11 +427,11 @@ class lstm(AbstractModel):
 
             tm_pred = scaler.inverse_transform(tm_pred)
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(test_data_normalize[:self._horizon]),
+                             y_true=scaler.inverse_transform(test_data_normalize[:-self._horizon]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
             mape = metrics.masked_mape_np(preds=tm_pred,
-                                          labels=scaler.inverse_transform(test_data_normalize[:self._horizon]),
+                                          labels=scaler.inverse_transform(test_data_normalize[:-self._horizon]),
                                           null_val=0)
             print('MAPE: {}'.format(mape))
 

@@ -243,9 +243,9 @@ class lstm(AbstractModel):
         y_pred = scaler.inverse_transform(y_pred)
         y_truth = scaler.inverse_transform(self._data['y_eval'])
 
-        mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
-        mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
+        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
         self._logger.info(
             "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
                 1, mse, mape, rmse
@@ -255,7 +255,7 @@ class lstm(AbstractModel):
     def test(self):
         return self._test()
 
-    def prepare_test_set(self):
+    def _prepare_test_set(self):
 
         idx = self._data['test_data'].shape[0] - self._day_size * self._test_size - 10
 
@@ -399,7 +399,7 @@ class lstm(AbstractModel):
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
+            test_data_normalize, init_data_normalize, test_data = self._prepare_test_set()
 
             outputs = self._run_tm_prediction(init_data=init_data_normalize,
                                               test_data=test_data_normalize)

@@ -493,7 +493,7 @@ class DCRNNSupervisor(object):
             print('ER: {}'.format(er))
 
             a = np.argwhere(test_data == tm_pred)
-            print(a.sum() / a.size)
+            print(a.sum() / a.size())
 
         return
 

@@ -254,6 +254,9 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
     test_data2d = test_data2d[0:-day_size * 3]
+    data = {}
+
+    data['test_data'] = test_data2d
 
     print('|--- Normalizing the train set.')
     scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
@@ -261,9 +264,6 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
 
-    data = {}
-
-    data['test_data'] = test_data2d
     data['test_data_norm'] = test_data2d_norm
 
     x_train, y_train = create_data_dcrnn(train_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,

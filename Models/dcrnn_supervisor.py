@@ -441,7 +441,7 @@ class DCRNNSupervisor(object):
 
         test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + day_size * self._test_size])
         init_data_normalize = np.copy(self._data['test_data_norm'][idx - self._seq_len: idx])
-        test_data = self._data['test_data'][idx:idx + day_size * self._test_size]
+        test_data = np.copy(self._data['test_data'][idx:idx + day_size * self._test_size])
 
         return test_data_normalize, init_data_normalize, test_data
 

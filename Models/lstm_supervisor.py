@@ -261,7 +261,7 @@ class lstm(AbstractModel):
 
         test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + self._day_size * self._test_size])
         init_data_normalize = np.copy(self._data['test_data_norm'][idx - self._seq_len: idx])
-        test_data = self._data['test_data'][idx:idx + self._day_size * self._test_size]
+        test_data = np.copy(self._data['test_data'][idx:idx + self._day_size * self._test_size])
 
         return test_data_normalize, init_data_normalize, test_data
 
@@ -429,6 +429,9 @@ class lstm(AbstractModel):
             tm_pred = scaler.inverse_transform(tm_pred)
             er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
             print('ER: {}'.format(er))
+            a = np.argwhere(test_data == tm_pred)
+            print(a.shape[0] / (test_data.shape[0] * test_data.shape[1]))
+
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

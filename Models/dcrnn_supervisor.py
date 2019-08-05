@@ -343,8 +343,8 @@ class DCRNNSupervisor(object):
                    'mse': np.mean(mses),
                    'outputs': outputs,
                    'predicted_tm': predicted_tm,
-                   'tm_pred': tm_pred[:-self._seq_len],
-                   'm_indicator': m_indicator[:-self._seq_len]
+                   'tm_pred': tm_pred[self._seq_len:],
+                   'm_indicator': m_indicator[self._seq_len:]
                    }
         return results
 

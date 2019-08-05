@@ -490,7 +490,7 @@ class DCRNNSupervisor(object):
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             m_indicator = test_results['m_indicator']
             mape = metrics.masked_mape_np(preds=tm_pred,
-                                          labels=scaler.inverse_transform(test_data_normalize),
+                                          labels=scaler.inverse_transform(test_data_normalize[:-3]),
                                           null_val=0)
             print('MAPE: {}'.format(mape))
 

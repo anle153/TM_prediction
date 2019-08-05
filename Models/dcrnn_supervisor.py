@@ -465,11 +465,11 @@ class DCRNNSupervisor(object):
             scaler = self._data['scaler']
             predictions = []
             y_truths = []
-            for horizon_i in range(self._data['y_test'].shape[1]):
+            for horizon_i in range(self._horizon):
                 y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :, 0])
                 y_truths.append(y_truth)
 
-                y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])
+                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
@@ -520,12 +520,12 @@ class DCRNNSupervisor(object):
             y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)
 
-            y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])
+            y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
             predictions.append(y_pred)
 
-            mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
-            mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
-            rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
+            mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+            mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+            rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
             self._logger.info(
                 "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
                     horizon_i + 1, mse, mape, rmse

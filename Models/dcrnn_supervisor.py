@@ -493,7 +493,7 @@ class DCRNNSupervisor(object):
             print('ER: {}'.format(er))
 
             a = np.argwhere(test_data == tm_pred)
-            print(a.shape[0] / a.size())
+            print(a.shape[0] / (test_data.shape[0] * test_data.shape[1]))
 
         return
 

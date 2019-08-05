@@ -351,8 +351,8 @@ class lstm(AbstractModel):
         for ts in tqdm(range(test_data.shape[0] - self._horizon)):
             # This block is used for iterated multi-step traffic matrices prediction
 
-            predicted_tm = self._ims_tm_prediction(init_data=np.copy(tm_pred[ts:ts + self._seq_len]),
-                                           init_labels=np.copy(m_indicator[ts:ts + self._seq_len]))
+            predicted_tm = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
+                                                   init_labels=m_indicator[ts:ts + self._seq_len])
 
             # Get the TM prediction of next time slot
 
@@ -430,8 +430,7 @@ class lstm(AbstractModel):
             er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
             print('ER: {}'.format(er))
             a = np.argwhere(test_data == tm_pred)
-            print(a.shape[0] / (test_data.shape[0] * test_data.shape[1]))
-
+            print(a.shape[0] / test_data.size)
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

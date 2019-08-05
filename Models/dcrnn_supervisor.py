@@ -491,9 +491,8 @@ class DCRNNSupervisor(object):
             m_indicator = test_results['m_indicator']
             er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
             print('ER: {}'.format(er))
-
-            a = np.argwhere(test_data == tm_pred)
-            print(a.shape[0] / (test_data.shape[0] * test_data.shape[1]))
+            mape = metrics.masked_mape_np(tm_pred, test_data, null_val=0)
+            print('MAPE: {}'.format(mape))
 
         return
 

@@ -492,6 +492,9 @@ class DCRNNSupervisor(object):
             er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 
+            a = np.argwhere(test_data == tm_pred)
+            print(a.sum() / a.size)
+
         return
 
     def evaluate(self, sess, **kwargs):

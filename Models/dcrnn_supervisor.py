@@ -472,9 +472,9 @@ class DCRNNSupervisor(object):
                 y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :, 0])
                 predictions.append(y_pred)
 
-                mse = metrics.masked_mse_np(y_pred, y_truth, null_val=0)
-                mape = metrics.masked_mape_np(y_pred, y_truth, null_val=0)
-                rmse = metrics.masked_rmse_np(y_pred, y_truth, null_val=0)
+                mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+                rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
                 self._logger.info(
                     "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
                         horizon_i + 1, mse, mape, rmse
@@ -489,10 +489,13 @@ class DCRNNSupervisor(object):
             test_data = test_data[:-self._horizon]
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             m_indicator = test_results['m_indicator']
+            mape = metrics.masked_mape_np(preds=tm_pred,
+                                          labels=scaler.inverse_transform(test_data_normalize),
+                                          null_val=0)
+            print('MAPE: {}'.format(mape))
+
             er = error_ratio(y_pred=tm_pred, y_true=test_data, measured_matrix=m_indicator)
             print('ER: {}'.format(er))
-            mape = metrics.masked_mape_np(tm_pred, test_data, null_val=0)
-            print('MAPE: {}'.format(mape))
 
         return
 

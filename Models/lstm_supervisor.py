@@ -257,13 +257,14 @@ class lstm(AbstractModel):
 
     def _prepare_test_set(self):
 
+        test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes))
+
         idx = self._data['test_data'].shape[0] - self._day_size * self._test_size - 10
 
-        test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + self._day_size * self._test_size])
-        init_data_normalize = np.copy(self._data['test_data_norm'][idx - self._seq_len: idx])
-        test_data = np.copy(self._data['test_data'][idx:idx + self._day_size * self._test_size])
+        test_data_normalize[:] = self._data['test_data_norm'][
+                                 idx - self._seq_len:idx + self._day_size * self._test_size]
 
-        return test_data_normalize, init_data_normalize, test_data
+        return test_data_normalize
 
     def _prepare_input_online_prediction(self, data, m_indicator):
 
@@ -336,19 +337,19 @@ class lstm(AbstractModel):
 
         return multi_steps_tm[-self._horizon:]
 
-    def _run_tm_prediction(self, init_data, test_data):
+    def _run_tm_prediction(self, test_data_norm):
         tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
 
-        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
 
-        tm_pred[0:init_data.shape[0]] = init_data
-        m_indicator[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
+        tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
+        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         y_preds = []
 
         # Predict the TM from time slot look_back
-        for ts in tqdm(range(test_data.shape[0] - self._horizon)):
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
             # This block is used for iterated multi-step traffic matrices prediction
 
             predicted_tm = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
@@ -364,7 +365,7 @@ class lstm(AbstractModel):
 
             # boolean array(1 x n_flows):for choosing value from predicted data
             if self._flow_selection == 'Random':
-                sampling = np.random.choice(tf_a, size=(test_data.shape[1]),
+                sampling = np.random.choice(tf_a, size=self._nodes,
                                             p=[self._mon_ratio, 1 - self._mon_ratio])
             else:
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
@@ -374,7 +375,7 @@ class lstm(AbstractModel):
             inv_sampling = 1.0 - sampling
             pred_input = pred * inv_sampling
 
-            ground_true = test_data[ts]
+            ground_true = test_data_norm[ts + self._seq_len]
 
             measured_input = ground_true * sampling
 
@@ -399,10 +400,9 @@ class lstm(AbstractModel):
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            test_data_normalize, init_data_normalize, test_data = self._prepare_test_set()
+            test_data_normalize = self._prepare_test_set()
 
-            outputs = self._run_tm_prediction(init_data=init_data_normalize,
-                                              test_data=test_data_normalize)
+            outputs = self._run_tm_prediction(test_data=test_data_normalize)
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 

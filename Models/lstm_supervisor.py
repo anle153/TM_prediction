@@ -259,12 +259,18 @@ class lstm(AbstractModel):
 
         test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes))
 
-        idx = self._data['test_data'].shape[0] - self._day_size * self._test_size - 10
+        idx = self._data['test_data_norm'].shape[0] - self._day_size * self._test_size - 10
 
         test_data_normalize[:] = self._data['test_data_norm'][
                                  idx - self._seq_len:idx + self._day_size * self._test_size]
 
-        return test_data_normalize
+        y_test = np.zeros(shape=(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1,
+                                 self._horizon,
+                                 test_data_normalize.shape[1]))
+        for t in range(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1):
+            y_test[t] = test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon]
+
+        return test_data_normalize, y_test
 
     def _prepare_input_online_prediction(self, data, m_indicator):
 
@@ -339,9 +345,9 @@ class lstm(AbstractModel):
 
     def _run_tm_prediction(self, test_data_norm):
         tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
 
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
 
         tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
@@ -349,7 +355,7 @@ class lstm(AbstractModel):
         y_preds = []
 
         # Predict the TM from time slot look_back
-        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
             # This block is used for iterated multi-step traffic matrices prediction
 
             predicted_tm = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
@@ -400,17 +406,18 @@ class lstm(AbstractModel):
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            test_data_normalize = self._prepare_test_set()
+            test_data_normalize, y_test = self._prepare_test_set()
 
-            outputs = self._run_tm_prediction(test_data=test_data_normalize)
+            outputs = self._run_tm_prediction(test_data_norm=np.copy(test_data_normalize))
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 
             y_preds = np.concatenate(y_preds, axis=0)
             predictions = []
             y_truths = []
-            for horizon_i in range(self._data['y_test'].shape[1]):
-                y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :])
+
+            for horizon_i in range(y_test.shape[1]):
+                y_truth = scaler.inverse_transform(y_test[:, horizon_i, :])
                 y_truths.append(y_truth)
 
                 y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
@@ -426,15 +433,16 @@ class lstm(AbstractModel):
                 )
 
             tm_pred = scaler.inverse_transform(tm_pred)
-            er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(test_data_normalize[:-self._horizon]),
-                             measured_matrix=m_indicator)
-            print('ER: {}'.format(er))
             mape = metrics.masked_mape_np(preds=tm_pred,
-                                          labels=scaler.inverse_transform(test_data_normalize[:-self._horizon]),
+                                          labels=scaler.inverse_transform(
+                                              test_data_normalize[self._seq_len:-(self._horizon - 1)]),
                                           null_val=0)
             print('MAPE: {}'.format(mape))
 
+            er = error_ratio(y_pred=tm_pred,
+                             y_true=scaler.inverse_transform(test_data_normalize[self._seq_len:-(self._horizon - 1)]),
+                             measured_matrix=m_indicator)
+            print('ER: {}'.format(er))
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

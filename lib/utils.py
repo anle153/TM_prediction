@@ -440,11 +440,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
             i += 1
 
-    y_test = np.zeros(shape=((data.shape[0] - seq_len - horizon), horizon, data.shape[1]))
-    for t in range(data.shape[0] - seq_len - horizon):
-        y_test[t] = data[t + seq_len:t + seq_len + horizon]
-
-    return data_x, data_y, y_test
+    return data_x, data_y
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
@@ -466,8 +462,6 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     print('|--- Normalizing the train set.')
     data = {}
 
-    data['test_data'] = test_data2d
-
     scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
@@ -475,20 +469,17 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['test_data_norm'] = test_data2d_norm
 
-    x_train, y_train, _ = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                           mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val, _ = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval, _ = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_train, y_train = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_val, y_val = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_eval, y_eval = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                      mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
     idx = test_data2d_norm.shape[0] - day_size * test_size - 10
     test_data_norm = test_data2d_norm[idx - seq_len:idx + day_size * test_size]
 
-    x_test, _, y_test = create_data_lstm(test_data_norm, seq_len=seq_len, input_dim=input_dim,
-                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std(), horizon=horizon)
-
-    for cat in ["train", "val", "test", "eval"]:
+    for cat in ["train", "val", "eval"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
         print(cat, "x: ", _x.shape, "y:", _y.shape)
 
@@ -498,8 +489,6 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
     # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
     data['scaler'] = scaler
-    print('Mean test data: {}'.format(data['test_data'].mean()))
-    print('Mean test data norm: {}'.format(data['test_data_norm'].mean()))
 
     return data
 

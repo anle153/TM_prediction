@@ -257,23 +257,21 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     test_data2d = test_data2d[0:-day_size * 3]
     data = {}
 
-    data['test_data'] = test_data2d
-
     print('|--- Normalizing the train set.')
     scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
+    train_data_norm = scaler.transform(train_data2d)
+    valid_data_norm = scaler.transform(valid_data2d)
+    test_data_norm = scaler.transform(test_data2d)
 
-    data['test_data_norm'] = test_data2d_norm
+    data['test_data_norm'] = test_data_norm
 
-    x_train, y_train = create_data_dcrnn(data=train_data2d_norm, seq_len=seq_len, horizon=horizon,
+    x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
                                          input_dim=input_dim,
-                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val = create_data_dcrnn(data=valid_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                     mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval = create_data_dcrnn(data=test_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+                                         mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                     mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                       mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
         _x, _y = locals()["x_" + category], locals()["y_" + category]
@@ -287,35 +285,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
-    print("|--- Check data")
-    if np.any(np.isinf(data['train_loader'].xs)):
-        print("INF")
-        raise ValueError
-
-    if np.any(np.isnan(data['train_loader'].ys)):
-        print("NAN")
-        raise ValueError
-
-    if np.any(np.isinf(data['val_loader'].xs)):
-        print("INF")
-        raise ValueError
-
-    if np.any(np.isnan(data['val_loader'].ys)):
-        print("NAN")
-        raise ValueError
-
-    if np.any(np.isinf(data['eval_loader'].xs)):
-        print("INF")
-        raise ValueError
-
-    if np.any(np.isnan(data['eval_loader'].ys)):
-        print("NAN")
-        raise ValueError
-
     adj_mx = get_corr_matrix(train_data2d, seq_len)
     adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-    # adj_mx[adj_mx >= adj_mx.mean()] = 1.0
-    # adj_mx[adj_mx < adj_mx.mean()] = 0.0
 
     adj_mx = adj_mx.astype('float32')
 

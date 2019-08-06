@@ -240,7 +240,8 @@ def get_corr_matrix(data, seq_len):
 
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
-                       raw_dataset_dir, data_size, day_size, dataset_dir, batch_size, eval_batch_size=None, **kwargs):
+                       raw_dataset_dir, data_size, day_size, dataset_dir, batch_size, eval_batch_size=None,
+                       val_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -281,7 +282,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     # Data format
 
     data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], eval_batch_size, shuffle=False)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
     data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 

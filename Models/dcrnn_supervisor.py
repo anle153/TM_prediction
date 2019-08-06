@@ -438,9 +438,11 @@ class DCRNNSupervisor(object):
 
         y_test = np.zeros(shape=(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1,
                                  self._horizon,
-                                 self._nodes))
+                                 self._nodes,
+                                 1))
         for t in range(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1):
-            y_test[t] = test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon]
+            y_test[t] = np.expand_dims(test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon],
+                                       axis=2)
 
         return test_data_normalize, y_test
 

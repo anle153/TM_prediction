@@ -413,7 +413,7 @@ class lstm(AbstractModel):
                 y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :])
                 y_truths.append(y_truth)
 
-                y_pred = scaler.inverse_transform(y_preds[:y_truth.shape[0], horizon_i, :])
+                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)

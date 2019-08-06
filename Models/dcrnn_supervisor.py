@@ -76,12 +76,12 @@ class DCRNNSupervisor(object):
                                               batch_size=self._data_kwargs['eval_batch_size'],
                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
-        with tf.name_scope('Test'):
+        with tf.name_scope('Val'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._val_model = DCRNNModel(is_training=False, scaler=scaler,
                                              batch_size=self._data_kwargs['val_batch_size'],
                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
-        with tf.name_scope('OnlineTest'):
+        with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._online_test_model = DCRNNModel(is_training=False, scaler=scaler,
                                                      batch_size=1,
@@ -516,7 +516,6 @@ class DCRNNSupervisor(object):
         scaler = self._data['scaler']
         predictions = []
         y_truths = []
-        print('Evaluation Loss: {}'.format(test_loss))
         for horizon_i in range(self._data['y_eval'].shape[1]):
             y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)

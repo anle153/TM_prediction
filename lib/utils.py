@@ -267,12 +267,12 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['test_data_norm'] = test_data2d_norm
 
-    x_train, y_train = create_data_dcrnn(np.copy(train_data2d_norm), seq_len=seq_len, horizon=horizon,
+    x_train, y_train = create_data_dcrnn(data=train_data2d_norm, seq_len=seq_len, horizon=horizon,
                                          input_dim=input_dim,
                                          mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val = create_data_dcrnn(np.copy(valid_data2d_norm), seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+    x_val, y_val = create_data_dcrnn(data=valid_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                      mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval = create_data_dcrnn(np.copy(test_data2d_norm), seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+    x_eval, y_eval = create_data_dcrnn(data=test_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
     for category in ['train', 'val', 'eval']:

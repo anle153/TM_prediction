@@ -70,22 +70,23 @@ class DCRNNSupervisor(object):
                                                batch_size=self._data_kwargs['batch_size'],
                                                adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
-        with tf.name_scope('Evaluation'):
-            with tf.variable_scope('DCRNN', reuse=True):
-                self._eval_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=self._data_kwargs['eval_batch_size'],
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
         with tf.name_scope('Val'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._val_model = DCRNNModel(is_training=False, scaler=scaler,
                                              batch_size=self._data_kwargs['val_batch_size'],
                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+
+        with tf.name_scope('Eval'):
+            with tf.variable_scope('DCRNN', reuse=True):
+                self._eval_model = DCRNNModel(is_training=False, scaler=scaler,
+                                              batch_size=self._data_kwargs['eval_batch_size'],
+                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+
         with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
-                self._online_test_model = DCRNNModel(is_training=False, scaler=scaler,
-                                                     batch_size=1,
-                                                     adj_mx=self._data['adj_mx'], **self._model_kwargs)
+                self._test_model = DCRNNModel(is_training=False, scaler=scaler,
+                                              batch_size=self._data_kwargs['test_batch_size'],
+                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -350,14 +351,6 @@ class DCRNNSupervisor(object):
             self._new_lr: lr
         })
 
-    def train(self, sess, **kwargs):
-        kwargs.update(self._train_kwargs)
-        return self._train(sess, **kwargs)
-
-    def test(self, sess, **kwargs):
-        kwargs.update(self._test_kwargs)
-        return self._test(sess, **kwargs)
-
     def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
                min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,
                test_every_n_epochs=10, **train_kwargs):
@@ -429,22 +422,16 @@ class DCRNNSupervisor(object):
 
     def _prepare_test_set(self):
 
-        test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes))
-
-        idx = self._data['test_data_norm'].shape[0] - self._day_size * self._test_size - 10
-
-        test_data_normalize[:] = self._data['test_data_norm'][
-                                 (idx - self._seq_len):(idx + self._day_size * self._test_size)]
-
-        y_test = np.zeros(shape=(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1,
+        y_test = np.zeros(shape=(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1,
                                  self._horizon,
                                  self._nodes,
                                  1))
-        for t in range(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1):
-            y_test[t] = np.expand_dims(test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon],
+        for t in range(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1):
+            y_test[t] = np.expand_dims(self._data['test_data_norm']
+                                       [t + self._seq_len:t + self._seq_len + self._horizon],
                                        axis=2)
 
-        return test_data_normalize, y_test
+        return y_test
 
     def _test(self, sess, **kwargs):
 
@@ -454,7 +441,7 @@ class DCRNNSupervisor(object):
             test_data_norm, y_test = self._prepare_test_set()
 
             test_results = self._run_tm_prediction(sess,
-                                                   model=self._online_test_model,
+                                                   model=self._test_model,
                                                    test_data_norm=test_data_norm)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
@@ -500,6 +487,14 @@ class DCRNNSupervisor(object):
             print('ER: {}'.format(er))
 
         return
+
+    def train(self, sess, **kwargs):
+        kwargs.update(self._train_kwargs)
+        return self._train(sess, **kwargs)
+
+    def test(self, sess, **kwargs):
+        kwargs.update(self._test_kwargs)
+        return self._test(sess, **kwargs)
 
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())

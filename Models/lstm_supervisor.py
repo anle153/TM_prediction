@@ -262,11 +262,11 @@ class lstm(AbstractModel):
         idx = self._data['test_data_norm'].shape[0] - self._day_size * self._test_size - 10
 
         test_data_normalize[:] = self._data['test_data_norm'][
-                                 idx - self._seq_len:idx + self._day_size * self._test_size]
+                                 (idx - self._seq_len):(idx + self._day_size * self._test_size)]
 
         y_test = np.zeros(shape=(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1,
                                  self._horizon,
-                                 test_data_normalize.shape[1]))
+                                 self._nodes))
         for t in range(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1):
             y_test[t] = test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon]
 

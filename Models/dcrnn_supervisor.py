@@ -51,6 +51,7 @@ class DCRNNSupervisor(object):
         self._test_size = self._test_kwargs.get('test_size')
 
         # Data preparation
+        self._day_size = self._data_kwargs.get('day_size')
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
                                               horizon=self._model_kwargs.get('horizon'),
                                               input_dim=self._model_kwargs.get('input_dim'),
@@ -261,21 +262,15 @@ class DCRNNSupervisor(object):
 
         return sampling
 
-    def _run_tm_prediction(self, sess, model, data, writer=None):
-
-        init_data = data[0]
-        test_data = data[1]
+    def _run_tm_prediction(self, sess, model, test_data_norm, writer=None):
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
-        tm_pred[0:init_data.shape[0]] = init_data
-
-        # Initialize predicted_traffic matrice
-        predicted_tm = np.zeros(shape=(test_data.shape[0] - self._horizon, self._horizon, test_data.shape[1]))
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
+        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
         # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(init_data.shape[0] + test_data.shape[0] - self._horizon, test_data.shape[1]))
-        m_indicator[0:init_data.shape[0]] = np.ones(shape=init_data.shape)
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
+        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         losses = []
         mses = []
@@ -294,9 +289,10 @@ class DCRNNSupervisor(object):
             'outputs': model.outputs
         })
 
-        for ts in tqdm(range(test_data.shape[0] - self._horizon)):
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
 
-            x, y = self._prepare_input_online_prediction(ground_truth=test_data[ts + 1:ts + 1 + self._horizon],
+            x, y = self._prepare_input_online_prediction(
+                ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
                                                          data=tm_pred[ts:ts + self._seq_len],
                                                          m_indicator=m_indicator[ts:ts + self._seq_len])
 
@@ -313,11 +309,10 @@ class DCRNNSupervisor(object):
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
 
             pred = vals['outputs']
-            predicted_tm[ts] = pred[0, :, :, 0]
             pred = pred[0, 0, :, 0]
 
             if self._flow_selection == 'Random':
-                sampling = np.random.choice([1.0, 0.0], size=(test_data.shape[1]),
+                sampling = np.random.choice([1.0, 0.0], size=self._nodes,
                                             p=[self._mon_ratio, 1 - self._mon_ratio])
             else:
                 sampling = self.set_measured_flow_fairness(labels=m_indicator[ts: ts + self._seq_len])
@@ -327,7 +322,7 @@ class DCRNNSupervisor(object):
             inv_sampling = 1.0 - sampling
             pred_input = pred * inv_sampling
 
-            ground_true = test_data[ts]
+            ground_true = test_data_norm[ts + self._seq_len]
 
             measured_input = ground_true * sampling
 
@@ -342,7 +337,6 @@ class DCRNNSupervisor(object):
         results = {'loss': np.mean(losses),
                    'mse': np.mean(mses),
                    'outputs': outputs,
-                   'predicted_tm': predicted_tm,
                    'tm_pred': tm_pred[self._seq_len:],
                    'm_indicator': m_indicator[self._seq_len:]
                    }
@@ -433,28 +427,33 @@ class DCRNNSupervisor(object):
             sys.stdout.flush()
         return np.min(history)
 
-    def prepare_test_set(self):
+    def _prepare_test_set(self):
 
-        day_size = self._data_kwargs.get('day_size')
+        test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes))
 
-        idx = self._data['test_data'].shape[0] - day_size * self._test_size - 10
+        idx = self._data['test_data_norm'].shape[0] - self._day_size * self._test_size - 10
 
-        test_data_normalize = np.copy(self._data['test_data_norm'][idx:idx + day_size * self._test_size])
-        init_data_normalize = np.copy(self._data['test_data_norm'][idx - self._seq_len: idx])
-        test_data = np.copy(self._data['test_data'][idx:idx + day_size * self._test_size])
+        test_data_normalize[:] = self._data['test_data_norm'][
+                                 (idx - self._seq_len):(idx + self._day_size * self._test_size)]
 
-        return test_data_normalize, init_data_normalize, test_data
+        y_test = np.zeros(shape=(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1,
+                                 self._horizon,
+                                 self._nodes))
+        for t in range(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1):
+            y_test[t] = test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon]
+
+        return test_data_normalize, y_test
 
     def _test(self, sess, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
         for i in range(self._test_kwargs.get('run_times')):
             print('|--- Running time: {}'.format(i))
-            test_data_normalize, init_data_normalize, test_data = self.prepare_test_set()
+            test_data_norm, y_test = self._prepare_test_set()
 
             test_results = self._run_tm_prediction(sess,
                                                    model=self._online_test_model,
-                                                   data=(init_data_normalize, test_data_normalize))
+                                                   test_data_norm=test_data_norm)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
             test_loss, y_preds, predicted_tm = test_results['loss'], test_results['outputs'], test_results[
@@ -466,7 +465,7 @@ class DCRNNSupervisor(object):
             predictions = []
             y_truths = []
             for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(self._data['y_test'][:, horizon_i, :, 0])
+                y_truth = scaler.inverse_transform(y_test[:, horizon_i, :, 0])
                 y_truths.append(y_truth)
 
                 y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
@@ -486,16 +485,16 @@ class DCRNNSupervisor(object):
                                          [rmse, mape, mse],
                                          global_step=global_step)
 
-            test_data = test_data[:-self._horizon]
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             m_indicator = test_results['m_indicator']
             mape = metrics.masked_mape_np(preds=tm_pred,
-                                          labels=scaler.inverse_transform(test_data_normalize[:-self._horizon]),
+                                          labels=scaler.inverse_transform(
+                                              test_data_normalize[self._seq_len:-self._horizon]),
                                           null_val=0)
             print('MAPE: {}'.format(mape))
 
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(test_data_normalize[:-self._horizon]),
+                             y_true=scaler.inverse_transform(test_data_normalize[self._seq_len:-self._horizon]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

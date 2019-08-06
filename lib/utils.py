@@ -273,13 +273,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     x_eval, y_eval = create_data_dcrnn(test_data2d_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
 
-    idx = test_data2d_norm.shape[0] - day_size * test_size - 10
-    test_data_norm = test_data2d_norm[idx - seq_len:idx + day_size * test_size]
-
-    x_test, y_test = create_data_dcrnn(test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-
-    for category in ['train', 'val', 'eval', 'test']:
+    for category in ['train', 'val', 'eval']:
         _x, _y = locals()["x_" + category], locals()["y_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape)
         data['x_' + category] = _x
@@ -288,7 +282,6 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
     data['val_loader'] = DataLoader(data['x_val'], data['y_val'], eval_batch_size, shuffle=False)
-    data['test_loader'] = DataLoader(data['x_test'], data['y_test'], 1, shuffle=False)
     data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
@@ -309,14 +302,6 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
         print("NAN")
         raise ValueError
 
-    if np.any(np.isinf(data['test_loader'].xs)):
-        print("INF")
-        raise ValueError
-
-    if np.any(np.isnan(data['test_loader'].ys)):
-        print("NAN")
-        raise ValueError
-
     if np.any(np.isinf(data['eval_loader'].xs)):
         print("INF")
         raise ValueError
@@ -333,9 +318,6 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     adj_mx = adj_mx.astype('float32')
 
     data['adj_mx'] = adj_mx
-
-    print('Mean test data: {}'.format(data['test_data'].mean()))
-    print('Mean test data norm: {}'.format(data['test_data_norm'].mean()))
 
     return data
 
@@ -463,11 +445,11 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     data = {}
 
     scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
+    train_data2d_norm = np.copy(scaler.transform(train_data2d))
+    valid_data2d_norm = np.copy(scaler.transform(valid_data2d))
+    test_data2d_norm = np.copy(scaler.transform(test_data2d))
 
-    data['test_data_norm'] = test_data2d_norm
+    data['test_data_norm'] = np.copy(test_data2d_norm)
 
     x_train, y_train = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
@@ -475,9 +457,6 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
                                     mon_ratio=mon_ratio, eps=train_data2d_norm.std())
     x_eval, y_eval = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-
-    idx = test_data2d_norm.shape[0] - day_size * test_size - 10
-    test_data_norm = test_data2d_norm[idx - seq_len:idx + day_size * test_size]
 
     for cat in ["train", "val", "eval"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]

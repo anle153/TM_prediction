@@ -236,6 +236,25 @@ class lstm(AbstractModel):
             self.plot_training_history(training_fw_history)
             self.save_model_history(training_fw_history)
 
+        # evaluate
+        scaler = self._data['scaler']
+        x_eval = self._data['x_eval']
+        y_truth = self._data['y_eval']
+
+        y_pred = self.model.predict(x_eval)
+        y_pred = scaler.inverse_transform(y_pred)
+        y_truth = scaler.inverse_transform(y_truth)
+
+        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
+        self._logger.info(
+            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
+                1, mse, mape, rmse
+            )
+        )
+
+
     def evaluate(self):
         scaler = self._data['scaler']
 

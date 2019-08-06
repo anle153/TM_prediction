@@ -385,8 +385,8 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     i = 0
     for flow in range(_data.shape[1]):
         for idx in range(_data.shape[0] - seq_len):
-            _x = _data[idx: (idx + seq_len), flow]
-            _label = _labels[idx: (idx + seq_len), flow]
+            _x = _data[idx: idx + seq_len, flow]
+            _label = _labels[idx: idx + seq_len, flow]
 
             data_x[i, :, 0] = _x
             data_x[i, :, 1] = _label
@@ -404,8 +404,6 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     raw_data[raw_data <= 0] = 0.1
 
     # Convert traffic volume from byte to mega-byte
-    raw_data = raw_data
-
     raw_data = raw_data.astype("float32")
 
     raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
@@ -418,9 +416,9 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     data = {}
 
     scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
-    train_data2d_norm = np.copy(scaler.transform(train_data2d))
-    valid_data2d_norm = np.copy(scaler.transform(valid_data2d))
-    test_data2d_norm = np.copy(scaler.transform(test_data2d))
+    train_data2d_norm = scaler.transform(train_data2d)
+    valid_data2d_norm = scaler.transform(valid_data2d)
+    test_data2d_norm = scaler.transform(test_data2d)
 
     data['test_data_norm'] = np.copy(test_data2d_norm)
 

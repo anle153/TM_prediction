@@ -456,8 +456,7 @@ class DCRNNSupervisor(object):
                                                    test_data_norm=test_data_norm)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-            test_loss, y_preds, predicted_tm = test_results['loss'], test_results['outputs'], test_results[
-                'predicted_tm']
+            test_loss, y_preds = test_results['loss'], test_results['outputs']
             utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
 
             y_preds = np.concatenate(y_preds, axis=0)
@@ -489,12 +488,12 @@ class DCRNNSupervisor(object):
             m_indicator = test_results['m_indicator']
             mape = metrics.masked_mape_np(preds=tm_pred,
                                           labels=scaler.inverse_transform(
-                                              test_data_normalize[self._seq_len:-self._horizon]),
+                                              test_data_norm[self._seq_len:-self._horizon]),
                                           null_val=0)
             print('MAPE: {}'.format(mape))
 
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(test_data_normalize[self._seq_len:-self._horizon]),
+                             y_true=scaler.inverse_transform(test_data_norm[self._seq_len:-self._horizon]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

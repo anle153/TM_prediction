@@ -84,8 +84,8 @@ class DCRNNSupervisor(object):
         with tf.name_scope('OnlineTest'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._online_test_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=1,
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+                                                     batch_size=1,
+                                                     adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),

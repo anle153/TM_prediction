@@ -516,6 +516,7 @@ class DCRNNSupervisor(object):
         scaler = self._data['scaler']
         predictions = []
         y_truths = []
+        print('Evaluation Loss: {}'.format(test_loss))
         for horizon_i in range(self._data['y_eval'].shape[1]):
             y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)

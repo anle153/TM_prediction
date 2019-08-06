@@ -78,9 +78,9 @@ class DCRNNSupervisor(object):
 
         with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
-                self._test_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=1,
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+                self._val_model = DCRNNModel(is_training=False, scaler=scaler,
+                                             batch_size=self._data_kwargs['val_batch_size'],
+                                             adj_mx=self._data['adj_mx'], **self._model_kwargs)
         with tf.name_scope('OnlineTest'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self._online_test_model = DCRNNModel(is_training=False, scaler=scaler,
@@ -393,7 +393,7 @@ class DCRNNSupervisor(object):
 
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
-            val_results = self.run_epoch_generator(sess, self._test_model,
+            val_results = self.run_epoch_generator(sess, self._val_model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()

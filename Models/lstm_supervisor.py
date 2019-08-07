@@ -383,6 +383,7 @@ class lstm(AbstractModel):
             y_preds = np.concatenate(y_preds, axis=0)
             predictions = []
             y_truths = outputs['y_truths']
+            y_truths = np.concatenate(y_truths, axis=0)
 
             for horizon_i in range(self._horizon):
                 y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
@@ -400,14 +401,10 @@ class lstm(AbstractModel):
                 )
 
             tm_pred = scaler.inverse_transform(tm_pred)
-            mape = metrics.masked_mape_np(preds=tm_pred,
-                                          labels=scaler.inverse_transform(
-                                              test_data_normalize[self._seq_len:-(self._horizon - 1)]),
-                                          null_val=0)
-            print('MAPE: {}'.format(mape))
 
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(test_data_normalize[self._seq_len:-(self._horizon - 1)]),
+                             y_true=scaler.inverse_transform(
+                                 self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

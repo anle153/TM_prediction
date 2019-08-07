@@ -457,8 +457,7 @@ class DCRNNSupervisor(object):
             scaler = self._data['scaler']
             predictions = []
 
-            if np.array_equal(y_truths, self._data['y_eval']):
-                print('SAME')
+            print(np.array_equal(y_truths, self._data['y_eval']))
 
             for horizon_i in range(self._horizon):
                 y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])

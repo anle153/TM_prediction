@@ -302,9 +302,9 @@ def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
     _labels = np.random.choice(_tf,
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
-    data_x = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, input_dim),dtype='float32')
-    data_y_1 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, 1),dtype='float32')
-    data_y_2 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len),dtype='float32')
+    data_x = np.zeros(shape=((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, input_dim), dtype='float32')
+    data_y_1 = np.zeros(shape=((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, 1), dtype='float32')
+    data_y_2 = np.zeros(shape=((data.shape[0] - seq_len - 1) * data.shape[1], seq_len), dtype='float32')
 
     _data = np.copy(data)
 
@@ -377,8 +377,8 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
 def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
-    data_x = np.zeros(((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim),dtype='float32')
-    data_y = np.zeros(((data.shape[0] - seq_len) * data.shape[1], 1),dtype='float32')
+    data_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')
+    data_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], 1), dtype='float32')
 
     _data = np.copy(data)
 

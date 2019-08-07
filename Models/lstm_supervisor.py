@@ -307,7 +307,10 @@ class lstm(AbstractModel):
 
         return multi_steps_tm[-self._horizon:]
 
-    def _run_tm_prediction(self, test_data_norm):
+    def _run_tm_prediction(self):
+
+        test_data_norm = self._data['test_data_norm']
+
         tf_a = np.array([1.0, 0.0])
         m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
 
@@ -317,6 +320,7 @@ class lstm(AbstractModel):
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         y_preds = []
+        y_truths = []
 
         # Predict the TM from time slot look_back
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
@@ -346,6 +350,7 @@ class lstm(AbstractModel):
             pred_input = pred * inv_sampling
 
             ground_true = test_data_norm[ts + self._seq_len]
+            y_truths.append(np.expand_dims(ground_true, axis=0))
 
             measured_input = ground_true * sampling
 
@@ -370,9 +375,7 @@ class lstm(AbstractModel):
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            test_data_normalize, y_test = self._prepare_test_set()
-
-            outputs = self._run_tm_prediction(test_data_norm=np.copy(test_data_normalize))
+            outputs = self._run_tm_prediction()
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 

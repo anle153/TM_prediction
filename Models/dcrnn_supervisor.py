@@ -269,11 +269,11 @@ class DCRNNSupervisor(object):
         test_data_norm = np.copy(self._data['test_data_norm'])
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
         tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
         # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         losses = []
@@ -295,7 +295,7 @@ class DCRNNSupervisor(object):
 
         y_truths = []
 
-        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
             x, y = self._prepare_input(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
@@ -457,6 +457,10 @@ class DCRNNSupervisor(object):
             y_truths = np.concatenate(y_truths, axis=0)
             scaler = self._data['scaler']
             predictions = []
+
+            if np.array_equal(y_truths, self._data['y_eval']):
+                print('SAME')
+
             for horizon_i in range(self._horizon):
                 y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
 
@@ -482,7 +486,7 @@ class DCRNNSupervisor(object):
             m_indicator = test_results['m_indicator']
             er = error_ratio(y_pred=tm_pred,
                              y_true=scaler.inverse_transform(
-                                 self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),
+                                 self._data['test_data_norm'][self._seq_len:-self._horizon]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

@@ -223,7 +223,6 @@ class lstm(AbstractModel):
         plt.legend()
         plt.close()
 
-
     def _prepare_test_set(self):
 
         test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes))
@@ -350,7 +349,8 @@ class lstm(AbstractModel):
             pred_input = pred * inv_sampling
 
             ground_true = test_data_norm[ts + self._seq_len]
-            y_truths.append(np.expand_dims(ground_true, axis=0))
+            y_truths.append(
+                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
 
             measured_input = ground_true * sampling
 
@@ -364,7 +364,8 @@ class lstm(AbstractModel):
         outputs = {
             'tm_pred': tm_pred[self._seq_len:],
             'm_indicator': m_indicator[self._seq_len:],
-            'y_preds': y_preds
+            'y_preds': y_preds,
+            'y_truths': y_truths
         }
 
         return outputs
@@ -381,11 +382,10 @@ class lstm(AbstractModel):
 
             y_preds = np.concatenate(y_preds, axis=0)
             predictions = []
-            y_truths = []
+            y_truths = outputs['y_truths']
 
-            for horizon_i in range(y_test.shape[1]):
-                y_truth = scaler.inverse_transform(y_test[:, horizon_i, :])
-                y_truths.append(y_truth)
+            for horizon_i in range(self._horizon):
+                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
 
                 y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
                 predictions.append(y_pred)

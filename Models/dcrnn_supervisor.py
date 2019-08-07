@@ -210,12 +210,13 @@ class DCRNNSupervisor(object):
     def _prepare_input(self, ground_truth, data, m_indicator):
 
         x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim))
-        y = np.zeros(shape=(self._horizon, self._nodes, 1))
+        y = np.zeros(shape=(self._horizon, self._nodes))
 
         x[:, :, 0] = data
         x[:, :, 1] = m_indicator
 
-        y[:, :, 0] = ground_truth
+        y[:] = ground_truth
+        y = np.expand_dims(y, axis=2)
 
         return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
 
@@ -277,7 +278,7 @@ class DCRNNSupervisor(object):
 
         losses = []
         mses = []
-        outputs = []
+        y_preds = []
         output_dim = self._model_kwargs.get('output_dim')
         preds = model.outputs
         labels = model.labels[..., :output_dim]
@@ -293,8 +294,6 @@ class DCRNNSupervisor(object):
         })
 
         y_truths = []
-
-        scaler = self._data['scaler']
 
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
 
@@ -337,11 +336,11 @@ class DCRNNSupervisor(object):
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
 
-            outputs.append(vals['outputs'])
+            y_preds.append(vals['outputs'])
 
         results = {'loss': np.mean(losses),
                    'mse': np.mean(mses),
-                   'outputs': outputs,
+                   'y_preds': y_preds,
                    'tm_pred': tm_pred[self._seq_len:],
                    'm_indicator': m_indicator[self._seq_len:],
                    'y_truths': y_truths
@@ -448,10 +447,13 @@ class DCRNNSupervisor(object):
             test_results = self._run_tm_prediction(sess, model=self._test_model)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-            test_loss, y_preds, y_truths = test_results['loss'], test_results['outputs'], test_results['y_truths']
+            test_loss, y_preds = test_results['loss'], test_results['y_preds']
             utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
 
+            y_preds = test_results['y_preds']
             y_preds = np.concatenate(y_preds, axis=0)
+
+            y_truths = test_results['y_truths']
             y_truths = np.concatenate(y_truths, axis=0)
             scaler = self._data['scaler']
             predictions = []

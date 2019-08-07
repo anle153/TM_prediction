@@ -339,8 +339,8 @@ class DCRNNSupervisor(object):
 
             outputs.append(vals['outputs'])
 
-            mape = metrics.masked_mape_np(preds=scaler.inverse_transform(vals['outputs']),
-                                          labels=scaler.inverse_transform(y), null_val=0)
+            mape = metrics.masked_mape_np(preds=scaler.inverse_transform(vals['outputs'][:, 0, :, 0]),
+                                          labels=scaler.inverse_transform(y[:, 0, :, 0]), null_val=0)
             print('MAPE - {}: {}'.format(ts, mape))
 
         results = {'loss': np.mean(losses),

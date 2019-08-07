@@ -311,6 +311,7 @@ class DCRNNSupervisor(object):
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
+            y_preds.append(np.copy(vals['outputs']))
 
             losses.append(vals['loss'])
             mses.append(vals['mse'])
@@ -335,8 +336,6 @@ class DCRNNSupervisor(object):
 
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
-
-            y_preds.append(vals['outputs'])
 
         results = {'loss': np.mean(losses),
                    'mse': np.mean(mses),

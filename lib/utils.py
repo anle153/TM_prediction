@@ -263,7 +263,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
 
-    data['test_data_norm'] = test_data_norm
+    data['test_data_norm'] = np.copy(test_data_norm)
 
     x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
                                          input_dim=input_dim,

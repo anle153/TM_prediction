@@ -12,7 +12,7 @@ import yaml
 from tqdm import tqdm
 
 from Models.dcrnn_model import DCRNNModel
-from common.error_utils import error_ratio, calculate_mape
+from common.error_utils import error_ratio
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
@@ -467,7 +467,7 @@ class DCRNNSupervisor(object):
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
                 mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = calculate_mape(y_pred=y_pred, y_true=y_truth)
+                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
                 rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
                 self._logger.info(
                     "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(

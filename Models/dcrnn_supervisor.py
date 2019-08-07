@@ -294,6 +294,8 @@ class DCRNNSupervisor(object):
 
         y_truths = []
 
+        scaler = self._data['scaler']
+
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
 
             x, y = self._prepare_input(
@@ -337,7 +339,8 @@ class DCRNNSupervisor(object):
 
             outputs.append(vals['outputs'])
 
-            mape = metrics.masked_mape_np(preds=vals['outputs'], labels=y, null_val=0)
+            mape = metrics.masked_mape_np(preds=scaler.inverse_transform(vals['outputs']),
+                                          labels=scaler.inverse_transform(y), null_val=0)
             print('MAPE - {}: {}'.format(ts, mape))
 
         results = {'loss': np.mean(losses),

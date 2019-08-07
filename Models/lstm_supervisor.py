@@ -392,11 +392,11 @@ class lstm(AbstractModel):
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+                mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
                 rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
                 self._logger.info(
-                    "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                        horizon_i + 1, mse, mape, rmse
+                    "Horizon {:02d}, MSE: {:.2f}, MAE: {:.4f}, RMSE: {:.2f}".format(
+                        horizon_i + 1, mse, mae, rmse
                     )
                 )
 

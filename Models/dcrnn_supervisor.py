@@ -445,7 +445,7 @@ class DCRNNSupervisor(object):
         global_step = sess.run(tf.train.get_or_create_global_step())
         for i in range(self._test_kwargs.get('run_times')):
             print('|--- Running time: {}'.format(i))
-            y_test = self._prepare_test_set()
+            # y_test = self._prepare_test_set()
 
             test_results = self._run_tm_prediction(sess, model=self._test_model)
 

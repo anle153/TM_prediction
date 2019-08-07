@@ -296,7 +296,7 @@ class DCRNNSupervisor(object):
 
             x, y = self._prepare_input_online_prediction(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
-                                                         data=tm_pred[ts:ts + self._seq_len],
+                data=tm_pred[ts:ts + self._seq_len],
                                                          m_indicator=m_indicator[ts:ts + self._seq_len])
 
             feed_dict = {

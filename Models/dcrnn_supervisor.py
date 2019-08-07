@@ -209,15 +209,15 @@ class DCRNNSupervisor(object):
 
     def _prepare_input_online_prediction(self, ground_truth, data, m_indicator):
 
-        x = np.zeros(shape=(1, self._seq_len, self._nodes, self._input_dim))
-        y = np.zeros(shape=(1, self._horizon, self._nodes, 1))
+        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim))
+        y = np.zeros(shape=(self._horizon, self._nodes, 1))
 
-        x[0, :, :, 0] = data[-self._seq_len:]
-        x[0, :, :, 1] = m_indicator[-self._seq_len:]
+        x[:, :, 0] = data
+        x[:, :, 1] = m_indicator
 
-        y[0, :, :, 0] = ground_truth[-self._horizon:]
+        y[:, :, 0] = ground_truth
 
-        return x, y
+        return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
 
     @staticmethod
     def calculate_consecutive_loss(labels):
@@ -442,8 +442,7 @@ class DCRNNSupervisor(object):
             print('|--- Running time: {}'.format(i))
             y_test = self._prepare_test_set()
 
-            test_results = self._run_tm_prediction(sess,
-                                                   model=self._test_model)
+            test_results = self._run_tm_prediction(sess, model=self._test_model)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
             test_loss, y_preds = test_results['loss'], test_results['outputs']

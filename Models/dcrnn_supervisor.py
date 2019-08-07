@@ -255,7 +255,7 @@ class DCRNNSupervisor(object):
 
         w = 1 / cl
 
-        sampling = np.zeros(shape=self._nodes)
+        sampling = np.zeros(shape=self._nodes,dtype='float32')
         m = int(self._mon_ratio * self._nodes)
 
         w = w.flatten()
@@ -269,11 +269,11 @@ class DCRNNSupervisor(object):
         test_data_norm = np.copy(self._data['test_data_norm'])
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),dtype='float32')
         tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
         # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes))
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),dtype='float32')
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         losses = []
@@ -428,7 +428,7 @@ class DCRNNSupervisor(object):
         y_test = np.zeros(shape=(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1,
                                  self._horizon,
                                  self._nodes,
-                                 1))
+                                 1),dtype='float32')
         for t in range(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1):
             y_test[t] = np.expand_dims(self._data['test_data_norm']
                                        [t + self._seq_len:t + self._seq_len + self._horizon],

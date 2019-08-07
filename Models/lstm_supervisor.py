@@ -225,7 +225,8 @@ class lstm(AbstractModel):
 
     def _prepare_test_set(self):
 
-        test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes))
+        test_data_normalize = np.zeros(shape=(self._seq_len + self._day_size * self._test_size, self._nodes),
+                                       dtype='float32')
 
         idx = self._data['test_data_norm'].shape[0] - self._day_size * self._test_size - 10
 
@@ -234,7 +235,8 @@ class lstm(AbstractModel):
 
         y_test = np.zeros(shape=(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1,
                                  self._horizon,
-                                 self._nodes))
+                                 self._nodes),
+                          dtype='float32')
         for t in range(test_data_normalize.shape[0] - self._seq_len - self._horizon + 1):
             y_test[t] = test_data_normalize[t + self._seq_len:t + self._seq_len + self._horizon]
 
@@ -242,7 +244,7 @@ class lstm(AbstractModel):
 
     def _prepare_input(self, data, m_indicator):
 
-        dataX = np.zeros(shape=(data.shape[1], self._seq_len, 2))
+        dataX = np.zeros(shape=(data.shape[1], self._seq_len, 2), dtype='float32')
         for flow_id in range(data.shape[1]):
             x = data[-self._seq_len:, flow_id]
             label = m_indicator[-self._seq_len:, flow_id]
@@ -264,7 +266,7 @@ class lstm(AbstractModel):
 
         w = 1 / cl
 
-        sampling = np.zeros(shape=self._nodes)
+        sampling = np.zeros(shape=self._nodes, dtype='float32')
         m = int(self._mon_ratio * self._nodes)
 
         w = w.flatten()
@@ -292,10 +294,12 @@ class lstm(AbstractModel):
         return consecutive_losses
 
     def _ims_tm_prediction(self, init_data, init_labels):
-        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]))
+        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]),
+                                  dtype='float32')
         multi_steps_tm[0:self._seq_len] = init_data
 
-        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, init_labels.shape[1]))
+        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, init_labels.shape[1]),
+                               dtype='float32')
         m_indicator[0:self._seq_len] = init_labels
 
         for ts_ahead in range(self._horizon):
@@ -311,9 +315,11 @@ class lstm(AbstractModel):
         test_data_norm = self._data['test_data_norm']
 
         tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes),
+                               dtype='float32')
 
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes),
+                           dtype='float32')
 
         tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))

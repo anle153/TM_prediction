@@ -204,8 +204,8 @@ def create_data_dcrnn(data, seq_len, horizon, input_dim, mon_ratio, eps):
     y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
     for idx in range(_data.shape[0] - seq_len - horizon):
-        _x = _data[idx: (idx + seq_len)]
-        _label = _labels[idx: (idx + seq_len)]
+        _x = _data[idx: idx + seq_len]
+        _label = _labels[idx: idx + seq_len]
 
         x[idx, :, :, 0] = _x
         x[idx, :, :, 1] = _label

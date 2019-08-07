@@ -265,7 +265,7 @@ class DCRNNSupervisor(object):
 
     def _run_tm_prediction(self, sess, model, writer=None):
 
-        test_data_norm = self._data['test_data_norm']
+        test_data_norm = np.copy(self._data['test_data_norm'])
 
         # Initialize traffic matrix data
         tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
@@ -326,15 +326,11 @@ class DCRNNSupervisor(object):
 
             m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
-            inv_sampling = 1.0 - sampling
-            pred_input = pred * inv_sampling
 
-            ground_true = test_data_norm[ts + self._seq_len]
-
-            measured_input = ground_true * sampling
+            ground_true = np.copy(test_data_norm[ts + self._seq_len])
 
             # Merge value from pred_input and measured_input
-            new_input = pred_input + measured_input
+            new_input = pred * (1.0 - sampling) + ground_true * sampling
 
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input

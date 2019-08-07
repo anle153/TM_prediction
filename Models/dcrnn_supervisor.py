@@ -339,8 +339,8 @@ class DCRNNSupervisor(object):
 
             outputs.append(vals['outputs'])
 
-            mape = metrics.masked_mape_np(preds=vals['outputs'][:, 0, :, 0],
-                                          labels=y[:, 0, :, 0], null_val=0)
+            mape = metrics.masked_mape_np(preds=scaler.inverse_transform(vals['outputs'][:, 0, :, 0]),
+                                          labels=scaler.inverse_transform(y[:, 0, :, 0]), null_val=0)
 
             mape_2 = calculate_mape(y_pred=scaler.inverse_transform(vals['outputs'][:, 0, :, 0]),
                                     y_true=scaler.inverse_transform(y[:, 0, :, 0]))

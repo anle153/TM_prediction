@@ -462,27 +462,21 @@ class DCRNNSupervisor(object):
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
                 rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
+                mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
                 self._logger.info(
-                    "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                        horizon_i + 1, mse, mape, rmse
+                    "Horizon {:02d}, MSE: {:.2f}, MAE: {:.4f}, RMSE: {:.2f}".format(
+                        horizon_i + 1, mse, mae, rmse
                     )
                 )
                 utils.add_simple_summary(self._writer,
                                          ['%s_%d' % (item, horizon_i + 1) for item in
-                                          ['metric/rmse', 'metric/mape', 'metric/mse']],
-                                         [rmse, mape, mse],
+                                          ['metric/rmse', 'metric/mae', 'metric/mse']],
+                                         [rmse, mae, mse],
                                          global_step=global_step)
 
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             m_indicator = test_results['m_indicator']
-            mape = metrics.masked_mape_np(preds=tm_pred,
-                                          labels=scaler.inverse_transform(
-                                              self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),
-                                          null_val=0)
-            print('MAPE: {}'.format(mape))
-
             er = error_ratio(y_pred=tm_pred,
                              y_true=scaler.inverse_transform(
                                  self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),

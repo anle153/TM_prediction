@@ -263,7 +263,9 @@ class DCRNNSupervisor(object):
 
         return sampling
 
-    def _run_tm_prediction(self, sess, model, test_data_norm, writer=None):
+    def _run_tm_prediction(self, sess, model, writer=None):
+
+        test_data_norm = self._data['test_data_norm']
 
         # Initialize traffic matrix data
         tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes))
@@ -438,11 +440,10 @@ class DCRNNSupervisor(object):
         global_step = sess.run(tf.train.get_or_create_global_step())
         for i in range(self._test_kwargs.get('run_times')):
             print('|--- Running time: {}'.format(i))
-            test_data_norm, y_test = self._prepare_test_set()
+            y_test = self._prepare_test_set()
 
             test_results = self._run_tm_prediction(sess,
-                                                   model=self._test_model,
-                                                   test_data_norm=test_data_norm)
+                                                   model=self._test_model)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
             test_loss, y_preds = test_results['loss'], test_results['outputs']
@@ -477,12 +478,13 @@ class DCRNNSupervisor(object):
             m_indicator = test_results['m_indicator']
             mape = metrics.masked_mape_np(preds=tm_pred,
                                           labels=scaler.inverse_transform(
-                                              test_data_norm[self._seq_len:-(self._horizon - 1)]),
+                                              self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),
                                           null_val=0)
             print('MAPE: {}'.format(mape))
 
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(test_data_norm[self._seq_len:-(self._horizon - 1)]),
+                             y_true=scaler.inverse_transform(
+                                 self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

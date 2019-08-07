@@ -5,11 +5,11 @@ import numpy as np
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
+from lib import utils, metrics
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel
 from common.error_utils import error_ratio
-from lib import utils, metrics
 
 
 class lstm(AbstractModel):
@@ -315,10 +315,10 @@ class lstm(AbstractModel):
         test_data_norm = self._data['test_data_norm']
 
         tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes),
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
                                dtype='float32')
 
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon + 1, self._nodes),
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
                            dtype='float32')
 
         tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
@@ -328,7 +328,7 @@ class lstm(AbstractModel):
         y_truths = []
 
         # Predict the TM from time slot look_back
-        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
             # This block is used for iterated multi-step traffic matrices prediction
 
             predicted_tm = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
@@ -411,7 +411,7 @@ class lstm(AbstractModel):
 
             er = error_ratio(y_pred=tm_pred,
                              y_true=scaler.inverse_transform(
-                                 self._data['test_data_norm'][self._seq_len:-(self._horizon - 1)]),
+                                 self._data['test_data_norm'][self._seq_len:-(self._horizon)]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

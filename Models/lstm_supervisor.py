@@ -223,56 +223,6 @@ class lstm(AbstractModel):
         plt.legend()
         plt.close()
 
-    def train(self):
-        training_fw_history = self.model.fit(x=self._data['x_train'],
-                                             y=self._data['y_train'],
-                                             batch_size=self._batch_size,
-                                             epochs=self._epochs,
-                                             callbacks=self.callbacks_list,
-                                             validation_data=(self._data['x_val'], self._data['y_val']),
-                                             shuffle=True,
-                                             verbose=2)
-        if training_fw_history is not None:
-            self.plot_training_history(training_fw_history)
-            self.save_model_history(training_fw_history)
-
-        # evaluate
-        scaler = self._data['scaler']
-        x_eval = self._data['x_eval']
-        y_truth = self._data['y_eval']
-
-        y_pred = self.model.predict(x_eval)
-        y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(y_truth)
-
-        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-        self._logger.info(
-            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                1, mse, mape, rmse
-            )
-        )
-
-
-    def evaluate(self):
-        scaler = self._data['scaler']
-
-        y_pred = self.model.predict(self._data['x_eval'])
-        y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(self._data['y_eval'])
-
-        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-        self._logger.info(
-            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                1, mse, mape, rmse
-            )
-        )
-
-    def test(self):
-        return self._test()
 
     def _prepare_test_set(self):
 
@@ -291,7 +241,7 @@ class lstm(AbstractModel):
 
         return test_data_normalize, y_test
 
-    def _prepare_input_online_prediction(self, data, m_indicator):
+    def _prepare_input(self, data, m_indicator):
 
         dataX = np.zeros(shape=(data.shape[1], self._seq_len, 2))
         for flow_id in range(data.shape[1]):
@@ -326,11 +276,6 @@ class lstm(AbstractModel):
 
     @staticmethod
     def _calculate_consecutive_loss(m_indicator):
-        """
-
-        :param labels: shape(#time-steps, #n_flows)
-        :return: consecutive_losses: shape(#n_flows)
-        """
 
         consecutive_losses = []
         for flow_id in range(m_indicator.shape[1]):
@@ -355,8 +300,8 @@ class lstm(AbstractModel):
         m_indicator[0:self._seq_len] = init_labels
 
         for ts_ahead in range(self._horizon):
-            rnn_input = self._prepare_input_online_prediction(data=multi_steps_tm[ts_ahead:ts_ahead+self._seq_len],
-                                                              m_indicator=m_indicator[ts_ahead:ts_ahead+self._seq_len])
+            rnn_input = self._prepare_input(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
+                                            m_indicator=m_indicator[ts_ahead:ts_ahead+self._seq_len])
             predictX = self.model.predict(rnn_input)
             multi_steps_tm[ts_ahead + self._seq_len] = np.squeeze(predictX, axis=1)
 
@@ -462,6 +407,57 @@ class lstm(AbstractModel):
                              y_true=scaler.inverse_transform(test_data_normalize[self._seq_len:-(self._horizon - 1)]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
+
+    def train(self):
+        training_fw_history = self.model.fit(x=self._data['x_train'],
+                                             y=self._data['y_train'],
+                                             batch_size=self._batch_size,
+                                             epochs=self._epochs,
+                                             callbacks=self.callbacks_list,
+                                             validation_data=(self._data['x_val'], self._data['y_val']),
+                                             shuffle=True,
+                                             verbose=2)
+        if training_fw_history is not None:
+            self.plot_training_history(training_fw_history)
+            self.save_model_history(training_fw_history)
+
+        # evaluate
+        scaler = self._data['scaler']
+        x_eval = self._data['x_eval']
+        y_truth = self._data['y_eval']
+
+        y_pred = self.model.predict(x_eval)
+        y_pred = scaler.inverse_transform(y_pred)
+        y_truth = scaler.inverse_transform(y_truth)
+
+        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
+        self._logger.info(
+            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
+                1, mse, mape, rmse
+            )
+        )
+
+    def evaluate(self):
+        scaler = self._data['scaler']
+
+        y_pred = self.model.predict(self._data['x_eval'])
+        y_pred = scaler.inverse_transform(y_pred)
+        y_truth = scaler.inverse_transform(self._data['y_eval'])
+
+        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
+        mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
+
+        self._logger.info(
+            "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}".format(
+                1, mse, mae, rmse
+            )
+        )
+
+    def test(self):
+        return self._test()
 
     def load(self):
         self.model.load_weights(self.saving_path + 'best_model.hdf5')

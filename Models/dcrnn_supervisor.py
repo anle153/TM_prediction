@@ -209,8 +209,8 @@ class DCRNNSupervisor(object):
 
     def _prepare_input(self, ground_truth, data, m_indicator):
 
-        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim))
-        y = np.zeros(shape=(self._horizon, self._nodes))
+        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
+        y = np.zeros(shape=(self._horizon, self._nodes), dtype='float32')
 
         x[:, :, 0] = data
         x[:, :, 1] = m_indicator
@@ -460,7 +460,7 @@ class DCRNNSupervisor(object):
             print(np.array_equal(y_truths, self._data['y_eval']))
 
             for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
+                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
 
                 y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
                 predictions.append(y_pred)

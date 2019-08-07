@@ -320,7 +320,7 @@ class DCRNNSupervisor(object):
 
             if self._flow_selection == 'Random':
                 sampling = np.random.choice([1.0, 0.0], size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+                                            p=[self._mon_ratio, 1.0 - self._mon_ratio])
             else:
                 sampling = self.set_measured_flow_fairness(labels=m_indicator[ts: ts + self._seq_len])
 
@@ -336,6 +336,9 @@ class DCRNNSupervisor(object):
             tm_pred[ts + self._seq_len] = new_input
 
             outputs.append(vals['outputs'])
+
+            mape = metrics.masked_mape_np(preds=vals['outputs'], labels=y, null_val=0)
+            print('MAPE - {}: {}'.format(ts, mape))
 
         results = {'loss': np.mean(losses),
                    'mse': np.mean(mses),

@@ -474,11 +474,6 @@ class DCRNNSupervisor(object):
                         horizon_i + 1, mse, mae, rmse, mape
                     )
                 )
-                utils.add_simple_summary(self._writer,
-                                         ['%s_%d' % (item, horizon_i + 1) for item in
-                                          ['metric/rmse', 'metric/mae', 'metric/mse']],
-                                         [rmse, mae, mse],
-                                         global_step=global_step)
 
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             m_indicator = test_results['m_indicator']

@@ -207,7 +207,7 @@ class DCRNNSupervisor(object):
             results['outputs'] = outputs
         return results
 
-    def _prepare_input_online_prediction(self, ground_truth, data, m_indicator):
+    def _prepare_input(self, ground_truth, data, m_indicator):
 
         x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim))
         y = np.zeros(shape=(self._horizon, self._nodes, 1))
@@ -292,12 +292,17 @@ class DCRNNSupervisor(object):
             'outputs': model.outputs
         })
 
+        y_truths = []
+
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len + 1)):
 
-            x, y = self._prepare_input_online_prediction(
+            x, y = self._prepare_input(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
                 data=tm_pred[ts:ts + self._seq_len],
-                                                         m_indicator=m_indicator[ts:ts + self._seq_len])
+                m_indicator=m_indicator[ts:ts + self._seq_len]
+            )
+
+            y_truths.append(y)
 
             feed_dict = {
                 model.inputs: x,
@@ -311,8 +316,7 @@ class DCRNNSupervisor(object):
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
 
-            pred = vals['outputs']
-            pred = pred[0, 0, :, 0]
+            pred = np.copy(vals['outputs'][0, 0, :, 0])
 
             if self._flow_selection == 'Random':
                 sampling = np.random.choice([1.0, 0.0], size=self._nodes,
@@ -341,7 +345,8 @@ class DCRNNSupervisor(object):
                    'mse': np.mean(mses),
                    'outputs': outputs,
                    'tm_pred': tm_pred[self._seq_len:],
-                   'm_indicator': m_indicator[self._seq_len:]
+                   'm_indicator': m_indicator[self._seq_len:],
+                   'y_truths': y_truths
                    }
         return results
 
@@ -445,16 +450,15 @@ class DCRNNSupervisor(object):
             test_results = self._run_tm_prediction(sess, model=self._test_model)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-            test_loss, y_preds = test_results['loss'], test_results['outputs']
+            test_loss, y_preds, y_truths = test_results['loss'], test_results['outputs'], test_results['y_truths']
             utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
 
             y_preds = np.concatenate(y_preds, axis=0)
+            y_truths = np.concatenate(y_truths, axis=0)
             scaler = self._data['scaler']
             predictions = []
-            y_truths = []
             for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_test[:, horizon_i, :, 0])
-                y_truths.append(y_truth)
+                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
 
                 y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
                 predictions.append(y_pred)

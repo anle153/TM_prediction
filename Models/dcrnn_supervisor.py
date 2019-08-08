@@ -266,7 +266,7 @@ class DCRNNSupervisor(object):
 
     def _run_tm_prediction(self, sess, model, writer=None):
 
-        test_data_norm = np.copy(self._data['test_data_norm'])
+        test_data_norm = self._data['test_data_norm']
 
         # Initialize traffic matrix data
         tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),dtype='float32')
@@ -311,14 +311,14 @@ class DCRNNSupervisor(object):
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
-            y_preds.append(np.copy(vals['outputs']))
+            y_preds.append(vals['outputs'])
 
             losses.append(vals['loss'])
             mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
 
-            pred = np.copy(vals['outputs'][0, 0, :, 0])
+            pred = vals['outputs'][0, 0, :, 0]
 
             if self._flow_selection == 'Random':
                 sampling = np.random.choice([1.0, 0.0], size=self._nodes,
@@ -329,7 +329,7 @@ class DCRNNSupervisor(object):
             m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
 
-            ground_true = np.copy(test_data_norm[ts + self._seq_len])
+            ground_true = test_data_norm[ts + self._seq_len]
 
             # Merge value from pred_input and measured_input
             new_input = pred * (1.0 - sampling) + ground_true * sampling

@@ -21,6 +21,7 @@ def print_dgc_lstm_info(mode, config):
     print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
+    print('|--- BASED_DIR:\t{}'.format(config['base_dir']))
 
 
     print('----------------------- MODEL -----------------------')

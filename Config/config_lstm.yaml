@@ -14,7 +14,7 @@ data:
   data_name: Abilene
   day_size: 288
   generate_data: True
-  data_size: 0.2
+  data_size: 1.0
 model:
   cl_decay_steps: 2000
   filter_type: dual_random_walk

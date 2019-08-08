@@ -5,11 +5,11 @@ import numpy as np
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
-from lib import utils, metrics
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel
 from common.error_utils import error_ratio
+from lib import utils, metrics
 
 
 class lstm(AbstractModel):
@@ -411,7 +411,7 @@ class lstm(AbstractModel):
 
             er = error_ratio(y_pred=tm_pred,
                              y_true=scaler.inverse_transform(
-                                 self._data['test_data_norm'][self._seq_len:-(self._horizon)]),
+                                 self._data['test_data_norm'][self._seq_len:-self._horizon]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
 

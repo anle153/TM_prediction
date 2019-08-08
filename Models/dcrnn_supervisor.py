@@ -143,14 +143,15 @@ class DCRNNSupervisor(object):
                 ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             seq_len = kwargs['model'].get('seq_len')
+            adj_mx_threshold = kwargs['data'].get('adj_mx_threshold')
             filter_type = kwargs['model'].get('filter_type')
             filter_type_abbr = 'L'
             if filter_type == 'random_walk':
                 filter_type_abbr = 'R'
             elif filter_type == 'dual_random_walk':
                 filter_type_abbr = 'DR'
-            run_id = 'dcrnn_%s_%d_h_%d_seq_%d_%s_lr_%g_bs_%d_%s/' % (
-                filter_type_abbr, max_diffusion_step, horizon, seq_len,
+            run_id = 'dcrnn_%s_%d_%.2f_h_%d_seq_%d_%s_lr_%g_bs_%d_%s/' % (
+                filter_type_abbr, max_diffusion_step, adj_mx_threshold, horizon, seq_len,
                 structure, learning_rate, batch_size,
                 time.strftime('%m%d%H%M%S'))
             base_dir = kwargs.get('base_dir')

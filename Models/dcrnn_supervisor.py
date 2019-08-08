@@ -97,7 +97,7 @@ class DCRNNSupervisor(object):
         # Configure optimizer
         optimizer_name = self._train_kwargs.get('optimizer', 'adam').lower()
         epsilon = float(self._train_kwargs.get('epsilon', 1e-3))
-        optimizer = tf.train.AdamOptimizer(self._lr, epsilon=epsilon)
+        optimizer = tf.train.AdamOptimizer(self._lr, epsilon=epsilon, )
         if optimizer_name == 'sgd':
             optimizer = tf.train.GradientDescentOptimizer(self._lr, )
         elif optimizer_name == 'amsgrad':

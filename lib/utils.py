@@ -290,6 +290,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     adj_mx[adj_mx >= 0.5] = 1.0
     adj_mx[adj_mx < 0.5] = 0.0
 
+    print('Number of edges: {}'.format(np.sum(adj_mx)))
+
     adj_mx = adj_mx.astype('float32')
 
     data['adj_mx'] = adj_mx

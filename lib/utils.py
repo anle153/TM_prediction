@@ -285,6 +285,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
     data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
+    print('|--- Get Correlation Matrix')
+
     adj_mx = get_corr_matrix(train_data2d, seq_len)
     adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
     adj_mx[adj_mx >= adj_mx_threshold] = 1.0

@@ -99,8 +99,7 @@ if __name__ == '__main__':
 
     seq_len = str(config['model']['seq_len'])
 
-    if seq_len not in config['data']['dataset_dir'] or seq_len not in config['data'][
-        'graph_pkl_filename'] or seq_len not in config['train']['log_dir']:
+    if seq_len not in config['data']['dataset_dir']:
         raise AttributeError('Check data path!')
 
     print_dgc_lstm_info(args.mode, config)

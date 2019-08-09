@@ -329,6 +329,45 @@ class FwbwLstmRegression():
 
         return multi_steps_tm[-self._horizon:], bw_outputs
 
+    @staticmethod
+    def _calculate_consecutive_loss(m_indicator):
+
+        consecutive_losses = []
+        for flow_id in range(m_indicator.shape[1]):
+            flows_labels = m_indicator[:, flow_id]
+            if flows_labels[-1] == 1:
+                consecutive_losses.append(1)
+            else:
+                measured_idx = np.argwhere(flows_labels == 1)
+                if measured_idx.size == 0:
+                    consecutive_losses.append(m_indicator.shape[0])
+                else:
+                    consecutive_losses.append(m_indicator.shape[0] - measured_idx[-1][0])
+
+        consecutive_losses = np.asarray(consecutive_losses)
+        return consecutive_losses
+
+    def _set_measured_flow_fairness(self, m_indicator):
+        """
+
+        :param rnn_input: shape(#n_flows, #time-steps)
+        :param m_indicator: shape(n_flows, #time-steps)
+        :return:
+        """
+
+        cl = self._calculate_consecutive_loss(m_indicator).astype(float)
+
+        w = 1 / cl
+
+        sampling = np.zeros(shape=self._nodes, dtype='float32')
+        m = int(self._mon_ratio * self._nodes)
+
+        w = w.flatten()
+        sorted_idx_w = np.argsort(w)
+        sampling[sorted_idx_w[:m]] = 1
+
+        return sampling
+
     def _run_tm_prediction(self):
         test_data_norm = self._data['test_data_norm']
 
@@ -474,7 +513,6 @@ class FwbwLstmRegression():
                                  self._data['test_data_norm'][self._seq_len:-self._horizon]),
                              measured_matrix=m_indicator)
             print('ER: {}'.format(er))
-
 
     def load(self):
         self.model.load_weights(self._log_dir + 'best_model.hdf5')

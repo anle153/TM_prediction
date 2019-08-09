@@ -6,6 +6,7 @@ from keras.models import Model
 from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
+from lib import metrics
 from lib import utils
 
 
@@ -261,6 +262,35 @@ class FwbwLstmRegression(AbstractModel):
         if training_fw_history is not None:
             self.plot_training_history(training_fw_history)
             self.save_model_history(training_fw_history)
+
+    def evaluate(self):
+
+        scaler = self._data['scaler']
+
+        y_pred_1, y_pred_2 = self.model.predict(self._data['x_eval'])
+        y_pred_1 = scaler.inverse_transform(y_pred_1)
+        y_truth_1 = scaler.inverse_transform(self._data['y_eval_1'])
+        y_truth_2 = scaler.inverse_transform(self._data['y_eval_2'])
+
+        mse = metrics.masked_mse_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
+        mae = metrics.masked_mae_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
+        mape = metrics.masked_mape_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
+        rmse = metrics.masked_rmse_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
+        self._logger.info(
+            " Forward results: MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
+                mse, mae, rmse, mape
+            )
+        )
+
+        mse_2 = metrics.masked_mse_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
+        mae_2 = metrics.masked_mae_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
+        mape_2 = metrics.masked_mape_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
+        rmse_2 = metrics.masked_rmse_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
+        self._logger.info(
+            "Backward results: MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
+                mse_2, mae_2, rmse_2, mape_2
+            )
+        )
 
     def load(self):
         self.model.load_weights(self.saving_path+'best_model.hdf5')

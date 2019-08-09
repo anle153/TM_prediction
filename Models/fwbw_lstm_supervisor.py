@@ -279,19 +279,19 @@ class FwbwLstmRegression():
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):
-        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)
+        plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)
 
     def plot_training_history(self, model_history):
         import matplotlib.pyplot as plt
 
         plt.plot(model_history.history['loss'], label='loss')
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self.saving_path + '[loss]{}.png'.format(self._alg_name))
+        plt.savefig(self._log_dir + '[loss]{}.png'.format(self._alg_name))
         plt.legend()
         plt.close()
 
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self.saving_path + '[val_loss]{}.png'.format(self._alg_name))
+        plt.savefig(self._log_dir + '[val_loss]{}.png'.format(self._alg_name))
         plt.legend()
         plt.close()
 
@@ -477,4 +477,4 @@ class FwbwLstmRegression():
 
 
     def load(self):
-        self.model.load_weights(self.saving_path+'best_model.hdf5')
+        self.model.load_weights(self._log_dir + 'best_model.hdf5')

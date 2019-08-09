@@ -83,19 +83,19 @@ class FwbwLstmRegression():
 
         self.callbacks_list = []
 
-        self.checkpoints = ModelCheckpoint(
+        self._checkpoints = ModelCheckpoint(
             self._log_dir + "best_model.hdf5",
             monitor='val_loss', verbose=1,
             save_best_only=True,
             mode='auto', period=1)
-        self.callbacks_list = [self.checkpoints]
+        self.callbacks_list = [self._checkpoints]
 
-        self.earlystop = EarlyStopping(monitor='val_loss', patience=50,
+        self._earlystop = EarlyStopping(monitor='val_loss', patience=50,
                                        verbose=1, mode='auto')
-        self.callbacks_list.append(self.earlystop)
+        self.callbacks_list.append(self._earlystop)
 
-        self.time_callback = TimeHistory()
-        self.callbacks_list.append(self.time_callback)
+        self._time_callback = TimeHistory()
+        self.callbacks_list.append(self._time_callback)
 
     def save_model_history(self, model_history):
         loss = np.array(model_history.history['loss'])
@@ -107,8 +107,8 @@ class FwbwLstmRegression():
         dump_model_history['loss'] = loss
         dump_model_history['val_loss'] = val_loss
 
-        if self.time_callback.times is not None:
-            dump_model_history['train_time'] = self.time_callback.times
+        if self._time_callback.times is not None:
+            dump_model_history['train_time'] = self._time_callback.times
 
         dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 

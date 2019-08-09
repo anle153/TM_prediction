@@ -99,11 +99,6 @@ if __name__ == '__main__':
     with open(args.config_file) as f:
         config = yaml.load(f)
 
-    seq_len = str(config['model']['seq_len'])
-
-    if seq_len not in config['data']['dataset_dir']:
-        raise AttributeError('Check data path!')
-
     print_dgc_lstm_info(args.mode, config)
     if args.mode == 'train':
         train_dgc_lstm(config)

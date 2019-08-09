@@ -1,3 +1,6 @@
+import os
+import time
+
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape, Add
 from keras.models import Model
 from keras.utils import plot_model
@@ -19,23 +22,76 @@ class FwbwLstmRegression(AbstractModel):
 
         self._alg_name = self._kwargs.get('alg')
 
-        self._hidden = self._model_kwargs.get('rnn_units')
+        # logging.
+        self._log_dir = self._get_log_dir(kwargs)
+        log_level = self._kwargs.get('log_level', 'INFO')
+        self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
+        self._logger.info(kwargs)
 
+        # Data's args
+        self._day_size = self._data_kwargs.get('day_size')
+
+        # Model's Args
+        self._hidden = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
+        self._horizon = self._model_kwargs.get('horizon')
         self._input_dim = self._model_kwargs.get('input_dim')
         self._input_shape = (self._seq_len, self._input_dim)
-
         self._output_dim = self._model_kwargs.get('output_dim')
+        self._nodes = self._model_kwargs.get('num_nodes')
 
+        # Train's args
         self._drop_out = self._train_kwargs.get('dropout')
-
         self._epochs = self._train_kwargs.get('epochs')
-
         self._batch_size = self._data_kwargs.get('batch_size')
 
+        # Test's args
+        self._run_times = self._test_kwargs.get('run_times')
+        self._flow_selection = self._test_kwargs.get('flow_selection')
+        self._test_size = self._test_kwargs.get('test_size')
+        self._results_path = self._test_kwargs.get('results_path')
+
+        self._mon_ratio = self._kwargs.get('mon_ratio')
+
+        # Load data
+        self._data = utils.load_dataset_fwbw_lstm(seq_len=self._seq_len, horizon=self._horizon,
+                                                  input_dim=self._input_dim,
+                                                  mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                  **self._data_kwargs)
+        for k, v in self._data.items():
+            if hasattr(v, 'shape'):
+                self._logger.info((k, v.shape))
+
+        # Model
         self.model = None
 
-        self._data = utils.load_dataset_fwbw_lstm(**self._data_kwargs)
+    @staticmethod
+    def _get_log_dir(kwargs):
+        log_dir = kwargs['train'].get('log_dir')
+        if log_dir is None:
+            batch_size = kwargs['data'].get('batch_size')
+            learning_rate = kwargs['train'].get('base_lr')
+            max_diffusion_step = kwargs['model'].get('max_diffusion_step')
+            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
+            rnn_units = kwargs['model'].get('rnn_units')
+            structure = '-'.join(
+                ['%d' % rnn_units for _ in range(num_rnn_layers)])
+            horizon = kwargs['model'].get('horizon')
+            filter_type = kwargs['model'].get('filter_type')
+            filter_type_abbr = 'L'
+            if filter_type == 'random_walk':
+                filter_type_abbr = 'R'
+            elif filter_type == 'dual_random_walk':
+                filter_type_abbr = 'DR'
+            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
+                filter_type_abbr, max_diffusion_step, horizon,
+                structure, learning_rate, batch_size,
+                time.strftime('%m%d%H%M%S'))
+            base_dir = kwargs.get('base_dir')
+            log_dir = os.path.join(base_dir, run_id)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        return log_dir
 
     def construct_fwbw_lstm_2(self):
         input_tensor = Input(shape=self._input_shape, name='input')

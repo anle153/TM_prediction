@@ -2,7 +2,6 @@ import argparse
 import os
 import sys
 
-import numpy as np
 import yaml
 
 from algs.lstm import train_lstm, test_lstm, evaluate_lstm
@@ -65,14 +64,6 @@ if __name__ == '__main__':
 
     with open(args.config_file) as f:
         config = yaml.load(f)
-
-    seq_len = str(config['model']['seq_len'])
-
-    if seq_len not in config['data']['dataset_dir'] or seq_len not in config['data'][
-        'graph_pkl_filename'] or seq_len not in config['train']['log_dir']:
-        raise AttributeError('Check data path!')
-
-    data = np.load(config['data']['raw_dataset_dir'])
 
     print_lstm_info(args.mode, config)
 

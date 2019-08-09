@@ -333,47 +333,32 @@ def build_model(config):
     return fwbw_net
 
 
-def load_trained_models(config):
-    fwbw_net = build_model(**config)
-    print('|--- Load trained model from: {}'.format(model_filename))
-    fwbw_net.model.load(model_filename)
-
-    return fwbw_net
-
-
-def train_fwbw_lstm(config, data):
+def train_fwbw_lstm(config):
     print('|-- Run model training fwbw_lstm.')
 
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         fwbw_net = build_model(config)
 
-    # --------------------------------------------Training fw model-------------------------------------------------
-
-    # Load model check point
-
     fwbw_net.train()
 
-    # --------------------------------------------------------------------------------------------------------------
-
-    if not os.path.exists(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],
-                                                                                 config['alg'], Config.TAG,
-                                                                                 Config.SCALER)):
-        os.makedirs(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],
-                                                                           config['alg'], Config.TAG, Config.SCALER))
-    results_summary = pd.DataFrame(index=range(config['test']['run_times']),
-                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
-                                            'rmse_ims'])
-
-    results_summary = run_test(valid_data2d, valid_data_normalized2d, fwbw_net, scalers, results_summary)
-
-    result_file_name = 'Valid_results_{}.csv'.format(config['test']['flow_selection'])
-
-    results_summary.to_csv(config['test']['results_path'] +
-                           '{}-{}-{}-{}/{}'.format(config['data']['data_name'], config['alg'], Config.TAG,
-                                                   Config.SCALER, result_file_name),
-                           index=False)
-
     return
+
+
+def evaluate_fwbw_lstm(config):
+    print('|--- EVALUATE FWBW-LSTM')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        fwbw_net = build_model(config)
+
+    fwbw_net.load()
+    fwbw_net.evaluate()
+
+
+def test_fwbw_lstm(config):
+    print('|--- TEST FWBW-LSTM')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        fwbw_net = build_model(config)
+    fwbw_net.load()
+    fwbw_net.test()
 
 
 def ims_tm_test_data(test_data, horizon):

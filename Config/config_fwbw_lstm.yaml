@@ -1,6 +1,6 @@
 ---
 alg: FWBW-LSTM
-base_dir: data/model
+base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 1
 mon_ratio: 0.3

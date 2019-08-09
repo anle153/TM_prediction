@@ -336,11 +336,10 @@ def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
                            raw_dataset_dir, dataset_dir, day_size, data_size,
                            batch_size, eval_batch_size=None, **kwargs):
+    data = {}
+
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    raw_data = raw_data
 
     raw_data = raw_data.astype("float32")
 
@@ -356,23 +355,23 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
 
+    data['test_data_norm'] = test_data2d_norm
+
     x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                                           mon_ratio=mon_ratio, eps=train_data2d_norm.std())
     x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                                     mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_test, y_test_1, y_test_2 = create_data_fwbw_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+    x_eval, y_eval_1, y_eval_2 = create_data_fwbw_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
                                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    data = {}
 
-    for cat in ["train", "val", "test"]:
+    for cat in ["train", "val", "eval"]:
         _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
+        print(cat, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2:", _y_2.shape)
 
         data['x_' + cat] = _x
         data['y_' + cat + '_1'] = _y_1
         data['y_' + cat + '_2'] = _y_2
-    # data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
-    # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
+
     data['scaler'] = scaler
 
     return data
@@ -441,9 +440,6 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
 
         data['x_' + cat] = _x
         data['y_' + cat] = _y
-    # data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    # data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
-    # data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
     data['scaler'] = scaler
 
     return data

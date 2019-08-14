@@ -562,17 +562,16 @@ def parallel_create_offline_xgb_data(data, ntimesteps, features, mon_ratio, eps)
     nproc = cpu_count()
     quota = int(data.shape[1] / nproc)
 
-    p = [0] * nproc
-
-    connections = []
-
-    for proc_id in range(nproc):
-        connections.append(Pipe())
-
     data_x = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1], features))
 
     data_y = np.zeros(((data.shape[0] - ntimesteps) * data.shape[1]))
     ret_xy = []
+
+    # Create connection between processes, nproc: number of processes
+    p = [0] * nproc
+    connections = []
+    for proc_id in range(nproc):
+        connections.append(Pipe())
 
     for proc_id in range(nproc):
         data_quota = data[:, proc_id * quota:(proc_id + 1) * quota] if proc_id < (nproc - 1) else data[:,

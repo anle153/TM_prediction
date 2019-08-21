@@ -478,11 +478,13 @@ class DCRNNSupervisor(object):
                 )
 
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
+            g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
             m_indicator = test_results['m_indicator']
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(
-                                 self._data['test_data_norm'][self._seq_len:-self._horizon]),
+                             y_true=g_truth,
                              measured_matrix=m_indicator)
+            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
+
             print('ER: {}'.format(er))
 
         return
@@ -545,6 +547,11 @@ class DCRNNSupervisor(object):
         :return:
         """
         self._saver.restore(sess, model_filename)
+
+    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
+        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
+        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
+        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def save(self, sess, val_loss):
         config = dict(self._kwargs)

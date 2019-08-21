@@ -357,7 +357,10 @@ class lstm(AbstractModel):
 
         return outputs
 
-    def _save_results(self):
+    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
+        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
+        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
+        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def _test(self):
         scaler = self._data['scaler']
@@ -391,11 +394,13 @@ class lstm(AbstractModel):
                 )
 
             tm_pred = scaler.inverse_transform(tm_pred)
-
+            g_truth = scaler.inverse_transform(
+                self._data['test_data_norm'][self._seq_len:-self._horizon])
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(
-                                 self._data['test_data_norm'][self._seq_len:-self._horizon]),
+                             y_true=g_truth,
                              measured_matrix=m_indicator)
+
+            self._save_results(g_truth=g_truth, = pred_tm = tm_pred, m_indicator = m_indicator, tag = str(i))
 
             print('ER: {}'.format(er))
 

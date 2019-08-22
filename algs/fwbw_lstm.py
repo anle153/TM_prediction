@@ -1,13 +1,8 @@
-import os
-
 import numpy as np
-import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import PowerTransformer
 from tqdm import tqdm
 
 from Models.fwbw_lstm_supervisor import FwbwLstmRegression
-from common.DataPreprocessing import prepare_train_valid_test_2d
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 config_gpu = tf.ConfigProto()
@@ -369,55 +364,6 @@ def ims_tm_test_data(test_data, horizon):
         ims_test_set[i - horizon + 1] = test_data[i]
 
     return ims_test_set
-
-
-def test_fwbw_lstm(config, data):
-    print('|-- Run model testing.')
-
-    data_name = config['data']['data_name']
-    day_size = config['data']['day_size']
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=data, day_size=day_size)
-    print('|--- Normalizing the train set.')
-
-    if config['data']['data_name'] == 'Abilene':
-        print('|--- Remove last 3 days in test data.')
-        test_data2d = test_data2d[0:-day_size * 3]
-
-    scalers = PowerTransformer()
-    scalers.fit(train_data2d)
-
-    test_data_normalized2d = scalers.transform(test_data2d)
-
-    input_shape = (config['model']['seq_len'], config['model']['input_dim'])
-
-    with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        fwbw_net = load_trained_models(input_shape, config['train']['model_filename'])
-
-    if not os.path.exists(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],
-                                                                                 config['alg'], Config.TAG,
-                                                                                 Config.SCALER)):
-        os.makedirs(config['test']['results_path'] + '{}-{}-{}-{}/'.format(config['data']['data_name'],
-                                                                           config['alg'], Config.TAG, Config.SCALER))
-    results_summary = pd.DataFrame(index=range(config['test']['run_times']),
-                                   columns=['No.', 'err', 'r2', 'rmse', 'err_ims', 'r2_ims',
-                                            'rmse_ims'])
-
-    results_summary = run_test(test_data2d, test_data_normalized2d, fwbw_net, scalers, results_summary)
-
-    if config['model']['horizon']:
-        result_file_name = 'Test_results_ims_{}_{}.csv'.format(config['model']['horizon'],
-                                                               config['test']['flow_selection'])
-    else:
-        result_file_name = 'Test_results_{}.csv'.format(config['test']['flow_selection'])
-
-    results_summary.to_csv(config['test']['results_path'] +
-                           '{}-{}-{}-{}/{}'.format(config['data']['data_name'], config['alg'], Config.TAG,
-                                                   Config.SCALER, result_file_name),
-                           index=False)
-
-    return
 
 
 def prepare_test_set_last_5days(test_data2d, test_data_normalized2d, day_size, seq_len):

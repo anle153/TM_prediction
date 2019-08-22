@@ -8,11 +8,11 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape, Add
 from keras.models import Model
 from keras.utils import plot_model
-from lib import metrics
-from lib import utils
 from tqdm import tqdm
 
 from common.error_utils import error_ratio
+from lib import metrics
+from lib import utils
 
 
 class TimeHistory(keras_callbacks.Callback):
@@ -66,6 +66,10 @@ class FwbwLstmRegression():
         self._flow_selection = self._test_kwargs.get('flow_selection')
         self._test_size = self._test_kwargs.get('test_size')
         self._results_path = self._test_kwargs.get('results_path')
+        self._lamda = []
+        self._lamda.append(self._test_kwargs.get('lamda_0'))
+        self._lamda.append(self._test_kwargs.get('lamda_1'))
+        self._lamda.append(self._test_kwargs.get('lamda_2'))
 
         self._mon_ratio = self._kwargs.get('mon_ratio')
 
@@ -368,6 +372,57 @@ class FwbwLstmRegression():
 
         return sampling
 
+    def _calculate_flows_weights(self, fw_losses, m_indicator):
+        """
+
+        :param fw_losses: shape(#n_flows)
+        :param m_indicator: shape(#time-steps, #nflows)
+        :return: w: flow_weight shape(#n_flows)
+        """
+
+        cl = self._calculate_consecutive_loss(m_indicator)
+
+        w = 1 / (fw_losses * self._lamda[0] +
+                 cl * self._lamda[1])
+
+        return w
+
+    def _set_measured_flow(self, rnn_input, pred_forward, m_indicator):
+        """
+
+        :param rnn_input: shape(#seq_len, #nflows)
+        :param pred_forward: shape(#seq_len, #nflows)
+        :param m_indicator: shape(#seq_len, #nflows)
+        :return:
+        """
+
+        n_flows = rnn_input.shape[0]
+
+        fw_losses = []
+        for flow_id in range(m_indicator.shape[1]):
+            idx_fw = m_indicator[1:, flow_id]
+
+            # fw_losses.append(error_ratio(y_true=rnn_input[1:, flow_id][idx_fw == 1.0],
+            #                              y_pred=pred_forward[:-1, flow_id][idx_fw == 1.0],
+            #                              measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
+            fw_losses.append(metrics.masked_mae_np(preds=pred_forward[:-1, flow_id][idx_fw == 1.0],
+                                                   labels=rnn_input[1:, flow_id][idx_fw == 1.0]))
+
+        fw_losses = np.array(fw_losses)
+        fw_losses[fw_losses == 0.] = np.max(fw_losses)
+
+        w = self._calculate_flows_weights(fw_losses=fw_losses,
+                                          m_indicator=m_indicator)
+
+        sampling = np.zeros(shape=n_flows)
+        m = int(self._mon_ratio * n_flows)
+
+        w = w.flatten()
+        sorted_idx_w = np.argsort(w)
+        sampling[sorted_idx_w[:m]] = 1
+
+        return sampling
+
     def _run_tm_prediction(self):
         test_data_norm = self._data['test_data_norm']
 
@@ -388,13 +443,13 @@ class FwbwLstmRegression():
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
             # This block is used for iterated multi-step traffic matrices prediction
 
-            predicted_tm, bw_outputs = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
-                                                               init_labels=m_indicator[ts:ts + self._seq_len])
+            fw_outputs, bw_outputs = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
+                                                             init_labels=m_indicator[ts:ts + self._seq_len])
 
             # Get the TM prediction of next time slot
 
-            y_preds.append(np.expand_dims(predicted_tm, axis=0))
-            pred = predicted_tm[0]
+            y_preds.append(np.expand_dims(fw_outputs, axis=0))
+            pred = fw_outputs[0]
 
             # Using part of current prediction as input to the next estimation
             # Randomly choose the flows which is measured (using the correct data from test_set)
@@ -403,8 +458,12 @@ class FwbwLstmRegression():
             if self._flow_selection == 'Random':
                 sampling = np.random.choice(tf_a, size=self._nodes,
                                             p=[self._mon_ratio, 1 - self._mon_ratio])
-            else:
+            elif self._flow_selection == 'Fairness':
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+            else:
+                sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
+                                                   pred_forward=fw_outputs,
+                                                   m_indicator=m_indicator[ts: ts + self._seq_len].T)
 
             m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
@@ -507,12 +566,19 @@ class FwbwLstmRegression():
                 )
 
             tm_pred = scaler.inverse_transform(tm_pred)
+            g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
 
             er = error_ratio(y_pred=tm_pred,
-                             y_true=scaler.inverse_transform(
-                                 self._data['test_data_norm'][self._seq_len:-self._horizon]),
+                             y_true=g_truth,
                              measured_matrix=m_indicator)
+            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
+
             print('ER: {}'.format(er))
+
+    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
+        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
+        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
+        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def load(self):
         self.model.load_weights(self._log_dir + 'best_model.hdf5')

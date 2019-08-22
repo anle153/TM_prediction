@@ -18,7 +18,7 @@ def print_fwbw_lstm_info(config):
     print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
-    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+    print('|--- BASE_DIR:\t{}'.format(config['base_dir']))
 
     print('----------------------- MODEL -----------------------')
 

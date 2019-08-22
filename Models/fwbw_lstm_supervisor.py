@@ -8,11 +8,11 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape, Add
 from keras.models import Model
 from keras.utils import plot_model
+from lib import metrics
+from lib import utils
 from tqdm import tqdm
 
 from common.error_utils import error_ratio
-from lib import metrics
-from lib import utils
 
 
 class TimeHistory(keras_callbacks.Callback):
@@ -130,7 +130,7 @@ class FwbwLstmRegression():
                 filter_type_abbr = 'R'
             elif filter_type == 'dual_random_walk':
                 filter_type_abbr = 'DR'
-            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
+            run_id = 'fwbw_lstm_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
                 filter_type_abbr, max_diffusion_step, horizon,
                 structure, learning_rate, batch_size,
                 time.strftime('%m%d%H%M%S'))

@@ -83,7 +83,7 @@ class lstm():
                 filter_type_abbr = 'R'
             elif filter_type == 'dual_random_walk':
                 filter_type_abbr = 'DR'
-            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
+            run_id = 'lstm_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
                 filter_type_abbr, max_diffusion_step, horizon,
                 structure, learning_rate, batch_size,
                 time.strftime('%m%d%H%M%S'))
@@ -205,19 +205,19 @@ class lstm():
         self.model.add(TimeDistributed(Dense(1)))
 
     def plot_models(self):
-        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)
+        plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)
 
     def plot_training_history(self, model_history):
         import matplotlib.pyplot as plt
 
         plt.plot(model_history.history['loss'], label='loss')
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self.saving_path + '[loss]{}.png'.format(self._alg_name))
+        plt.savefig(self._log_dir + '[loss]{}.png'.format(self._alg_name))
         plt.legend()
         plt.close()
 
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self.saving_path + '[val_loss]{}.png'.format(self._alg_name))
+        plt.savefig(self._log_dir + '[val_loss]{}.png'.format(self._alg_name))
         plt.legend()
         plt.close()
 

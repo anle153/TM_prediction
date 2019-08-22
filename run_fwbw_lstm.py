@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import yaml
 
-from algs.fwbw_lstm import train_fwbw_lstm, test_fwbw_lstm
+from algs.fwbw_lstm import train_fwbw_lstm, test_fwbw_lstm, evaluate_fwbw_lstm
 
 
 def print_fwbw_lstm_info(config):

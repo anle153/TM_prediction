@@ -8,10 +8,10 @@ import yaml
 from algs.fwbw_lstm import train_fwbw_lstm, test_fwbw_lstm, evaluate_fwbw_lstm
 
 
-def print_fwbw_lstm_info(config):
+def print_fwbw_lstm_info(mode, config):
     print('----------------------- INFO -----------------------')
 
-    print('|--- MODE:\t{}'.format(config['mode']))
+    print('|--- MODE:\t{}'.format(mode))
     print('|--- ALG:\t{}'.format(config['alg']))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
@@ -30,7 +30,7 @@ def print_fwbw_lstm_info(config):
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
 
-    if config['mode'] == 'train':
+    if mode == 'train':
         print('----------------------- TRAIN -----------------------')
         print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
         print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
@@ -40,7 +40,7 @@ def print_fwbw_lstm_info(config):
         print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
         print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
 
-    if config['mode'] == 'test':
+    if mode == 'test':
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     with open(args.config_file) as f:
         config = yaml.load(f)
 
-    print_fwbw_lstm_info(config)
+    print_fwbw_lstm_info(args.mode, config)
 
     if args.mode == 'train':
         train_fwbw_lstm(config)

@@ -46,9 +46,9 @@ def print_fwbw_lstm_info(mode, config):
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
         print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
         print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
-        print('|--- LAMBDA 0:\t{}'.format(config['test']['lambda_0']))
-        print('|--- LAMBDA 1:\t{}'.format(config['test']['lambda_1']))
-        print('|--- LAMBDA 2:\t{}'.format(config['test']['lambda_2']))
+        print('|--- LAMBDA 0:\t{}'.format(config['test']['lamda_0']))
+        print('|--- LAMBDA 1:\t{}'.format(config['test']['lamda_1']))
+        print('|--- LAMBDA 2:\t{}'.format(config['test']['lamda_2']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')

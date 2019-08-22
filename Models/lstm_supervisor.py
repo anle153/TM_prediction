@@ -5,17 +5,15 @@ import numpy as np
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
-from lib import utils, metrics
 from tqdm import tqdm
 
-from Models.AbstractModel import AbstractModel
 from common.error_utils import error_ratio
+from lib import utils, metrics
 
 
-class lstm(AbstractModel):
+class lstm():
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
         self._kwargs = kwargs
         self._data_kwargs = kwargs.get('data')

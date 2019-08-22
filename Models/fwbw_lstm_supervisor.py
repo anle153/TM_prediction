@@ -354,8 +354,8 @@ class FwbwLstmRegression():
     def _set_measured_flow_fairness(self, m_indicator):
         """
 
-        :param rnn_input: shape(#n_flows, #time-steps)
-        :param m_indicator: shape(n_flows, #time-steps)
+        :param rnn_input: shape(#seq_len, #nflows)
+        :param m_indicator: shape(#seq_len, #nflows)
         :return:
         """
 
@@ -376,7 +376,7 @@ class FwbwLstmRegression():
         """
 
         :param fw_losses: shape(#n_flows)
-        :param m_indicator: shape(#time-steps, #nflows)
+        :param m_indicator: shape(#seq_len, #nflows)
         :return: w: flow_weight shape(#n_flows)
         """
 

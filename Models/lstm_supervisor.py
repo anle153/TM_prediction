@@ -453,4 +453,4 @@ class lstm():
         return self._test()
 
     def load(self):
-        self.model.load_weights(self.saving_path + 'best_model.hdf5')
+        self.model.load_weights(self._log_dir + 'best_model.hdf5')

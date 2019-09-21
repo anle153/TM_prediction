@@ -9,7 +9,19 @@ from tqdm import tqdm
 
 from common.error_utils import error_ratio
 from lib import utils, metrics
+import keras.callbacks as keras_callbacks
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 
+
+class TimeHistory(keras_callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.times = []
+
+    def on_epoch_begin(self, batch, logs={}):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)
 
 class lstm():
 
@@ -63,6 +75,22 @@ class lstm():
                 self._logger.info((k, v.shape))
 
         # Model
+        self.callbacks_list = []
+
+        self._checkpoints = ModelCheckpoint(
+            self._log_dir + "best_model.hdf5",
+            monitor='val_loss', verbose=1,
+            save_best_only=True,
+            mode='auto', period=1)
+        self.callbacks_list = [self._checkpoints]
+
+        self._earlystop = EarlyStopping(monitor='val_loss', patience=50,
+                                       verbose=1, mode='auto')
+        self.callbacks_list.append(self._earlystop)
+
+        self._time_callback = TimeHistory()
+        self.callbacks_list.append(self._time_callback)
+
         self.model = None
 
     @staticmethod
@@ -207,7 +235,7 @@ class lstm():
     def plot_models(self):
         plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)
 
-    def plot_training_history(self, model_history):
+    def _plot_training_history(self, model_history):
         import matplotlib.pyplot as plt
 
         plt.plot(model_history.history['loss'], label='loss')
@@ -411,8 +439,8 @@ class lstm():
                                              shuffle=True,
                                              verbose=2)
         if training_fw_history is not None:
-            self.plot_training_history(training_fw_history)
-            self.save_model_history(training_fw_history)
+            self._plot_training_history(training_fw_history)
+            self._save_model_history(training_fw_history)
 
         # evaluate
         scaler = self._data['scaler']
@@ -448,6 +476,21 @@ class lstm():
                 1, mse, mae, rmse, mape
             )
         )
+
+    def _save_model_history(self, model_history):
+        loss = np.array(model_history.history['loss'])
+        val_loss = np.array(model_history.history['val_loss'])
+        dump_model_history = pd.DataFrame(index=range(loss.size),
+                                          columns=['epoch', 'loss', 'val_loss', 'train_time'])
+
+        dump_model_history['epoch'] = range(loss.size)
+        dump_model_history['loss'] = loss
+        dump_model_history['val_loss'] = val_loss
+
+        if self._time_callback.times is not None:
+            dump_model_history['train_time'] = self._time_callback.times
+
+        dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 
     def test(self):
         return self._test()

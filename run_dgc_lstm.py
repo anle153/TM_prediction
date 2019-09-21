@@ -102,7 +102,7 @@ if __name__ == '__main__':
     print_dgc_lstm_info(args.mode, config)
     if args.mode == 'train':
         train_dgc_lstm(config)
-    elif args.mode == 'evaluate':
+    elif args.mode == 'evaluate' or args.mode == 'evaluation':
         evaluate_dgc_lstm(config)
     else:
         test_dgc_lstm(config)

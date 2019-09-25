@@ -430,7 +430,6 @@ class FwbwLstmRegression():
         _labels = np.copy(labels.T)
 
         beta = np.zeros(_rnn_input.shape)
-        print('shape input shape: {}'.format(_rnn_input.shape))
 
         corrected_range = int(self._seq_len / self._r)
 
@@ -456,10 +455,6 @@ class FwbwLstmRegression():
         # gamma = gamma[:, 1:-1]
 
         # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
-        print('shape rnn input: {}'.format(considered_rnn_input.shape))
-        print('shape alpha: {}'.format(alpha.shape))
-        print('shape backward: {}'.format(considered_backward.shape))
-        print('shape beta: {}'.format(beta.shape))
         corrected_data = considered_rnn_input * alpha + considered_backward * beta
 
         return corrected_data.T

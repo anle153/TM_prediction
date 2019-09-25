@@ -1,7 +1,6 @@
 import tensorflow as tf
 
 from Models.lstm_supervisor import lstm
-from common import Config_lstm as Config
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -13,10 +12,7 @@ def build_model(config):
 
     net = lstm(**config)
 
-    if Config.LSTM_DEEP:
-        net.seq2seq_deep_model_construction(n_layers=Config.LSTM_DEEP_NLAYERS)
-    else:
-        net.seq2seq_model_construction()
+    net.seq2seq_model_construction()
 
     # net.res_lstm_construction()
     print(net.model.summary())

@@ -94,8 +94,8 @@ class FwbwLstmRegression():
             mode='auto', period=1)
         self.callbacks_list = [self._checkpoints]
 
-        self._earlystop = EarlyStopping(monitor='val_loss', patience=50,
-                                       verbose=1, mode='auto')
+        self._earlystop = EarlyStopping(monitor='val_loss', patience=self._train_kwargs.get('patience'),
+                                        verbose=1, mode='auto')
         self.callbacks_list.append(self._earlystop)
 
         self._time_callback = TimeHistory()

@@ -428,6 +428,7 @@ class FwbwLstmRegression():
         # Shape = (#n_flows, #time-steps)
 
         beta = np.zeros(rnn_input.shape)
+        print('shape input shape: {}'.format(rnn_input.shape))
 
         corrected_range = int(self._seq_len / self._r)
 

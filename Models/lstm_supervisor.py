@@ -1,7 +1,10 @@
 import os
 import time
 
+import keras.callbacks as keras_callbacks
 import numpy as np
+import pandas as pd
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
@@ -9,8 +12,6 @@ from tqdm import tqdm
 
 from common.error_utils import error_ratio
 from lib import utils, metrics
-import keras.callbacks as keras_callbacks
-from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 
 class TimeHistory(keras_callbacks.Callback):

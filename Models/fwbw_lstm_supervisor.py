@@ -426,24 +426,26 @@ class FwbwLstmRegression():
 
     def data_correction_v3(self, rnn_input, pred_backward, labels):
         # Shape = (#n_flows, #time-steps)
+        _rnn_input = np.copy(rnn_input.T)
+        _labels = np.copy(labels.T)
 
-        beta = np.zeros(rnn_input.shape)
-        print('shape input shape: {}'.format(rnn_input.shape))
+        beta = np.zeros(_rnn_input.shape)
+        print('shape input shape: {}'.format(_rnn_input.shape))
 
         corrected_range = int(self._seq_len / self._r)
 
-        for i in range(rnn_input.shape[1] - corrected_range):
-            mu = np.sum(labels[:, i + 1:i + corrected_range + 1], axis=1) / corrected_range
+        for i in range(_rnn_input.shape[1] - corrected_range):
+            mu = np.sum(_labels[:, i + 1:i + corrected_range + 1], axis=1) / corrected_range
 
             h = np.arange(1, corrected_range + 1)
 
             rho = (1 / (np.log(corrected_range) + 1)) * np.sum(
-                labels[:, i + 1:i + corrected_range + 1] / h, axis=1)
+                _labels[:, i + 1:i + corrected_range + 1] / h, axis=1)
 
             beta[:, i] = mu * rho
 
         considered_backward = pred_backward[:, 1:]
-        considered_rnn_input = rnn_input[:, 0:-1]
+        considered_rnn_input = _rnn_input[:, 0:-1]
 
         beta[beta > 0.5] = 0.5
 
@@ -485,7 +487,7 @@ class FwbwLstmRegression():
             fw_outputs, bw_outputs = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
                                                              init_labels=m_indicator[ts:ts + self._seq_len])
 
-            bw_outputs = bw_outputs.T
+            # bw_outputs = bw_outputs.T
 
             # Get the TM prediction of next time slot
             corrected_data = self.data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],

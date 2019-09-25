@@ -485,6 +485,8 @@ class FwbwLstmRegression():
             fw_outputs, bw_outputs = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
                                                              init_labels=m_indicator[ts:ts + self._seq_len])
 
+            bw_outputs = bw_outputs.T
+
             # Get the TM prediction of next time slot
             corrected_data = self.data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
                                                      pred_backward=bw_outputs,

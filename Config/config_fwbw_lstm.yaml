@@ -28,6 +28,7 @@ model:
   rnn_units: 64
   seq_len: 36
   use_curriculum_learning: true
+  r: 3.0
 train:
   base_lr: 0.01
   dropout: 0

@@ -55,6 +55,7 @@ class FwbwLstmRegression():
         self._input_shape = (self._seq_len, self._input_dim)
         self._output_dim = self._model_kwargs.get('output_dim')
         self._nodes = self._model_kwargs.get('num_nodes')
+        self._r = self._model_kwargs.get('r')
 
         # Train's args
         self._drop_out = self._train_kwargs.get('dropout')
@@ -330,7 +331,7 @@ class FwbwLstmRegression():
             multi_steps_tm[ts_ahead + self._seq_len] = predictX_1
 
             if ts_ahead == 0:
-                bw_outputs = predictX_2
+                bw_outputs = predictX_2.copy()
 
         return multi_steps_tm[-self._horizon:], bw_outputs
 
@@ -424,6 +425,41 @@ class FwbwLstmRegression():
 
         return sampling
 
+    def data_correction_v3(self, rnn_input, pred_backward, labels):
+        # Shape = (#n_flows, #time-steps)
+        _rnn_input = np.copy(rnn_input.T)
+        _labels = np.copy(labels.T)
+
+        beta = np.zeros(_rnn_input.shape)
+
+        corrected_range = int(self._seq_len / self._r)
+
+        for i in range(_rnn_input.shape[1] - corrected_range):
+            mu = np.sum(_labels[:, i + 1:i + corrected_range + 1], axis=1) / corrected_range
+
+            h = np.arange(1, corrected_range + 1)
+
+            rho = (1 / (np.log(corrected_range) + 1)) * np.sum(
+                _labels[:, i + 1:i + corrected_range + 1] / h, axis=1)
+
+            beta[:, i] = mu * rho
+
+        considered_backward = pred_backward[:, 1:]
+        considered_rnn_input = _rnn_input[:, 0:-1]
+
+        beta[beta > 0.5] = 0.5
+
+        alpha = 1.0 - beta
+
+        alpha = alpha[:, 0:-1]
+        beta = beta[:, 0:-1]
+        # gamma = gamma[:, 1:-1]
+
+        # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
+        corrected_data = considered_rnn_input * alpha + considered_backward * beta
+
+        return corrected_data.T
+
     def _run_tm_prediction(self):
         test_data_norm = self._data['test_data_norm']
 
@@ -448,6 +484,16 @@ class FwbwLstmRegression():
                                                              init_labels=m_indicator[ts:ts + self._seq_len])
 
             # Get the TM prediction of next time slot
+            corrected_data = self.data_correction_v3(rnn_input=np.copy(tm_pred[ts: ts + self._seq_len]),
+                                                     pred_backward=bw_outputs,
+                                                     labels=m_indicator[ts: ts + self._seq_len])
+            # corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + config['model']['seq_len']]),
+            #                                     pred_backward=bw_outputs,
+            #                                     labels=labels[ts: ts + config['model']['seq_len']])
+
+            measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+            pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+            tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
 
             y_preds.append(np.expand_dims(fw_outputs, axis=0))
             pred = fw_outputs[0]

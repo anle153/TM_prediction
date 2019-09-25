@@ -356,7 +356,6 @@ class FwbwLstmRegression():
     def _set_measured_flow_fairness(self, m_indicator):
         """
 
-        :param rnn_input: shape(#seq_len, #nflows)
         :param m_indicator: shape(#seq_len, #nflows)
         :return:
         """
@@ -454,6 +453,10 @@ class FwbwLstmRegression():
         # gamma = gamma[:, 1:-1]
 
         # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
+        print('shape rnn input: {}'.format(considered_rnn_input.shape))
+        print('shape alpha: {}'.format(alpha.shape))
+        print('shape backward: {}'.format(considered_backward.shape))
+        print('shape beta: {}'.format(beta.shape))
         corrected_data = considered_rnn_input * alpha + considered_backward * beta
 
         return corrected_data.T
@@ -512,14 +515,13 @@ class FwbwLstmRegression():
 
             m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
-            inv_sampling = 1.0 - sampling
-            pred_input = pred * inv_sampling
+            pred_input = pred * (1.0 - sampling)
 
-            ground_true = test_data_norm[ts + self._seq_len]
+            ground_truth = test_data_norm[ts + self._seq_len]
             y_truths.append(
                 np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
 
-            measured_input = ground_true * sampling
+            measured_input = ground_truth * sampling
 
             # Merge value from pred_input and measured_input
             new_input = pred_input + measured_input

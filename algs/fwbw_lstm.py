@@ -275,12 +275,12 @@ def predict_fwbw_lstm_v2(initial_data, test_data, model, seq_len, horizon, mon_r
         predicted_tm[ts] = pred_next_tm
 
         # Data Correction: Shape(#time-steps, flows) for [ts+1 : ts + config['model']['seq_len'] - 1]
-        # corrected_data = data_correction_v3(rnn_input=np.copy(tm_pred[ts: ts + seq_len]),
-        #                                     pred_backward=bw_outputs,
-        #                                     labels=labels[ts: ts + seq_len])
-        # measured_data = tm_pred[ts:ts + seq_len - 1] * labels[ts:ts + seq_len - 1]
-        # pred_data = corrected_data * (1.0 - labels[ts:ts + seq_len - 1])
-        # tm_pred[ts:ts + seq_len - 1] = measured_data + pred_data
+        corrected_data = data_correction_v3(rnn_input=np.copy(tm_pred[ts: ts + seq_len]),
+                                            pred_backward=bw_outputs,
+                                            labels=labels[ts: ts + seq_len])
+        measured_data = tm_pred[ts:ts + seq_len - 1] * labels[ts:ts + seq_len - 1]
+        pred_data = corrected_data * (1.0 - labels[ts:ts + seq_len - 1])
+        tm_pred[ts:ts + seq_len - 1] = measured_data + pred_data
 
         # Partial monitoring
         if flow_selection == 'Random':

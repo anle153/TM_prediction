@@ -194,18 +194,20 @@ class FwbwLstmRegression():
         fw_lstm_layer = LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True)(input_tensor)
         fw_drop_out = Dropout(self._drop_out)(fw_lstm_layer)
         fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
-        fw_dense_1 = TimeDistributed(Dense(64, ))(fw_flat_layer)
-        fw_dense_2 = TimeDistributed(Dense(32, ))(fw_dense_1)
-        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_2)
+        fw_dense_1 = TimeDistributed(Dense(128, ))(fw_flat_layer)
+        fw_dense_2 = TimeDistributed(Dense(64, ))(fw_dense_1)
+        fw_dense_3 = TimeDistributed(Dense(32, ))(fw_dense_2)
+        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_3)
 
         # Backward Network
         bw_lstm_layer = LSTM(self._hidden, input_shape=self._input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)
         bw_drop_out = Dropout(self._drop_out)(bw_lstm_layer)
         bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
-        bw_dense_1 = TimeDistributed(Dense(64, ))(bw_flat_layer)
-        bw_dense_2 = TimeDistributed(Dense(32, ))(bw_dense_1)
-        bw_output = TimeDistributed(Dense(1, ))(bw_dense_2)
+        bw_dense_1 = TimeDistributed(Dense(128, ))(bw_flat_layer)
+        bw_dense_2 = TimeDistributed(Dense(64, ))(bw_dense_1)
+        bw_dense_3 = TimeDistributed(Dense(32, ))(bw_dense_2)
+        bw_output = TimeDistributed(Dense(1, ))(bw_dense_3)
 
         bw_input_tensor_flatten = Reshape((self._input_shape[0] * self._input_shape[1], 1))(input_tensor)
         _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
@@ -488,10 +490,6 @@ class FwbwLstmRegression():
             corrected_data = self.data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
                                                      pred_backward=bw_outputs,
                                                      labels=m_indicator[ts: ts + self._seq_len])
-            # corrected_data = data_correction_v2(rnn_input=np.copy(tm_pred[ts: ts + config['model']['seq_len']]),
-            #                                     pred_backward=bw_outputs,
-            #                                     labels=labels[ts: ts + config['model']['seq_len']])
-
             measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
             pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data

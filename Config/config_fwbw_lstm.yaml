@@ -28,7 +28,7 @@ model:
   rnn_units: 64
   seq_len: 36
   use_curriculum_learning: true
-  r: 3.0
+  r: 10
 train:
   base_lr: 0.01
   dropout: 0
@@ -56,7 +56,6 @@ test:
   results_path: results/dgclstm-abilene/models-5087771.0000-22725.data-00000-of-00001/results
   run_times: 50
   flow_selection: Random
-  r:  10
   lamda_0: 2.6
   lamda_1: 1.0
   lamda_2: 1.0

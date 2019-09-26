@@ -4,6 +4,7 @@ import time
 import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
+import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape, Add
 from keras.models import Model
@@ -549,6 +550,13 @@ class FwbwLstmRegression():
         if training_fw_history is not None:
             self.plot_training_history(training_fw_history)
             self.save_model_history(training_fw_history)
+            config = dict(self._kwargs)
+            config_filename = 'config_fwbw_lstm.yaml'
+            config['train']['log_dir'] = self._log_dir
+            with open(os.path.join(self._log_dir, config_filename), 'w') as f:
+                yaml.dump(config, f, default_flow_style=False)
+
+            config['train']['log_dir'] = self._log_dir
 
     def evaluate(self):
 

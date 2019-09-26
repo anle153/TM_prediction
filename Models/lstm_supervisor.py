@@ -4,6 +4,7 @@ import time
 import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
+import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
 from keras.models import Sequential, Model
@@ -442,6 +443,12 @@ class lstm():
         if training_fw_history is not None:
             self._plot_training_history(training_fw_history)
             self._save_model_history(training_fw_history)
+            config = dict(self._kwargs)
+            config_filename = 'config_fwbw_lstm.yaml'
+            config['train']['log_dir'] = self._log_dir
+            with open(os.path.join(self._log_dir, config_filename), 'w') as f:
+                yaml.dump(config, f, default_flow_style=False)
+
 
         # evaluate
         scaler = self._data['scaler']

@@ -556,8 +556,6 @@ class FwbwLstmRegression():
             with open(os.path.join(self._log_dir, config_filename), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)
 
-            config['train']['log_dir'] = self._log_dir
-
     def evaluate(self):
 
         scaler = self._data['scaler']

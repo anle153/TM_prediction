@@ -41,7 +41,7 @@ train:
   max_to_keep: 100
   min_learning_rate: 2.0e-06
   optimizer: adam
-  patience: 30
+  patience: 20
   steps:
     - 20
     - 30

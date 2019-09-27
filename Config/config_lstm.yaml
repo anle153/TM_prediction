@@ -10,6 +10,7 @@ data:
   dataset_dir: Dataset/Abilene2d/lstm/seq_36/
   graph_pkl_filename: Dataset/Abilene2d/lstm/seq_36/Abilene-adj-mx
   eval_batch_size: 1
+  test_batch_size: 1
   data_name: Abilene
   day_size: 288
   generate_data: True

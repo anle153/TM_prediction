@@ -8,7 +8,7 @@ from tensorflow.contrib import legacy_seq2seq
 
 
 class EncoderDecoderLSTM(object):
-    def __init__(self, is_training, batch_size, scaler, adj_mx, **model_kwargs):
+    def __init__(self, is_training, batch_size, scaler, **model_kwargs):
         self._scaler = scaler
 
         # Train and loss
@@ -33,16 +33,16 @@ class EncoderDecoderLSTM(object):
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, output_dim))
 
-        cell = LSTMCell(units=rnn_units, dropout=drop_out, recurrent_dropout=drop_out)
-        cell_with_projection = LSTMCell(units=rnn_units, dropout=drop_out, recurrent_dropout=drop_out)
-        encoding_cells = [cell] * num_rnn_layers
-        decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
+        cell = LSTMCell(units=rnn_units)
+        cell_with_projection = LSTMCell(units=rnn_units)
+        encoding_cells = [cell] * n_rnn_layers
+        decoding_cells = [cell] * (n_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
         decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
 
         global_step = tf.train.get_or_create_global_step()
         # Outputs: (batch_size, timesteps, num_nodes, output_dim)
-        with tf.variable_scope('DCRNN_SEQ'):
+        with tf.variable_scope('LSTM_SEQ'):
             inputs = tf.unstack(tf.reshape(self._inputs, (batch_size, seq_len, input_dim)), axis=1)
             labels = tf.unstack(
                 tf.reshape(self._labels[..., :output_dim], (batch_size, horizon, output_dim)), axis=1)
@@ -70,3 +70,37 @@ class EncoderDecoderLSTM(object):
         outputs = tf.stack(outputs[:-1], axis=1)
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
+
+    @staticmethod
+    def _compute_sampling_threshold(global_step, k):
+        """
+        Computes the sampling probability for scheduled sampling using inverse sigmoid.
+        :param global_step:
+        :param k:
+        :return:
+        """
+        return tf.cast(k / (k + tf.exp(global_step / k)), tf.float32)
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def labels(self):
+        return self._labels
+
+    @property
+    def loss(self):
+        return self._loss
+
+    @property
+    def mse(self):
+        return self._mse
+
+    @property
+    def merged(self):
+        return self._merged
+
+    @property
+    def outputs(self):
+        return self._outputs

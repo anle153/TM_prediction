@@ -8,12 +8,12 @@ import tensorflow as tf
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, \
-    Add, LSTMCell
+    Add
 from keras.models import Sequential, Model
 from keras.utils import plot_model
-from tensorflow.contrib import legacy_seq2seq
 from tqdm import tqdm
 
+from Models.encoder_decoder_model import EncoderDecoderLSTM
 from common.error_utils import error_ratio
 from lib import utils, metrics
 
@@ -99,6 +99,7 @@ class lstm():
 
         self.model = None
 
+
     @staticmethod
     def _get_log_dir(kwargs):
         log_dir = kwargs['train'].get('log_dir')
@@ -146,55 +147,20 @@ class lstm():
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def encoder_decoder(self):
-
-        # Input (batch_size, timesteps, num_sensor, input_dim)
-        self._inputs = tf.placeholder(tf.float32, shape=(self._batch_size, self._seq_len, self._input_dim),
-                                      name='inputs')
-        # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
-        self._labels = tf.placeholder(tf.float32, shape=(self._batch_size, self._horizon, self._output_dim),
-                                      name='labels')
-
-        GO_SYMBOL = tf.zeros(shape=(self._batch_size, self._output_dim))
-
-        cell = LSTMCell(units=self._rnn_units, dropout=self._drop_out, recurrent_dropout=self._drop_out)
-        cell_with_projection = LSTMCell(units=self._rnn_units, dropout=self._drop_out, recurrent_dropout=self._drop_out)
-
-        encoding_cells = [cell] * self._n_rnn_layers
-        decoding_cells = [cell] * (self._n_rnn_layers - 1) + [cell_with_projection]
-        encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
-        decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
-        global_step = tf.train.get_or_create_global_step()
-        # Outputs: (batch_size, timesteps, num_nodes, output_dim)
-        with tf.variable_scope('LSTM_SEQ'):
-            inputs = tf.unstack(tf.reshape(self._inputs, (self._batch_size, self._seq_len, self._input_dim)), axis=1)
-            labels = tf.unstack(
-                tf.reshape(self._labels[..., :self._output_dim], (self._batch_size, self._horizon, self._output_dim)),
-                axis=1)
-            labels.insert(0, GO_SYMBOL)
-
-            def _loop_function(prev, i):
-                if is_training:
-                    # Return either the model's prediction or the previous ground truth in training.
-                    if use_curriculum_learning:
-                        c = tf.random_uniform((), minval=0, maxval=1.)
-                        threshold = self._compute_sampling_threshold(global_step, cl_decay_steps)
-                        result = tf.cond(tf.less(c, threshold), lambda: labels[i], lambda: prev)
-                    else:
-                        result = labels[i]
-                else:
-                    # Return the prediction of the model in testing.
-                    result = prev
-                return result
-
-            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
-            outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
-                                                              loop_function=_loop_function)
-
-        # Project the output to output_dim.
-        outputs = tf.stack(outputs[:-1], axis=1)
-        self._outputs = tf.reshape(outputs, (self._batch_size, self._horizon, self._output_dim), name='outputs')
-        self._merged = tf.summary.merge_all()
-
+        with tf.name_scope('Train'):
+            with tf.variable_scope('LSTM', reuse=False):
+                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                      batch_size=self._batch_size, **self._model_kwargs)
+        with tf.name_scope('Eval'):
+            with tf.variable_scope('LSTM', reuse=True):
+                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                      batch_size=self._data_kwargs['eval_batch_size'],
+                                                      **self._model_kwargs)
+        with tf.name_scope('Test'):
+            with tf.variable_scope('LSTM', reuse=True):
+                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                      batch_size=self._data_kwargs['test_batch_size'],
+                                                      **self._model_kwargs)
 
     def res_lstm_construction(self):
 

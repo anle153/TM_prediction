@@ -16,7 +16,6 @@ data:
 model:
   cl_decay_steps: 2000
   horizon: 3
-  input_dim: 2
   l1_decay: 0
   num_nodes: 144
   num_rnn_layers: 2

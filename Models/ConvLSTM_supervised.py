@@ -3,7 +3,7 @@ import time
 
 import keras.callbacks as keras_callbacks
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense
+from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense, Dropout
 from keras.models import Model
 from keras.utils import plot_model
 
@@ -46,8 +46,7 @@ class ConvLSTM():
         self._hidden = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
         self._horizon = self._model_kwargs.get('horizon')
-        self._input_dim = self._model_kwargs.get('input_dim')
-        self._input_shape = (self._seq_len, self._input_dim)
+
         self._output_dim = self._model_kwargs.get('output_dim')
         self._nodes = self._model_kwargs.get('num_nodes')
         self._wide = self._model_kwargs.get('wide')
@@ -57,6 +56,7 @@ class ConvLSTM():
         self._filters = self._model_kwargs.get('filters')
         self._kernel_size = self._model_kwargs.get('kernel_size')
         self._strides = self._model_kwargs.get('strides')
+        self._input_shape = (self._seq_len, self._wide, self._high, self._channel)
 
         # Train's args
         self._conv_dropout = self._train_kwargs.get('conv_dropout')
@@ -75,6 +75,12 @@ class ConvLSTM():
         self._lamda.append(self._test_kwargs.get('lamda_2'))
 
         self._mon_ratio = self._kwargs.get('mon_ratio')
+
+        # Load data
+        self._data = utils.load_dataset_conv_lstm(seq_len=self._seq_len,
+                                                  wide=self._wide, high=self._high, channel=self._channel,
+                                                  mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                  **self._data_kwargs)
 
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -122,11 +128,11 @@ class ConvLSTM():
         return log_dir
 
     def construct_conv_lstm(self):
-        input = Input(shape=(self._seq_len, self._wide, self._high, self._channel), name='input')
+        input = Input(shape=self._input_shape, name='input')
 
         lstm_layer1 = ConvLSTM2D(filters=self._filters[0],
                                  kernel_size=self._kernel_size[0],
-                                 strides=[1, 1],
+                                 strides=self._strides[0],
                                  padding='same',
                                  dropout=self._conv_dropout,
                                  return_sequences=True,
@@ -137,7 +143,7 @@ class ConvLSTM():
 
         lstm_layer2 = ConvLSTM2D(filters=self._filters[1],
                                  kernel_size=self._kernel_size[1],
-                                 strides=[1, 1],
+                                 strides=self._strides[1],
                                  padding='same',
                                  dropout=self._conv_dropout,
                                  return_sequences=True,
@@ -148,7 +154,10 @@ class ConvLSTM():
 
         outputs = Flatten()(BatchNormalization_layer2)
 
+        outputs = Dense(512, )(outputs)
+        outputs = Dropout(self._rnn_dropout)(outputs)
         outputs = Dense(256, )(outputs)
+        outputs = Dropout(self._rnn_dropout)(outputs)
 
         outputs = Dense(self._wide * self._high, )(outputs)
 
@@ -156,4 +165,4 @@ class ConvLSTM():
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def plot_models(self):
-        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)
+        plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)

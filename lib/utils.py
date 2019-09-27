@@ -445,6 +445,80 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     return data
 
 
+def create_data_conv_lstm(data, seq_len, wide, high, channel, mon_ratio, eps):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+    data_x = np.zeros(shape=((data.shape[0] - seq_len), seq_len, wide, high, channel), dtype='float32')
+    data_y = np.zeros(shape=((data.shape[0] - seq_len), wide * high), dtype='float32')
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for idx in range(_data.shape[0] - seq_len):
+        _x = _data[idx: idx + seq_len]
+        _label = _labels[idx: idx + seq_len]
+
+        _x = np.reshape(_x, newshape=(seq_len, wide, high))
+        _label = np.reshape(_label, newshape=(seq_len, wide, high))
+
+        data_x[i, ..., 0] = _x
+        data_x[i, ..., 1] = _label
+
+        _y = data[idx + seq_len]
+        _y = np.reshape(_y, newshape=(wide, high))
+
+        data_y[i] = _y
+
+        i += 1
+
+    return data_x, data_y
+
+
+def load_dataset_conv_lstm(seq_len, wide, high, channel, mon_ratio,
+                           raw_dataset_dir, dataset_dir, day_size, data_size,
+                           batch_size, eval_batch_size=None, **kwargs):
+    data = {}
+
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+
+    print('|--- Normalizing the train set.')
+    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    train_data2d_norm = scaler.transform(train_data2d)
+    valid_data2d_norm = scaler.transform(valid_data2d)
+    test_data2d_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data2d_norm
+
+    x_train, y_train = create_data_conv_lstm(train_data2d_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
+                                             mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_val, y_val = create_data_conv_lstm(valid_data2d_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
+                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_eval, y_eval = create_data_conv_lstm(test_data2d_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
+                                           mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+
+    for cat in ["train", "val", "eval"]:
+        _x, _y = locals()["x_" + cat], locals()["y_" + cat]
+        print(cat, "x: ", _x.shape, "y:", _y.shape)
+
+        data['x_' + cat] = _x
+        data['y_' + cat] = _y
+
+    data['scaler'] = scaler
+
+    return data
+
+
 def load_graph_data(pkl_filename):
     sensor_ids, sensor_id_to_ind, adj_mx = load_pickle(pkl_filename)
     return sensor_ids, sensor_id_to_ind, adj_mx

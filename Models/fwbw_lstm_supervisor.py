@@ -581,7 +581,12 @@ class FwbwLstmRegression():
 
     def test(self):
         scaler = self._data['scaler']
+        results_summary = pd.DataFrame(index=range(self._run_times))
+        results_summary['No.'] = range(self._run_times)
 
+        n_metrics = 4
+        # Metrics: MSE, MAE, RMSE, MAPE, ER
+        metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
@@ -610,15 +615,30 @@ class FwbwLstmRegression():
                     )
                 )
 
+                metrics_summary[i, horizon_i * n_metrics + 0] = mse
+                metrics_summary[i, horizon_i * n_metrics + 1] = mae
+                metrics_summary[i, horizon_i * n_metrics + 2] = rmse
+                metrics_summary[i, horizon_i * n_metrics + 3] = mape
+
             tm_pred = scaler.inverse_transform(tm_pred)
             g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
 
             er = error_ratio(y_pred=tm_pred,
                              y_true=g_truth,
                              measured_matrix=m_indicator)
-            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
+            metrics_summary[i, -1] = er
 
+            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
             print('ER: {}'.format(er))
+
+        for horizon_i in range(self._horizon):
+            results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
+            results_summary['mae_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 1]
+            results_summary['rmse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 2]
+            results_summary['mape_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 3]
+
+        results_summary['er'] = metrics_summary[:, -1]
+        results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)

@@ -23,9 +23,16 @@ model:
   output_dim: 1
   rnn_units: 64
   seq_len: 36
+  wide: 12
+  high: 12
+  channel: 2
+  filters: [4, 4]
+  kernel_size: [[3, 3], [5, 5]]
+  strides: [[1, 1], [1, 1]]
 train:
   base_lr: 0.01
-  dropout: 0
+  rnn_dropout: 0.5
+  conv_dropout: 0.5
   epoch: 64
   epochs: 50000
   epsilon: 0.001

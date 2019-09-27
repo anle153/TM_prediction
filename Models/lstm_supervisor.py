@@ -4,11 +4,14 @@ import time
 import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, Add
+from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, \
+    Add, LSTMCell
 from keras.models import Sequential, Model
 from keras.utils import plot_model
+from tensorflow.contrib import legacy_seq2seq
 from tqdm import tqdm
 
 from common.error_utils import error_ratio
@@ -47,13 +50,14 @@ class lstm():
         self._day_size = self._data_kwargs.get('day_size')
 
         # Model's Args
-        self._hidden = self._model_kwargs.get('rnn_units')
+        self._rnn_units = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
         self._horizon = self._model_kwargs.get('horizon')
         self._input_dim = self._model_kwargs.get('input_dim')
         self._input_shape = (self._seq_len, self._input_dim)
         self._output_dim = self._model_kwargs.get('output_dim')
         self._nodes = self._model_kwargs.get('num_nodes')
+        self._n_rnn_layers = self._model_kwargs.get('n_rnn_layers')
 
         # Train's args
         self._drop_out = self._train_kwargs.get('dropout')
@@ -124,26 +128,14 @@ class lstm():
         return log_dir
 
     def normal_model_contruction(self):
-        """
-        Construct RNN model from the beginning
-        :param input_shape:
-        :param output_dim:
-        :return:
-        """
         self.model = Sequential()
-        self.model.add(LSTM(self._hidden, input_shape=self._input_shape))
+        self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape))
         self.model.add(Dropout(self._drop_out))
         self.model.add(Dense(1))
 
     def seq2seq_model_construction(self):
-        """
-
-        :param n_timesteps:
-        :param n_features:
-        :return:
-        """
         self.model = Sequential()
-        self.model.add(LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True))
+        self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
         self.model.add(Dropout(self._drop_out))
         self.model.add(Flatten())
         self.model.add(Dense(128))
@@ -153,12 +145,63 @@ class lstm():
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
+    def encoder_decoder(self):
+
+        # Input (batch_size, timesteps, num_sensor, input_dim)
+        self._inputs = tf.placeholder(tf.float32, shape=(self._batch_size, self._seq_len, self._input_dim),
+                                      name='inputs')
+        # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
+        self._labels = tf.placeholder(tf.float32, shape=(self._batch_size, self._horizon, self._output_dim),
+                                      name='labels')
+
+        GO_SYMBOL = tf.zeros(shape=(self._batch_size, self._output_dim))
+
+        cell = LSTMCell(units=self._rnn_units, dropout=self._drop_out, recurrent_dropout=self._drop_out)
+        cell_with_projection = LSTMCell(units=self._rnn_units, dropout=self._drop_out, recurrent_dropout=self._drop_out)
+
+        encoding_cells = [cell] * self._n_rnn_layers
+        decoding_cells = [cell] * (self._n_rnn_layers - 1) + [cell_with_projection]
+        encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
+        decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
+        global_step = tf.train.get_or_create_global_step()
+        # Outputs: (batch_size, timesteps, num_nodes, output_dim)
+        with tf.variable_scope('LSTM_SEQ'):
+            inputs = tf.unstack(tf.reshape(self._inputs, (self._batch_size, self._seq_len, self._input_dim)), axis=1)
+            labels = tf.unstack(
+                tf.reshape(self._labels[..., :self._output_dim], (self._batch_size, self._horizon, self._output_dim)),
+                axis=1)
+            labels.insert(0, GO_SYMBOL)
+
+            def _loop_function(prev, i):
+                if is_training:
+                    # Return either the model's prediction or the previous ground truth in training.
+                    if use_curriculum_learning:
+                        c = tf.random_uniform((), minval=0, maxval=1.)
+                        threshold = self._compute_sampling_threshold(global_step, cl_decay_steps)
+                        result = tf.cond(tf.less(c, threshold), lambda: labels[i], lambda: prev)
+                    else:
+                        result = labels[i]
+                else:
+                    # Return the prediction of the model in testing.
+                    result = prev
+                return result
+
+            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
+                                                              loop_function=_loop_function)
+
+        # Project the output to output_dim.
+        outputs = tf.stack(outputs[:-1], axis=1)
+        self._outputs = tf.reshape(outputs, (self._batch_size, self._horizon, self._output_dim), name='outputs')
+        self._merged = tf.summary.merge_all()
+
+
     def res_lstm_construction(self):
 
         input_tensor = Input(shape=self._input_shape, name='input')
 
         # res lstm network
-        lstm_layer = LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True)(input_tensor)
+        lstm_layer = LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True)(input_tensor)
         drop_out = Dropout(self._drop_out)(lstm_layer)
         flat_layer = TimeDistributed(Flatten())(drop_out)
         dense_1 = TimeDistributed(Dense(64, ))(flat_layer)
@@ -181,7 +224,7 @@ class lstm():
         input_tensor = Input(shape=self._input_shape, name='input')
         input_tensor_2 = Input(shape=(self._seq_len, 1), name='input_2')
         # res lstm network
-        lstm_layer = LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True)(input_tensor)
+        lstm_layer = LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True)(input_tensor)
         drop_out = Dropout(self._drop_out)(lstm_layer)
         flat_layer = TimeDistributed(Flatten())(drop_out)
         dense_1 = TimeDistributed(Dense(64, ))(flat_layer)
@@ -204,9 +247,9 @@ class lstm():
         for layer in range(n_layers):
 
             if layer != (n_layers - 1):
-                self.model.add(LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True))
+                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
             else:
-                self.model.add(LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True))
+                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
                 self.model.add(TimeDistributed(Dense(64)))
                 self.model.add(TimeDistributed(Dense(32)))
                 self.model.add(TimeDistributed(Dense(1)))
@@ -219,9 +262,9 @@ class lstm():
         for layer in range(n_layers):
 
             if layer != (n_layers - 1):
-                self.model.add(LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True))
+                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
             else:
-                self.model.add(LSTM(self._hidden, input_shape=self._input_shape, return_sequences=False))
+                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=False))
                 self.model.add(Dense(1))
 
             if layer != 0:
@@ -230,7 +273,7 @@ class lstm():
     def bidirectional_model_construction(self, input_shape, drop_out=0.3):
         self.model = Sequential()
         self.model.add(
-            Bidirectional(LSTM(self._hidden, return_sequences=True), input_shape=input_shape))
+            Bidirectional(LSTM(self._rnn_units, return_sequences=True), input_shape=input_shape))
         self.model.add(Dropout(drop_out))
         self.model.add(TimeDistributed(Dense(1)))
 

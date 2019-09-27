@@ -216,6 +216,41 @@ class FwbwLstmRegression():
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
+    def construct_fwbw_lstm_encoder_decoder(self):
+        # Input
+        input_tensor = Input(shape=self._input_shape, name='input')
+
+        # Forward Network
+        fw_lstm_layer = LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True)(input_tensor)
+        fw_drop_out = Dropout(self._drop_out)(fw_lstm_layer)
+        fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
+        fw_dense_1 = TimeDistributed(Dense(128, ))(fw_flat_layer)
+        fw_dense_2 = TimeDistributed(Dense(64, ))(fw_dense_1)
+        fw_dense_3 = TimeDistributed(Dense(32, ))(fw_dense_2)
+        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_3)
+
+        # Backward Network
+        bw_lstm_layer = LSTM(self._hidden, input_shape=self._input_shape,
+                             return_sequences=True, go_backwards=True)(input_tensor)
+        bw_drop_out = Dropout(self._drop_out)(bw_lstm_layer)
+        bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
+        bw_dense_1 = TimeDistributed(Dense(128, ))(bw_flat_layer)
+        bw_dense_2 = TimeDistributed(Dense(64, ))(bw_dense_1)
+        bw_dense_3 = TimeDistributed(Dense(32, ))(bw_dense_2)
+        bw_output = TimeDistributed(Dense(1, ))(bw_dense_3)
+
+        bw_input_tensor_flatten = Reshape((self._input_shape[0] * self._input_shape[1], 1))(input_tensor)
+        _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
+
+        _input_bw = Flatten()(_input_bw)
+        _input_bw = Dense(256, )(_input_bw)
+        _input_bw = Dense(128, )(_input_bw)
+        bw_outputs = Dense(self._seq_len, name='bw_outputs')(_input_bw)
+
+        self.model = Model(inputs=input_tensor, outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
+
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+
     def construct_fwbw_lstm_no_sc(self):
         # Input
         input_tensor = Input(shape=self._input_shape, name='input')

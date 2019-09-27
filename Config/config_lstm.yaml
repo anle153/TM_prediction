@@ -22,11 +22,11 @@ model:
   l1_decay: 0
   max_diffusion_step: 2
   num_nodes: 144
-  num_rnn_layers: 2
   output_dim: 1
   rnn_units: 64
   seq_len: 36
   use_curriculum_learning: true
+  n_rnn_layers: 2
 train:
   base_lr: 0.01
   dropout: 0

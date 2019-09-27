@@ -2,9 +2,14 @@ import argparse
 import os
 import sys
 
+import tensorflow as tf
 import yaml
 
-from algs.conv_lstm import train_conv_lstm, test_conv_lstm, evaluate_conv_lstm
+from Models.ConvLSTM_supervised import ConvLSTM
+
+config_gpu = tf.ConfigProto()
+config_gpu.gpu_options.allow_growth = True
+session = tf.Session(config=config_gpu)
 
 
 def print_conv_lstm_info(mode, config):
@@ -49,6 +54,44 @@ def print_conv_lstm_info(mode, config):
     infor_correct = input('Is the information correct? y(Yes)/n(No):')
     if infor_correct != 'y' and infor_correct != 'yes':
         raise RuntimeError('Information is not correct!')
+
+
+def build_model(config):
+    print('|--- Build models conv-lstm.')
+
+    conv_lstm_net = ConvLSTM(**config)
+    conv_lstm_net.construct_conv_lstm()
+    print(conv_lstm_net.model.summary())
+    conv_lstm_net.plot_models()
+    return conv_lstm_net
+
+
+def train_conv_lstm(config):
+    print('|-- Run model training conv-lstm.')
+
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        conv_lstm_net = build_model(config)
+
+    conv_lstm_net.train()
+
+    return
+
+
+def evaluate_conv_lstm(config):
+    print('|--- EVALUATE CONV-LSTM')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        conv_lstm_net = build_model(config)
+
+    conv_lstm_net.load()
+    conv_lstm_net.evaluate()
+
+
+def test_conv_lstm(config):
+    print('|--- TEST CONV-LSTM')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        conv_lstm_net = build_model(config)
+    conv_lstm_net.load()
+    conv_lstm_net.test()
 
 
 if __name__ == '__main__':

@@ -164,5 +164,17 @@ class ConvLSTM():
         self.model = Model(inputs=input, outputs=outputs, name='Model')
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
+    def load(self):
+        pass
+
+    def train(self):
+        pass
+
+    def evaluate(self):
+        pass
+
+    def test(self):
+        pass
+
     def plot_models(self):
         plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)

@@ -2,9 +2,14 @@ import argparse
 import os
 import sys
 
+import tensorflow as tf
 import yaml
 
-from algs.fwbw_lstm import train_fwbw_lstm, test_fwbw_lstm, evaluate_fwbw_lstm
+from Models.fwbw_lstm_supervisor import FwbwLstmRegression
+
+config_gpu = tf.ConfigProto()
+config_gpu.gpu_options.allow_growth = True
+session = tf.Session(config=config_gpu)
 
 
 def print_fwbw_lstm_info(mode, config):
@@ -86,6 +91,44 @@ def print_fwbw_lstm_info(mode, config):
 #             i += 1
 #
 #     return data_x, data_y_1, data_y_2
+
+def build_model(config):
+    print('|--- Build models fwbw-lstm.')
+
+    # fwbw-lstm model
+    fwbw_net = FwbwLstmRegression(**config)
+    fwbw_net.construct_fwbw_lstm()
+    # print(fwbw_net.model.summary())
+    fwbw_net.plot_models()
+    return fwbw_net
+
+
+def train_fwbw_lstm(config):
+    print('|-- Run model training fwbw_lstm.')
+
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        fwbw_net = build_model(config)
+
+    fwbw_net.train()
+
+    return
+
+
+def evaluate_fwbw_lstm(config):
+    print('|--- EVALUATE FWBW-LSTM')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        fwbw_net = build_model(config)
+
+    fwbw_net.load()
+    fwbw_net.evaluate()
+
+
+def test_fwbw_lstm(config):
+    print('|--- TEST FWBW-LSTM')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        fwbw_net = build_model(config)
+    fwbw_net.load()
+    fwbw_net.test()
 
 
 if __name__ == '__main__':

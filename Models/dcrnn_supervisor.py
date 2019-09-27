@@ -7,6 +7,7 @@ import sys
 import time
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import yaml
 from tqdm import tqdm
@@ -49,7 +50,7 @@ class DCRNNSupervisor(object):
         # Test's args
         self._flow_selection = self._test_kwargs.get('flow_selection')
         self._test_size = self._test_kwargs.get('test_size')
-
+        self._run_times = self._test_kwargs.get('run_times')
         # Data preparation
         self._day_size = self._data_kwargs.get('day_size')
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
@@ -441,7 +442,15 @@ class DCRNNSupervisor(object):
     def _test(self, sess, **kwargs):
 
         global_step = sess.run(tf.train.get_or_create_global_step())
-        for i in range(self._test_kwargs.get('run_times')):
+
+        results_summary = pd.DataFrame(index=range(self._run_times))
+        results_summary['No.'] = range(self._run_times)
+
+        n_metrics = 4
+        # Metrics: MSE, MAE, RMSE, MAPE, ER
+        metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
+
+        for i in range(self._run_times):
             print('|--- Running time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
@@ -459,8 +468,6 @@ class DCRNNSupervisor(object):
             scaler = self._data['scaler']
             predictions = []
 
-            print(np.array_equal(y_truths, self._data['y_eval']))
-
             for horizon_i in range(self._horizon):
                 y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
 
@@ -476,6 +483,11 @@ class DCRNNSupervisor(object):
                         horizon_i + 1, mse, mae, rmse, mape
                     )
                 )
+                metrics_summary[i, horizon_i * n_metrics + 0] = mse
+                metrics_summary[i, horizon_i * n_metrics + 1] = mae
+                metrics_summary[i, horizon_i * n_metrics + 2] = rmse
+                metrics_summary[i, horizon_i * n_metrics + 3] = mape
+
 
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
@@ -483,9 +495,20 @@ class DCRNNSupervisor(object):
             er = error_ratio(y_pred=tm_pred,
                              y_true=g_truth,
                              measured_matrix=m_indicator)
+            metrics_summary[i, -1] = er
+
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
 
             print('ER: {}'.format(er))
+
+        for horizon_i in range(self._horizon):
+            results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
+            results_summary['mae_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 1]
+            results_summary['rmse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 2]
+            results_summary['mape_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 3]
+
+        results_summary['er'] = metrics_summary[:, -1]
+        results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
         return
 

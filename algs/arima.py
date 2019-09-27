@@ -2,12 +2,11 @@ import matplotlib
 import numpy as np
 import pandas as pd
 from pmdarima.arima import auto_arima
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
-from common import Config_arima as Config
-from common.DataPreprocessing import data_scalling, prepare_train_test_2d
-from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse
-from sklearn.preprocessing import StandardScaler
+from common.DataPreprocessing import prepare_train_test_2d
+
 matplotlib.use('Agg')
 
 

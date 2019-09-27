@@ -2,7 +2,6 @@ import argparse
 import os
 import sys
 
-import numpy as np
 import yaml
 
 from algs.fwbw_lstm import train_fwbw_lstm, test_fwbw_lstm, evaluate_fwbw_lstm
@@ -56,37 +55,37 @@ def print_fwbw_lstm_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
-
-    _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf,
-                               size=data.shape,
-                               p=(mon_ratio, 1 - mon_ratio))
-    data_x = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, input_dim))
-    data_y_1 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, 1))
-    data_y_2 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len))
-
-    _data = np.copy(data)
-
-    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
-
-    i = 0
-    for flow in range(_data.shape[1]):
-        for idx in range(1, _data.shape[0] - seq_len):
-            _x = _data[idx: (idx + seq_len), flow]
-            _label = _labels[idx: (idx + seq_len), flow]
-
-            data_x[i, :, 0] = _x
-            data_x[i, :, 1] = _label
-
-            _y_1 = data[(idx + 1):(idx + seq_len + 1), flow]
-            _y_2 = data[(idx - 1):(idx + seq_len - 1), flow]
-
-            data_y_1[i] = np.reshape(_y_1, newshape=(seq_len, 1))
-            data_y_2[i] = _y_2
-            i += 1
-
-    return data_x, data_y_1, data_y_2
+# def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
+#
+#     _tf = np.array([1.0, 0.0])
+#     _labels = np.random.choice(_tf,
+#                                size=data.shape,
+#                                p=(mon_ratio, 1 - mon_ratio))
+#     data_x = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, input_dim))
+#     data_y_1 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, 1))
+#     data_y_2 = np.zeros(((data.shape[0] - seq_len - 1) * data.shape[1], seq_len))
+#
+#     _data = np.copy(data)
+#
+#     _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+#
+#     i = 0
+#     for flow in range(_data.shape[1]):
+#         for idx in range(1, _data.shape[0] - seq_len):
+#             _x = _data[idx: (idx + seq_len), flow]
+#             _label = _labels[idx: (idx + seq_len), flow]
+#
+#             data_x[i, :, 0] = _x
+#             data_x[i, :, 1] = _label
+#
+#             _y_1 = data[(idx + 1):(idx + seq_len + 1), flow]
+#             _y_2 = data[(idx - 1):(idx + seq_len - 1), flow]
+#
+#             data_y_1[i] = np.reshape(_y_1, newshape=(seq_len, 1))
+#             data_y_2[i] = _y_2
+#             i += 1
+#
+#     return data_x, data_y_1, data_y_2
 
 
 if __name__ == '__main__':

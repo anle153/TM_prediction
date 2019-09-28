@@ -153,10 +153,10 @@ class lstm_ed():
             batch_size = kwargs['data'].get('batch_size')
             learning_rate = kwargs['train'].get('base_lr')
             max_diffusion_step = kwargs['model'].get('max_diffusion_step')
-            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
+            n_rnn_layers = kwargs['model'].get('n_rnn_layers')
             rnn_units = kwargs['model'].get('rnn_units')
             structure = '-'.join(
-                ['%d' % rnn_units for _ in range(num_rnn_layers)])
+                ['%d' % rnn_units for _ in range(n_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             filter_type = kwargs['model'].get('filter_type')
             filter_type_abbr = 'L'

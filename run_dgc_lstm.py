@@ -24,10 +24,6 @@ def print_dgc_lstm_info(mode, config):
     print('|--- BASED_DIR:\t{}'.format(config['base_dir']))
 
     print('|--- ADJ_THRESHOLD:\t{}'.format(config['data']['adj_mx_threshold']))
-    if config['train']['log_dir'] is not None:
-        print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
-
-
 
     print('----------------------- MODEL -----------------------')
     print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))

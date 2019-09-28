@@ -6,6 +6,7 @@ import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import yaml
 from keras.utils import plot_model
 from tqdm import tqdm
 
@@ -258,79 +259,97 @@ class lstm_ed():
 
         return multi_steps_tm[-self._horizon:]
 
-    def _run_tm_prediction(self):
+    def _run_tm_prediction(self, sess, model, writer=None):
 
         test_data_norm = self._data['test_data_norm']
 
-        tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
-                               dtype='float32')
+        # Initialize traffic matrix data
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
+        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
-                           dtype='float32')
-
-        tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
+        # Initialize measurement matrix
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
+        losses = []
+        mses = []
         y_preds = []
+        output_dim = self._model_kwargs.get('output_dim')
+        preds = model.outputs
+        labels = model.labels[..., :output_dim]
+        loss = self._loss_fn(preds=preds, labels=labels)
+        fetches = {
+            'loss': loss,
+            'mse': loss,
+            'global_step': tf.train.get_or_create_global_step()
+        }
+
+        fetches.update({
+            'outputs': model.outputs
+        })
+
         y_truths = []
 
-        # Predict the TM from time slot look_back
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
-            # This block is used for iterated multi-step traffic matrices prediction
 
-            predicted_tm = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
-                                                   init_labels=m_indicator[ts:ts + self._seq_len])
+            x, y = self._prepare_input(
+                ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
+                data=tm_pred[ts:ts + self._seq_len],
+                m_indicator=m_indicator[ts:ts + self._seq_len]
+            )
 
-            # Get the TM prediction of next time slot
+            y_truths.append(y)
 
-            y_preds.append(np.expand_dims(predicted_tm, axis=0))
-            pred = predicted_tm[0]
+            feed_dict = {
+                model.inputs: x,
+                model.labels: y,
+            }
 
-            # Using part of current prediction as input to the next estimation
-            # Randomly choose the flows which is measured (using the correct data from test_set)
+            vals = sess.run(fetches, feed_dict=feed_dict)
+            y_preds.append(vals['outputs'])
 
-            # boolean array(1 x n_flows):for choosing value from predicted data
+            losses.append(vals['loss'])
+            mses.append(vals['mse'])
+            if writer is not None and 'merged' in vals:
+                writer.add_summary(vals['merged'], global_step=vals['global_step'])
+
+            pred = vals['outputs'][0, 0, :, 0]
+
             if self._flow_selection == 'Random':
-                sampling = np.random.choice(tf_a, size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+                sampling = np.random.choice([1.0, 0.0], size=self._nodes,
+                                            p=[self._mon_ratio, 1.0 - self._mon_ratio])
             else:
-                sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+                sampling = self._set_measured_flow_fairness(labels=m_indicator[ts: ts + self._seq_len])
 
             m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
-            inv_sampling = 1.0 - sampling
-            pred_input = pred * inv_sampling
 
             ground_true = test_data_norm[ts + self._seq_len]
-            y_truths.append(
-                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
-
-            measured_input = ground_true * sampling
 
             # Merge value from pred_input and measured_input
-            new_input = pred_input + measured_input
-            # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
+            new_input = pred * (1.0 - sampling) + ground_true * sampling
 
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
 
-        outputs = {
-            'tm_pred': tm_pred[self._seq_len:],
-            'm_indicator': m_indicator[self._seq_len:],
-            'y_preds': y_preds,
-            'y_truths': y_truths
-        }
-
-        return outputs
+        results = {'loss': np.mean(losses),
+                   'mse': np.mean(mses),
+                   'y_preds': y_preds,
+                   'tm_pred': tm_pred[self._seq_len:],
+                   'm_indicator': m_indicator[self._seq_len:],
+                   'y_truths': y_truths
+                   }
+        return results
 
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
         np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
-    def _test(self):
-        scaler = self._data['scaler']
+    def _test(self, sess, **kwargs):
+
+        global_step = sess.run(tf.train.get_or_create_global_step())
+
         results_summary = pd.DataFrame(index=range(self._run_times))
         results_summary['No.'] = range(self._run_times)
 
@@ -339,21 +358,27 @@ class lstm_ed():
         metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
-            print('|--- Running time: {}/{}'.format(i, self._run_times))
+            print('|--- Running time: {}'.format(i))
+            # y_test = self._prepare_test_set()
 
-            outputs = self._run_tm_prediction()
+            test_results = self._run_tm_prediction(sess, model=self._eval_model)
 
-            tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
+            # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
+            test_loss, y_preds = test_results['loss'], test_results['y_preds']
+            utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
 
+            y_preds = test_results['y_preds']
             y_preds = np.concatenate(y_preds, axis=0)
-            predictions = []
-            y_truths = outputs['y_truths']
+
+            y_truths = test_results['y_truths']
             y_truths = np.concatenate(y_truths, axis=0)
+            scaler = self._data['scaler']
+            predictions = []
 
             for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
+                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
 
-                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
+                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
@@ -370,8 +395,9 @@ class lstm_ed():
                 metrics_summary[i, horizon_i * n_metrics + 2] = rmse
                 metrics_summary[i, horizon_i * n_metrics + 3] = mape
 
-            tm_pred = scaler.inverse_transform(tm_pred)
+            tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
+            m_indicator = test_results['m_indicator']
             er = error_ratio(y_pred=tm_pred,
                              y_true=g_truth,
                              measured_matrix=m_indicator)
@@ -389,6 +415,8 @@ class lstm_ed():
 
         results_summary['er'] = metrics_summary[:, -1]
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
+
+        return
 
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
@@ -521,22 +549,62 @@ class lstm_ed():
             sys.stdout.flush()
         return np.min(history)
 
-    def evaluate(self):
+    def evaluate(self, sess, **kwargs):
+        global_step = sess.run(tf.train.get_or_create_global_step())
+        test_results = self.run_epoch_generator(sess, self._eval_model,
+                                                self._data['eval_loader'].get_iterator(),
+                                                return_output=True,
+                                                training=False)
+
+        # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
+        test_loss, y_preds = test_results['loss'], test_results['outputs']
+        utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
+
+        y_preds = np.concatenate(y_preds, axis=0)
         scaler = self._data['scaler']
+        predictions = []
+        y_truths = []
+        for horizon_i in range(self._data['y_eval'].shape[1]):
+            y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
+            y_truths.append(y_truth)
 
-        y_pred = self.eval_model.predict(self._data['x_eval'])
-        y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(self._data['y_eval'])
+            y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
+            predictions.append(y_pred)
 
-        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-        mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-        self._logger.info(
-            "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                1, mse, mae, rmse, mape
+            mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+            mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
+            mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+            rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
+            self._logger.info(
+                "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
+                    horizon_i + 1, mse, mae, rmse, mape
+                )
             )
-        )
+            utils.add_simple_summary(self._writer,
+                                     ['%s_%d' % (item, horizon_i + 1) for item in
+                                      ['metric/rmse', 'metric/mae', 'metric/mse']],
+                                     [rmse, mae, mse],
+                                     global_step=global_step)
+        outputs = {
+            'predictions': predictions,
+            'groundtruth': y_truths
+        }
+        return outputs
 
-    def test(self):
-        return self._test()
+    def test(self, sess, **kwargs):
+        kwargs.update(self._test_kwargs)
+        return self._test(sess, **kwargs)
+
+    def save(self, sess, val_loss):
+        config = dict(self._kwargs)
+        global_step = sess.run(tf.train.get_or_create_global_step()).item()
+        prefix = os.path.join(self._log_dir, 'models-{:.4f}'.format(val_loss))
+        config['train']['epoch'] = self._epoch
+        config['train']['global_step'] = global_step
+        config['train']['log_dir'] = self._log_dir
+        config['train']['model_filename'] = self._saver.save(sess, prefix, global_step=global_step,
+                                                             write_meta_graph=False)
+        config_filename = 'config_{}.yaml'.format(self._epoch)
+        with open(os.path.join(self._log_dir, config_filename), 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+        return config['train']['model_filename']

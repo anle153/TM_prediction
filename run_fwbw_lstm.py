@@ -23,6 +23,10 @@ def print_fwbw_lstm_info(mode, config):
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
     print('|--- BASE_DIR:\t{}'.format(config['base_dir']))
+    if config['train']['log_dir'] is not None:
+        print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+
+
 
     print('----------------------- MODEL -----------------------')
 

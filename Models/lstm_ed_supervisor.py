@@ -12,6 +12,8 @@ from tqdm import tqdm
 from Models.encoder_decoder_model import EncoderDecoderLSTM
 from common.error_utils import error_ratio
 from lib import utils, metrics
+from lib.AMSGrad import AMSGrad
+from lib.metrics import masked_mse_loss
 
 
 class TimeHistory(keras_callbacks.Callback):
@@ -77,21 +79,23 @@ class lstm_ed():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
 
+        scaler = self._data['scaler']
+
         # Model
         with tf.name_scope('Train'):
             with tf.variable_scope('LSTM', reuse=False):
-                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
-                                                      batch_size=self._batch_size, **self._model_kwargs)
+                self._train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                       batch_size=self._batch_size, **self._model_kwargs)
         with tf.name_scope('Eval'):
             with tf.variable_scope('LSTM', reuse=True):
-                self.eval_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
-                                                     batch_size=self._data_kwargs['eval_batch_size'],
-                                                     **self._model_kwargs)
+                self._eval_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                      batch_size=self._data_kwargs['eval_batch_size'],
+                                                      **self._model_kwargs)
         with tf.name_scope('Test'):
             with tf.variable_scope('LSTM', reuse=True):
-                self.test_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
-                                                     batch_size=self._data_kwargs['test_batch_size'],
-                                                     **self._model_kwargs)
+                self._test_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                      batch_size=self._data_kwargs['test_batch_size'],
+                                                      **self._model_kwargs)
 
         # Learning rate
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -381,14 +385,14 @@ class lstm_ed():
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
     def train(self):
-        training_fw_history = self.model.fit(x=self._data['x_train'],
-                                             y=self._data['y_train'],
-                                             batch_size=self._batch_size,
-                                             epochs=self._epochs,
-                                             callbacks=self.callbacks_list,
-                                             validation_data=(self._data['x_val'], self._data['y_val']),
-                                             shuffle=True,
-                                             verbose=2)
+        training_fw_history = self._train_model.fit(x=self._data['x_train'],
+                                                    y=self._data['y_train'],
+                                                    batch_size=self._batch_size,
+                                                    epochs=self._epochs,
+                                                    callbacks=self.callbacks_list,
+                                                    validation_data=(self._data['x_val'], self._data['y_val']),
+                                                    shuffle=True,
+                                                    verbose=2)
         if training_fw_history is not None:
             self._plot_training_history(training_fw_history)
             self._save_model_history(training_fw_history)

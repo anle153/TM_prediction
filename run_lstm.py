@@ -5,6 +5,7 @@ import sys
 import tensorflow as tf
 import yaml
 
+from Models.lstm_ed_supervisor import lstm_ed
 from Models.lstm_supervisor import lstm
 
 config = tf.ConfigProto()
@@ -80,6 +81,17 @@ def train_lstm(config):
     return
 
 
+def train_lstm_ed(config):
+    print('|-- Run model testing dgc_lstm.')
+
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        model = lstm_ed(**config)
+        model.train(sess)
+
+
+
 def evaluate_lstm(config):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)
@@ -102,6 +114,8 @@ if __name__ == '__main__':
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
+    parser.add_argument('--model', default='lstm', type=str,
+                        help='model.')
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
@@ -111,7 +125,12 @@ if __name__ == '__main__':
     print_lstm_info(args.mode, config)
 
     if args.mode == 'train':
-        train_lstm(config)
+        if args.model == 'lstm' or args.model == 'LSTM':
+            train_lstm(config)
+        elif args.model == 'ed':
+            train_lstm_ed(config)
+        else:
+            raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
         evaluate_lstm(config)
     elif args.mode == "test":

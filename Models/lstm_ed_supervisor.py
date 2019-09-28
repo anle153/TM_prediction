@@ -1,11 +1,11 @@
 import os
+import sys
 import time
 
 import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import yaml
 from keras.utils import plot_model
 from tqdm import tqdm
 
@@ -43,6 +43,7 @@ class lstm_ed():
         self._log_dir = self._get_log_dir(kwargs)
         log_level = self._kwargs.get('log_level', 'INFO')
         self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
+        self._writer = tf.summary.FileWriter(self._log_dir)
         self._logger.info(kwargs)
 
         # Data's args
@@ -86,6 +87,11 @@ class lstm_ed():
             with tf.variable_scope('LSTM', reuse=False):
                 self._train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
                                                        batch_size=self._batch_size, **self._model_kwargs)
+        with tf.name_scope('Val'):
+            with tf.variable_scope('LSTM', reuse=True):
+                self._val_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
+                                                     batch_size=self._data_kwargs['val_batch_size'],
+                                                     **self._model_kwargs)
         with tf.name_scope('Eval'):
             with tf.variable_scope('LSTM', reuse=True):
                 self._eval_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
@@ -384,41 +390,136 @@ class lstm_ed():
         results_summary['er'] = metrics_summary[:, -1]
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
-    def train(self):
-        training_fw_history = self._train_model.fit(x=self._data['x_train'],
-                                                    y=self._data['y_train'],
-                                                    batch_size=self._batch_size,
-                                                    epochs=self._epochs,
-                                                    callbacks=self.callbacks_list,
-                                                    validation_data=(self._data['x_val'], self._data['y_val']),
-                                                    shuffle=True,
-                                                    verbose=2)
-        if training_fw_history is not None:
-            self._plot_training_history(training_fw_history)
-            self._save_model_history(training_fw_history)
-            config = dict(self._kwargs)
-            config_filename = 'config_fwbw_lstm.yaml'
-            config['train']['log_dir'] = self._log_dir
-            with open(os.path.join(self._log_dir, config_filename), 'w') as f:
-                yaml.dump(config, f, default_flow_style=False)
+    def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
+        losses = []
+        mses = []
+        outputs = []
+        output_dim = self._model_kwargs.get('output_dim')
+        preds = model.outputs
+        labels = model.labels[..., :output_dim]
+        loss = self._loss_fn(preds=preds, labels=labels)
+        fetches = {
+            'loss': loss,
+            'mse': loss,
+            'global_step': tf.train.get_or_create_global_step()
+        }
+        if training:
+            fetches.update({
+                'train_op': self._train_op
+            })
+            merged = model.merged
+            if merged is not None:
+                fetches.update({'merged': merged})
 
-        # evaluate
-        scaler = self._data['scaler']
-        x_eval = self._data['x_eval']
-        y_truth = self._data['y_eval']
+        if return_output:
+            fetches.update({
+                'outputs': model.outputs
+            })
 
-        y_pred = self.model.predict(x_eval)
-        y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(y_truth)
+        for _, (x, y) in enumerate(data_generator):
+            feed_dict = {
+                model.inputs: x,
+                model.labels: y,
+            }
 
-        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-        self._logger.info(
-            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                1, mse, mape, rmse
-            )
-        )
+            vals = sess.run(fetches, feed_dict=feed_dict)
+
+            losses.append(vals['loss'])
+            mses.append(vals['mse'])
+            if writer is not None and 'merged' in vals:
+                writer.add_summary(vals['merged'], global_step=vals['global_step'])
+            if return_output:
+                outputs.append(vals['outputs'])
+
+        results = {
+            'loss': np.mean(losses),
+            'mse': np.mean(mses)
+        }
+        if return_output:
+            results['outputs'] = outputs
+        return results
+
+    def train(self, sess, **kwargs):
+        kwargs.update(self._train_kwargs)
+        return self._train(sess, **kwargs)
+
+    def get_lr(self, sess):
+        return sess.run(self._lr).item()
+
+    def set_lr(self, sess, lr):
+        sess.run(self._lr_update, feed_dict={
+            self._new_lr: lr
+        })
+
+    def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
+               min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,
+               test_every_n_epochs=10, **train_kwargs):
+
+        history = []
+        min_val_loss = float('inf')
+        wait = 0
+
+        max_to_keep = train_kwargs.get('max_to_keep', 100)
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
+        model_filename = train_kwargs.get('model_filename')
+        continue_train = train_kwargs.get('continue_train')
+        if continue_train is True and model_filename is not None:
+            saver.restore(sess, model_filename)
+            self._epoch = epoch + 1
+        else:
+            sess.run(tf.global_variables_initializer())
+        self._logger.info('Start training ...')
+
+        while self._epoch <= epochs:
+            # Learning rate schedule.
+            new_lr = max(min_learning_rate, base_lr * (lr_decay_ratio ** np.sum(self._epoch >= np.array(steps))))
+            self.set_lr(sess=sess, lr=new_lr)
+
+            start_time = time.time()
+            train_results = self.run_epoch_generator(sess, self._train_model,
+                                                     self._data['train_loader'].get_iterator(),
+                                                     training=True,
+                                                     writer=self._writer)
+            train_loss, train_mse = train_results['loss'], train_results['mse']
+            # if train_loss > 1e5:
+            #     self._logger.warning('Gradient explosion detected. Ending...')
+            #     break
+
+            global_step = sess.run(tf.train.get_or_create_global_step())
+            # Compute validation error.
+            val_results = self.run_epoch_generator(sess, self._val_model,
+                                                   self._data['val_loader'].get_iterator(),
+                                                   training=False)
+            val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()
+
+            utils.add_simple_summary(self._writer,
+                                     ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
+                                     [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
+            end_time = time.time()
+            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f} lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
+            self._logger.info(message)
+            if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
+                self.evaluate(sess)
+            if val_loss <= min_val_loss:
+                wait = 0
+                if save_model > 0:
+                    model_filename = self.save(sess, val_loss)
+                self._logger.info(
+                    'Val loss decrease from %.4f to %.4f, saving to %s' % (min_val_loss, val_loss, model_filename))
+                min_val_loss = val_loss
+            else:
+                wait += 1
+                if wait > patience:
+                    self._logger.warning('Early stopping at epoch: %d' % self._epoch)
+                    break
+
+            history.append(val_mse)
+            # Increases epoch.
+            self._epoch += 1
+
+            sys.stdout.flush()
+        return np.min(history)
 
     def evaluate(self):
         scaler = self._data['scaler']

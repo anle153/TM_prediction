@@ -112,14 +112,11 @@ class lstm():
             structure = '-'.join(
                 ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
-            filter_type = kwargs['model'].get('filter_type')
-            filter_type_abbr = 'L'
-            if filter_type == 'random_walk':
-                filter_type_abbr = 'R'
-            elif filter_type == 'dual_random_walk':
-                filter_type_abbr = 'DR'
-            run_id = 'lstm_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
-                filter_type_abbr, max_diffusion_step, horizon,
+
+            mon_ratio = kwargs['mon_ratio']
+
+            run_id = 'lstm_%g_%d_%s_%g_%d_%s/' % (
+                mon_ratio, horizon,
                 structure, learning_rate, batch_size,
                 time.strftime('%m%d%H%M%S'))
             base_dir = kwargs.get('base_dir')

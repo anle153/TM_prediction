@@ -22,7 +22,8 @@ def print_lstm_info(mode, config):
     print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
-    print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
+    if config['train']['log_dir'] is not None:
+        print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
 
     print('----------------------- MODEL -----------------------')
 

@@ -121,9 +121,9 @@ if __name__ == '__main__':
     print_lstm_info(args.mode, config)
 
     if args.mode == 'train':
-        if args.model == 'lstm' or args.model == 'LSTM':
+        if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
             train_lstm(config)
-        elif args.model == 'ed':
+        elif config['model']['model_type'] == 'ed':
             train_lstm_ed(config)
         else:
             raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')

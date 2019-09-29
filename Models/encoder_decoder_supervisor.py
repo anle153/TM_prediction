@@ -59,7 +59,7 @@ class EncoderDecoder(lstm):
             return model
         else:
             model.load_weights(self._log_dir + 'best_model.hdf5')
-            self.model.compile(optimizer='adam', loss='mse', metrics=['mse, mae'])
+            self.model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
 
             # Construct E_D model for predicting
             self.encoder_model = Model(encoder_inputs, encoder_states)
@@ -144,16 +144,16 @@ class EncoderDecoder(lstm):
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
     def train(self):
-        self.model.compile(optimizer='adam', loss='mse', metrics=['mse, mae'])
+        self.model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
 
-        training_history = self.model.fit(x=[self._data['encode_input_train'], self._data['decode_input_train']],
-                                          y=self._data['decode_target_train'],
+        training_history = self.model.fit(x=[self._data['encoder_input_train'], self._data['decoder_input_train']],
+                                          y=self._data['decoder_target_train'],
                                           batch_size=self._batch_size,
                                           epochs=self._epochs,
                                           callbacks=self.callbacks_list,
-                                          validation_data=([self._data['encode_input_val'],
-                                                            self._data['decode_input_val']],
-                                                           self._data['decode_target_val']),
+                                          validation_data=([self._data['encoder_input_val'],
+                                                            self._data['decoder_input_val']],
+                                                           self._data['decoder_target_val']),
                                           shuffle=True,
                                           verbose=2)
         if training_history is not None:

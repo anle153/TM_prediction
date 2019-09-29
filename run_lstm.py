@@ -103,6 +103,12 @@ def evaluate_lstm(config):
     lstm_net.evaluate()
 
 
+def evaluate_lstm_ed(config):
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        model = EncoderDecoder(is_training=False, **config)
+        model.evaluate()
+
+
 def test_lstm(config):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)
@@ -145,7 +151,6 @@ if __name__ == '__main__':
             raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
 
     elif args.mode == "test":
-        test_lstm(config)
 
         if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
             test_lstm(config)

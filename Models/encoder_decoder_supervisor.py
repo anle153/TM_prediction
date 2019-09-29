@@ -63,7 +63,7 @@ class EncoderDecoder(lstm):
         else:
             print("|--- Load model from: ", self._log_dir + 'best_model.hdf5')
             model.load_weights(self._log_dir + 'best_model.hdf5')
-            self.model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
+            model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
 
             # Construct E_D model for predicting
             self.encoder_model = Model(encoder_inputs, encoder_states)

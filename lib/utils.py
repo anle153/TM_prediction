@@ -449,7 +449,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
     e_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')
-    d_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon), dtype='float32')
+    d_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon, 1), dtype='float32')
     d_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon), dtype='float32')
 
     _data = np.copy(data)
@@ -465,7 +465,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
             e_x[i, :, 0] = _x
             e_x[i, :, 1] = _label
 
-            d_x[i] = data[idx + seq_len - 1:idx + seq_len - 1 + horizon, flow]
+            d_x[i] = np.expand_dims(data[idx + seq_len - 1:idx + seq_len - 1 + horizon, flow], axis=1)
 
             d_y[i] = data[idx + seq_len:idx + seq_len + horizon, flow]
 

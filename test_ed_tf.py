@@ -96,14 +96,21 @@ decoder_outputs = decoder_dense(decoder_outputs)
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 # Run training
+# model.compile(optimizer='rmsprop', loss='categorical_crossentropy',
+#               metrics=['accuracy'])
+# model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+#           batch_size=batch_size,
+#           epochs=epochs,
+#           validation_split=0.2)
+# Save model
+# model.save('s2s.h5')
+
+# Load model
+
+model.load_weights('s2s.h5')
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy',
               metrics=['accuracy'])
-model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-          batch_size=batch_size,
-          epochs=epochs,
-          validation_split=0.2)
-# Save model
-model.save('s2s.h5')
+
 
 # Next: inference mode (sampling).
 # Here's the drill:

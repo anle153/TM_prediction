@@ -48,6 +48,7 @@ class lstm():
         self._day_size = self._data_kwargs.get('day_size')
 
         # Model's Args
+        self._model_type = self._model_kwargs.get('model')
         self._rnn_units = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
         self._horizon = self._model_kwargs.get('horizon')
@@ -71,9 +72,19 @@ class lstm():
         self._mon_ratio = self._kwargs.get('mon_ratio')
 
         # Load data
-        self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon, input_dim=self._input_dim,
-                                             mon_ratio=self._mon_ratio, test_size=self._test_size,
-                                             **self._data_kwargs)
+        if self._model_type == 'lstm':
+            self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
+                                                 input_dim=self._input_dim,
+                                                 mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                 **self._data_kwargs)
+        elif self._model_type == 'ed' or self._model_type == 'encoder_decoder':
+            self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
+                                                    input_dim=self._input_dim,
+                                                    mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                    **self._data_kwargs)
+        else:
+            raise RuntimeError("Model must be lstm or encoder_decoder")
+
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))

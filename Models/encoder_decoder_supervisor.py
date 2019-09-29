@@ -5,13 +5,12 @@ import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
 import yaml
-from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Input
 from keras.models import Model
 
 from Models.lstm_supervisor import lstm
 from common.error_utils import error_ratio
-from lib import utils, metrics
+from lib import metrics
 
 
 class TimeHistory(keras_callbacks.Callback):
@@ -27,18 +26,13 @@ class TimeHistory(keras_callbacks.Callback):
 
 class EncoderDecoder(lstm):
 
-    def __init__(self, **kwargs):
+    def __init__(self, is_training=True, **kwargs):
         super(EncoderDecoder, self).__init__(**kwargs)
         self._kwargs = kwargs
 
-        # Load data
-        self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon, input_dim=self._input_dim,
-                                                mon_ratio=self._mon_ratio, test_size=self._test_size,
-                                                **self._data_kwargs)
-        for k, v in self._data.items():
-            if hasattr(v, 'shape'):
-                self._logger.info((k, v.shape))
+        self.model = self._model_construction(is_training=is_training)
 
+    def _model_construction(self, is_training=True):
         # Model
         encoder_inputs = Input(shape=self._input_shape)
         encoder = LSTM(self._rnn_units, return_state=True)
@@ -47,7 +41,7 @@ class EncoderDecoder(lstm):
         encoder_states = [state_h, state_c]
 
         # Set up the decoder, using `encoder_states` as initial state.
-        decoder_inputs = Input(shape=(None, self._horizon))
+        decoder_inputs = Input(shape=(self._horizon, 1))
         # We set up our decoder to return full output sequences,
         # and to return internal states as well. We don't use the
         # return states in the training model, but we will use them in inference.
@@ -59,25 +53,29 @@ class EncoderDecoder(lstm):
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+        model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
-        self.callbacks_list = []
+        if is_training:
+            return model
+        else:
+            model.load_weights(self._log_dir + 'best_model.hdf5')
+            self.model.compile(optimizer='adam', loss='mse', metrics=['mse, mae'])
 
-        self._checkpoints = ModelCheckpoint(
-            self._log_dir + "best_model.hdf5",
-            monitor='val_loss', verbose=1,
-            save_best_only=True,
-            mode='auto', period=1)
-        self.callbacks_list = [self._checkpoints]
+            # Construct E_D model for predicting
+            self.encoder_model = Model(encoder_inputs, encoder_states)
 
-        self._earlystop = EarlyStopping(monitor='val_loss', patience=self._train_kwargs.get('patience'),
-                                        verbose=1, mode='auto')
-        self.callbacks_list.append(self._earlystop)
+            decoder_state_input_h = Input(shape=(self._rnn_units,))
+            decoder_state_input_c = Input(shape=(self._rnn_units,))
+            decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+            decoder_outputs, state_h, state_c = decoder_lstm(
+                decoder_inputs, initial_state=decoder_states_inputs)
+            decoder_states = [state_h, state_c]
+            decoder_outputs = decoder_dense(decoder_outputs)
+            self.decoder_model = Model(
+                [decoder_inputs] + decoder_states_inputs,
+                [decoder_outputs] + decoder_states)
 
-        self._time_callback = TimeHistory()
-        self.callbacks_list.append(self._time_callback)
-
-        self.model = None
+            return model
 
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
@@ -202,23 +200,5 @@ class EncoderDecoder(lstm):
             )
         )
 
-    def _save_model_history(self, model_history):
-        loss = np.array(model_history.history['loss'])
-        val_loss = np.array(model_history.history['val_loss'])
-        dump_model_history = pd.DataFrame(index=range(loss.size),
-                                          columns=['epoch', 'loss', 'val_loss', 'train_time'])
-
-        dump_model_history['epoch'] = range(loss.size)
-        dump_model_history['loss'] = loss
-        dump_model_history['val_loss'] = val_loss
-
-        if self._time_callback.times is not None:
-            dump_model_history['train_time'] = self._time_callback.times
-
-        dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)
-
     def test(self):
         return self._test()
-
-    def load(self):
-        self.model.load_weights(self._log_dir + 'best_model.hdf5')

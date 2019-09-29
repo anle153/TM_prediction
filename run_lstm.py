@@ -82,11 +82,18 @@ def train_lstm(config):
 
 
 def train_lstm_ed(config):
-    print('|-- Run model testing dgc_lstm.')
+    print('|-- Run model training dgc_lstm.')
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         model = EncoderDecoder(is_training=True, **config)
         model.plot_models()
         model.train()
+
+
+def test_lstm_ed(config):
+    print('|-- Run model testing dgc_lstm.')
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        model = EncoderDecoder(is_training=False, **config)
+        model.test()
 
 
 def evaluate_lstm(config):
@@ -129,8 +136,23 @@ if __name__ == '__main__':
         else:
             raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_lstm(config)
+
+        if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
+            evaluate_lstm(config)
+        elif config['model']['model_type'] == 'ed':
+            evaluate_lstm_ed(config)
+        else:
+            raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
+
     elif args.mode == "test":
         test_lstm(config)
+
+        if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
+            test_lstm(config)
+        elif config['model']['model_type'] == 'ed':
+            test_lstm_ed(config)
+        else:
+            raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
+
     else:
         raise RuntimeError("Mode needs to be train/evaluate/test!")

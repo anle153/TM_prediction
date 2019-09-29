@@ -7,6 +7,8 @@ import pandas as pd
 import yaml
 from keras.layers import LSTM, Dense, Input
 from keras.models import Model
+from keras.utils import plot_model
+from tqdm import tqdm
 
 from Models.lstm_supervisor import lstm
 from common.error_utils import error_ratio
@@ -76,6 +78,9 @@ class EncoderDecoder(lstm):
                 [decoder_inputs] + decoder_states_inputs,
                 [decoder_outputs] + decoder_states)
 
+            plot_model(model=self.encoder_model, to_file=self._log_dir + '/encoder.png', show_shapes=True)
+            plot_model(model=self.decoder_model, to_file=self._log_dir + '/decoder.png', show_shapes=True)
+
             return model
 
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
@@ -83,7 +88,114 @@ class EncoderDecoder(lstm):
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
         np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
-    def _test(self):
+    def _prepare_input(self, data, m_indicator):
+
+        dataX = np.zeros(shape=(data.shape[1], self._seq_len, 2), dtype='float32')
+        for flow_id in range(data.shape[1]):
+            x = data[-self._seq_len:, flow_id]
+            label = m_indicator[-self._seq_len:, flow_id]
+
+            sample = np.array([x, label]).T
+            dataX[flow_id] = sample
+
+        return dataX
+
+    def _ims_tm_prediction(self, states_value, target_seq):
+        multi_steps_tm = np.zeros(shape=(self._horizon, self._nodes),
+                                  dtype='float32')
+
+        for ts_ahead in range(self._horizon):
+            output_tokens, h, c = self.decoder_model.predict(
+                [target_seq] + states_value)
+
+            output_tokens = output_tokens[:, -1, 0]
+
+            multi_steps_tm[ts_ahead] = output_tokens
+
+            target_seq = np.zeros((self._nodes, 1, 1))
+            target_seq[:, 0, 0] = output_tokens
+
+            # Update states
+            states_value = [h, c]
+
+        return multi_steps_tm
+
+    def _run_tm_prediction(self):
+
+        test_data_norm = self._data['test_data_norm']
+
+        tf_a = np.array([1.0, 0.0])
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                               dtype='float32')
+
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                           dtype='float32')
+
+        tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
+        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+
+        y_preds = []
+        y_truths = []
+
+        # Predict the TM from time slot look_back
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
+            # This block is used for iterated multi-step traffic matrices prediction
+
+            en_input = self._prepare_input(data=tm_pred[ts:ts + self._seq_len],
+                                           m_indicator=m_indicator[ts:ts + self._seq_len])
+
+            states_value = self.encoder_model.predict(en_input)
+
+            # Generate empty target sequence of length 1.
+            target_seq = np.zeros((self._nodes, 1, 1))
+            # Populate the first character of target sequence with the start character.
+            target_seq[:, 0, 0] = tm_pred[ts + self._seq_len - 1]
+
+            predicted_tm = self._ims_tm_prediction(states_value, target_seq)
+
+            # Get the TM prediction of next time slot
+
+            y_preds.append(np.expand_dims(predicted_tm, axis=0))
+            pred = predicted_tm[0]
+
+            # Using part of current prediction as input to the next estimation
+            # Randomly choose the flows which is measured (using the correct data from test_set)
+
+            # boolean array(1 x n_flows):for choosing value from predicted data
+            if self._flow_selection == 'Random':
+                sampling = np.random.choice(tf_a, size=self._nodes,
+                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+            else:
+                sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+
+            m_indicator[ts + self._seq_len] = sampling
+            # invert of sampling: for choosing value from the original data
+            inv_sampling = 1.0 - sampling
+            pred_input = pred * inv_sampling
+
+            ground_true = test_data_norm[ts + self._seq_len]
+            y_truths.append(
+                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
+
+            measured_input = ground_true * sampling
+
+            # Merge value from pred_input and measured_input
+            new_input = pred_input + measured_input
+            # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
+
+            # Concatenating new_input into current rnn_input
+            tm_pred[ts + self._seq_len] = new_input
+
+        outputs = {
+            'tm_pred': tm_pred[self._seq_len:],
+            'm_indicator': m_indicator[self._seq_len:],
+            'y_preds': y_preds,
+            'y_truths': y_truths
+        }
+
+        return outputs
+
+    def test(self):
         scaler = self._data['scaler']
         results_summary = pd.DataFrame(index=range(self._run_times))
         results_summary['No.'] = range(self._run_times)
@@ -168,30 +280,12 @@ class EncoderDecoder(lstm):
             with open(os.path.join(self._log_dir, config_filename), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)
 
-        # evaluate
-        scaler = self._data['scaler']
-        x_eval = self._data['x_eval']
-        y_truth = self._data['y_eval']
-
-        y_pred = self.model.predict(x_eval)
-        y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(y_truth)
-
-        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-        self._logger.info(
-            "Horizon {:02d}, MSE: {:.2f}, MAPE: {:.4f}, RMSE: {:.2f}".format(
-                1, mse, mape, rmse
-            )
-        )
-
     def evaluate(self):
         scaler = self._data['scaler']
 
-        y_pred = self.model.predict(self._data['x_eval'])
+        y_pred = self.model.predict([self._data['encoder_input_eval'], self._data['decoder_input_eval']])
         y_pred = scaler.inverse_transform(y_pred)
-        y_truth = scaler.inverse_transform(self._data['y_eval'])
+        y_truth = scaler.inverse_transform(self._data['decoder_target_eval'])
 
         mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
         mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
@@ -202,6 +296,3 @@ class EncoderDecoder(lstm):
                 1, mse, mae, rmse, mape
             )
         )
-
-    def test(self):
-        return self._test()

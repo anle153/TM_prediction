@@ -513,11 +513,13 @@ def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio, test_size,
                                                                                       eps=train_data2d_norm.std())
 
     for cat in ["train", "val", "eval"]:
-        _x, _y = locals()["x_" + cat], locals()["y_" + cat]
-        print(cat, "x: ", _x.shape, "y:", _y.shape)
+        e_x, d_x, d_y = locals()["encoder_input_" + cat], locals()["decoder_input_" + cat], locals()[
+            "decoder_target_" + cat]
+        print(cat, "e_x: ", e_x.shape, "d_x:", d_x.shape, "d_y:", d_y.shape)
 
-        data['x_' + cat] = _x
-        data['y_' + cat] = _y
+        data["encoder_input_" + cat] = e_x
+        data["decoder_input_" + cat] = d_x
+        data["decoder_target_" + cat] = d_y
     data['scaler'] = scaler
 
     return data

@@ -34,21 +34,22 @@ class EncoderDecoder(lstm):
 
     def _model_construction(self, is_training=True):
         # Model
-        encoder_inputs = Input(shape=self._input_shape)
+        encoder_inputs = Input(shape=(None, self._input_dim))
         encoder = LSTM(self._rnn_units, return_state=True)
         encoder_outputs, state_h, state_c = encoder(encoder_inputs)
         # We discard `encoder_outputs` and only keep the states.
         encoder_states = [state_h, state_c]
 
         # Set up the decoder, using `encoder_states` as initial state.
-        decoder_inputs = Input(shape=(self._horizon, 1))
+        decoder_inputs = Input(shape=(None, 1))
         # We set up our decoder to return full output sequences,
         # and to return internal states as well. We don't use the
         # return states in the training model, but we will use them in inference.
         decoder_lstm = LSTM(self._rnn_units, return_sequences=True, return_state=True)
         decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
                                              initial_state=encoder_states)
-        decoder_dense = Dense(self._horizon, activation='relu')
+
+        decoder_dense = Dense(1, activation='relu')
         decoder_outputs = decoder_dense(decoder_outputs)
 
         # Define the model that will turn
@@ -146,8 +147,10 @@ class EncoderDecoder(lstm):
     def train(self):
         self.model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
 
-        training_history = self.model.fit(x=[self._data['encoder_input_train'], self._data['decoder_input_train']],
-                                          y=self._data['decoder_target_train'],
+        print('Shape decoder_input_train: ', self._data['decoder_input_train'].shape)
+
+        training_history = self.model.fit([self._data['encoder_input_train'], self._data['decoder_input_train']],
+                                          self._data['decoder_target_train'],
                                           batch_size=self._batch_size,
                                           epochs=self._epochs,
                                           callbacks=self.callbacks_list,

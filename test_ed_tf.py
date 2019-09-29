@@ -1,8 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
-from keras.layers import Input, LSTM, Dense
-from keras.models import Model
+from keras.layers import Input, LSTM
 
 batch_size = 64  # Batch size for training.
 epochs = 20  # Number of epochs to train for.
@@ -85,7 +84,7 @@ decoder_inputs = Input(shape=(None, num_decoder_tokens))
 # We set up our decoder to return full output sequences,
 # and to return internal states as well. We don't use the
 # return states in the training model, but we will use them in inference.
-decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
+decoder_lstm = LSTM(latent_dim, r(eturn_sequences=True, return_state=True)
 decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
                                      initial_state=encoder_states)
 decoder_dense = Dense(num_decoder_tokens, activation='softmax')

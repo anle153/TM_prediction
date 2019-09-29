@@ -85,6 +85,7 @@ def train_lstm_ed(config):
     print('|-- Run model testing dgc_lstm.')
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         model = EncoderDecoder(is_training=True, **config)
+        model.plot_models()
         model.train()
 
 

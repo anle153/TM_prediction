@@ -450,7 +450,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
     e_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')
     d_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon, 1), dtype='float32')
-    d_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon), dtype='float32')
+    d_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon, 1), dtype='float32')
 
     _data = np.copy(data)
 
@@ -458,7 +458,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
     i = 0
     for flow in range(_data.shape[1]):
-        for idx in range(_data.shape[0] - seq_len):
+        for idx in range(_data.shape[0] - seq_len - horizon):
             _x = _data[idx: idx + seq_len, flow]
             _label = _labels[idx: idx + seq_len, flow]
 
@@ -467,7 +467,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
             d_x[i] = np.expand_dims(data[idx + seq_len - 1:idx + seq_len - 1 + horizon, flow], axis=1)
 
-            d_y[i] = data[idx + seq_len:idx + seq_len + horizon, flow]
+            d_y[i] = np.expand_dims(data[idx + seq_len:idx + seq_len + horizon, flow], axis=1)
 
             i += 1
 
@@ -502,14 +502,17 @@ def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio, test_size,
                                                                                          seq_len=seq_len,
                                                                                          input_dim=input_dim,
                                                                                          mon_ratio=mon_ratio,
+                                                                                         horizon=horizon,
                                                                                          eps=train_data2d_norm.std())
     encoder_input_val, decoder_input_val, decoder_target_val = create_data_lstm_ed(valid_data2d_norm, seq_len=seq_len,
                                                                                    input_dim=input_dim,
                                                                                    mon_ratio=mon_ratio,
+                                                                                   horizon=horizon,
                                                                                    eps=train_data2d_norm.std())
     encoder_input_eval, decoder_input_eval, decoder_target_eval = create_data_lstm_ed(test_data2d_norm, seq_len=seq_len,
                                                                                       input_dim=input_dim,
                                                                                       mon_ratio=mon_ratio,
+                                                                                      horizon=horizon,
                                                                                       eps=train_data2d_norm.std())
 
     for cat in ["train", "val", "eval"]:

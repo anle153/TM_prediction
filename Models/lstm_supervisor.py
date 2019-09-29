@@ -124,8 +124,10 @@ class lstm():
 
             mon_ratio = kwargs['mon_ratio']
 
-            run_id = 'lstm_%g_%d_%s_%g_%d_%s/' % (
-                mon_ratio, horizon,
+            model_type = kwargs['model'].get('model_type')
+
+            run_id = '%s_%g_%d_%s_%g_%d_%s/' % (
+                model_type, mon_ratio, horizon,
                 structure, learning_rate, batch_size,
                 time.strftime('%m%d%H%M%S'))
             base_dir = kwargs.get('base_dir')

@@ -5,7 +5,7 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.lstm_ed_supervisor import lstm_ed
+from Models.encoder_decoder_supervisor import EncoderDecoder
 from Models.lstm_supervisor import lstm
 
 config = tf.ConfigProto()
@@ -83,12 +83,9 @@ def train_lstm(config):
 
 def train_lstm_ed(config):
     print('|-- Run model testing dgc_lstm.')
-
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        model = lstm_ed(**config)
-        model.train(sess)
+    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+        model = EncoderDecoder(is_training=True, **config)
+        model.train()
 
 
 def evaluate_lstm(config):

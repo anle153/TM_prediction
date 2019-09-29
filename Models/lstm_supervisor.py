@@ -48,7 +48,7 @@ class lstm():
         self._day_size = self._data_kwargs.get('day_size')
 
         # Model's Args
-        self._model_type = self._model_kwargs.get('model')
+        self._model_type = self._model_kwargs.get('model_type')
         self._rnn_units = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
         self._horizon = self._model_kwargs.get('horizon')

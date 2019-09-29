@@ -126,10 +126,9 @@ class lstm():
 
             model_type = kwargs['model'].get('model_type')
 
-            run_id = '%s_%g_%d_%s_%g_%d_%s/' % (
+            run_id = '%s_%g_%d_%s_%g_%d/' % (
                 model_type, mon_ratio, horizon,
-                structure, learning_rate, batch_size,
-                time.strftime('%m%d%H%M%S'))
+                structure, learning_rate, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

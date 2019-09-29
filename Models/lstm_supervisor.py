@@ -464,19 +464,19 @@ class lstm():
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
     def train(self):
-        training_fw_history = self.model.fit(x=self._data['x_train'],
-                                             y=self._data['y_train'],
-                                             batch_size=self._batch_size,
-                                             epochs=self._epochs,
-                                             callbacks=self.callbacks_list,
-                                             validation_data=(self._data['x_val'], self._data['y_val']),
-                                             shuffle=True,
-                                             verbose=2)
-        if training_fw_history is not None:
-            self._plot_training_history(training_fw_history)
-            self._save_model_history(training_fw_history)
+        training_history = self.model.fit(x=self._data['x_train'],
+                                          y=self._data['y_train'],
+                                          batch_size=self._batch_size,
+                                          epochs=self._epochs,
+                                          callbacks=self.callbacks_list,
+                                          validation_data=(self._data['x_val'], self._data['y_val']),
+                                          shuffle=True,
+                                          verbose=2)
+        if training_history is not None:
+            self._plot_training_history(training_history)
+            self._save_model_history(training_history)
             config = dict(self._kwargs)
-            config_filename = 'config_fwbw_lstm.yaml'
+            config_filename = 'config_lstm.yaml'
             config['train']['log_dir'] = self._log_dir
             with open(os.path.join(self._log_dir, config_filename), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)

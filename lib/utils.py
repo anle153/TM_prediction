@@ -445,6 +445,84 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
     return data
 
 
+def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+    e_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')
+    d_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon), dtype='float32')
+    d_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon), dtype='float32')
+
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    i = 0
+    for flow in range(_data.shape[1]):
+        for idx in range(_data.shape[0] - seq_len):
+            _x = _data[idx: idx + seq_len, flow]
+            _label = _labels[idx: idx + seq_len, flow]
+
+            e_x[i, :, 0] = _x
+            e_x[i, :, 1] = _label
+
+            d_x[i] = data[idx + seq_len - 1:idx + seq_len - 1 + horizon, flow]
+
+            d_y[i] = data[idx + seq_len:idx + seq_len + horizon, flow]
+
+            i += 1
+
+    return e_x, d_x, d_y
+
+
+def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio, test_size,
+                         raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    # Convert traffic volume from byte to mega-byte
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+
+    print('|--- Normalizing the train set.')
+    data = {}
+
+    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    train_data2d_norm = scaler.transform(train_data2d)
+    valid_data2d_norm = scaler.transform(valid_data2d)
+    test_data2d_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data2d_norm
+
+    encoder_input_train, decoder_input_train, decoder_target_train = create_data_lstm_ed(train_data2d_norm,
+                                                                                         seq_len=seq_len,
+                                                                                         input_dim=input_dim,
+                                                                                         mon_ratio=mon_ratio,
+                                                                                         eps=train_data2d_norm.std())
+    encoder_input_val, decoder_input_val, decoder_target_val = create_data_lstm_ed(valid_data2d_norm, seq_len=seq_len,
+                                                                                   input_dim=input_dim,
+                                                                                   mon_ratio=mon_ratio,
+                                                                                   eps=train_data2d_norm.std())
+    encoder_input_eval, decoder_input_eval, decoder_target_eval = create_data_lstm_ed(test_data2d_norm, seq_len=seq_len,
+                                                                                      input_dim=input_dim,
+                                                                                      mon_ratio=mon_ratio,
+                                                                                      eps=train_data2d_norm.std())
+
+    for cat in ["train", "val", "eval"]:
+        _x, _y = locals()["x_" + cat], locals()["y_" + cat]
+        print(cat, "x: ", _x.shape, "y:", _y.shape)
+
+        data['x_' + cat] = _x
+        data['y_' + cat] = _y
+    data['scaler'] = scaler
+
+    return data
+
+
 def create_data_conv_lstm(data, seq_len, wide, high, channel, mon_ratio, eps):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))

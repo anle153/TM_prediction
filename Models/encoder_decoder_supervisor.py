@@ -32,9 +32,9 @@ class EncoderDecoder(lstm):
         self._kwargs = kwargs
 
         # Load data
-        self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon, input_dim=self._input_dim,
-                                             mon_ratio=self._mon_ratio, test_size=self._test_size,
-                                             **self._data_kwargs)
+        self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon, input_dim=self._input_dim,
+                                                mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
@@ -146,19 +146,23 @@ class EncoderDecoder(lstm):
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
     def train(self):
-        training_fw_history = self.model.fit(x=self._data['x_train'],
-                                             y=self._data['y_train'],
-                                             batch_size=self._batch_size,
-                                             epochs=self._epochs,
-                                             callbacks=self.callbacks_list,
-                                             validation_data=(self._data['x_val'], self._data['y_val']),
-                                             shuffle=True,
-                                             verbose=2)
-        if training_fw_history is not None:
-            self._plot_training_history(training_fw_history)
-            self._save_model_history(training_fw_history)
+        self.model.compile(optimizer='adam', loss='mse', metrics=['mse, mae'])
+
+        training_history = self.model.fit(x=[self._data['encode_input_train'], self._data['decode_input_train']],
+                                          y=self._data['decode_target_train'],
+                                          batch_size=self._batch_size,
+                                          epochs=self._epochs,
+                                          callbacks=self.callbacks_list,
+                                          validation_data=([self._data['encode_input_val'],
+                                                            self._data['decode_input_val']],
+                                                           self._data['decode_target_val']),
+                                          shuffle=True,
+                                          verbose=2)
+        if training_history is not None:
+            self._plot_training_history(training_history)
+            self._save_model_history(training_history)
             config = dict(self._kwargs)
-            config_filename = 'config_fwbw_lstm.yaml'
+            config_filename = 'config_lstm.yaml'
             config['train']['log_dir'] = self._log_dir
             with open(os.path.join(self._log_dir, config_filename), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)

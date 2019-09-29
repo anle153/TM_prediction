@@ -91,7 +91,6 @@ def train_lstm_ed(config):
         model.train(sess)
 
 
-
 def evaluate_lstm(config):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)

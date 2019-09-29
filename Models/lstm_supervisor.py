@@ -4,7 +4,6 @@ import time
 import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, \
@@ -13,7 +12,6 @@ from keras.models import Sequential, Model
 from keras.utils import plot_model
 from tqdm import tqdm
 
-from Models.encoder_decoder_model import EncoderDecoderLSTM
 from common.error_utils import error_ratio
 from lib import utils, metrics
 
@@ -143,21 +141,28 @@ class lstm():
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
-    def encoder_decoder(self):
-        with tf.name_scope('Train'):
-            with tf.variable_scope('LSTM', reuse=False):
-                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
-                                                      batch_size=self._batch_size, **self._model_kwargs)
-        with tf.name_scope('Eval'):
-            with tf.variable_scope('LSTM', reuse=True):
-                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
-                                                      batch_size=self._data_kwargs['eval_batch_size'],
-                                                      **self._model_kwargs)
-        with tf.name_scope('Test'):
-            with tf.variable_scope('LSTM', reuse=True):
-                self.train_model = EncoderDecoderLSTM(is_training=True, scaler=self._data['scaler'],
-                                                      batch_size=self._data_kwargs['test_batch_size'],
-                                                      **self._model_kwargs)
+    def encoder_decoder_tf(self):
+
+        encoder_inputs = Input(shape=self._input_shape)
+        encoder = LSTM(self._rnn_units, return_state=True)
+        encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+        # We discard `encoder_outputs` and only keep the states.
+        encoder_states = [state_h, state_c]
+
+        # Set up the decoder, using `encoder_states` as initial state.
+        decoder_inputs = Input(shape=(None, self._horizon))
+        # We set up our decoder to return full output sequences,
+        # and to return internal states as well. We don't use the
+        # return states in the training model, but we will use them in inference.
+        decoder_lstm = LSTM(self._rnn_units, return_sequences=True, return_state=True)
+        decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
+                                             initial_state=encoder_states)
+        decoder_dense = Dense(self._horizon, activation='relu')
+        decoder_outputs = decoder_dense(decoder_outputs)
+
+        # Define the model that will turn
+        # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
+        self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
     def res_lstm_construction(self):
 

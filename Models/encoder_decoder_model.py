@@ -63,12 +63,15 @@ class EncoderDecoderLSTM(object):
                 return result
 
             _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            # layers = RNN(encoding_cells, dtype=tf.float32)
+            # y = layers(inputs)
+            # _, enc_state = RNN(encoding_cells, inputs, dtype=tf.float32)
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 
         # Project the output to output_dim.
         outputs = tf.stack(outputs[:-1], axis=1)
-        self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
+        self._outputs = tf.reshape(outputs, (batch_size, horizon, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
 
     @staticmethod

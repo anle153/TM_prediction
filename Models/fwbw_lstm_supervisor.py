@@ -130,10 +130,9 @@ class FwbwLstmRegression():
                 ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             mon_r = kwargs['mon_ratio']
-            run_id = 'fwbw_lstm_%g_%d_%s_%g_%d_%s/' % (
+            run_id = 'fwbw_lstm_%g_%d_%s_%g_%d/' % (
                 mon_r,
-                horizon, structure, learning_rate, batch_size,
-                time.strftime('%m%d%H%M%S'))
+                horizon, structure, learning_rate, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

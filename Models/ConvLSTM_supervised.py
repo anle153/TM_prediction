@@ -2,12 +2,15 @@ import os
 import time
 
 import keras.callbacks as keras_callbacks
+import numpy as np
+import pandas as pd
+import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense, Dropout
 from keras.models import Model
 from keras.utils import plot_model
 
-from lib import utils
+from lib import utils, metrics
 
 
 class TimeHistory(keras_callbacks.Callback):
@@ -117,10 +120,8 @@ class ConvLSTM():
                 ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             mon_r = kwargs['mon_ratio']
-            run_id = 'conv_lstm_%g_%d_%s_%g_%d_%s/' % (
-                mon_r,
-                horizon, structure, learning_rate, batch_size,
-                time.strftime('%m%d%H%M%S'))
+            run_id = 'conv_lstm_%g_%d_%s_%g_%d/' % (
+                mon_r, horizon, structure, learning_rate, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):
@@ -168,13 +169,72 @@ class ConvLSTM():
         pass
 
     def train(self):
-        pass
+        training_history = self.model.fit(x=self._data['x_train'],
+                                          y=self._data['y_train'],
+                                          batch_size=self._batch_size,
+                                          epochs=self._epochs,
+                                          callbacks=self.callbacks_list,
+                                          validation_data=(self._data['x_val'],
+                                                           self._data['y_val']),
+                                          shuffle=True,
+                                          verbose=2)
+        if training_history is not None:
+            self.plot_training_history(training_history)
+            self.save_model_history(training_history)
+            config = dict(self._kwargs)
+            config_filename = 'config_conv_lstm.yaml'
+            config['train']['log_dir'] = self._log_dir
+            with open(os.path.join(self._log_dir, config_filename), 'w') as f:
+                yaml.dump(config, f, default_flow_style=False)
 
     def evaluate(self):
-        pass
+        scaler = self._data['scaler']
+
+        y_pred = self.model.predict(self._data['x_eval'])
+        y_pred = scaler.inverse_transform(y_pred)
+        y_truth = scaler.inverse_transform(self._data['y_eval'])
+
+        mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
+        mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
+        mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
+        rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
+        self._logger.info(
+            "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
+                1, mse, mae, rmse, mape
+            )
+        )
 
     def test(self):
         pass
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)
+
+    def plot_training_history(self, model_history):
+        import matplotlib.pyplot as plt
+
+        plt.plot(model_history.history['loss'], label='loss')
+        plt.plot(model_history.history['val_loss'], label='val_loss')
+        plt.savefig(self._log_dir + '[loss]{}.png'.format(self._alg_name))
+        plt.legend()
+        plt.close()
+
+        plt.plot(model_history.history['val_loss'], label='val_loss')
+        plt.savefig(self._log_dir + '[val_loss]{}.png'.format(self._alg_name))
+        plt.legend()
+        plt.close()
+
+    def save_model_history(self, model_history):
+        loss = np.array(model_history.history['loss'])
+        val_loss = np.array(model_history.history['val_loss'])
+        dump_model_history = pd.DataFrame(index=range(loss.size),
+                                          columns=['epoch', 'loss', 'val_loss', 'train_time'])
+
+        dump_model_history['epoch'] = range(loss.size)
+        dump_model_history['loss'] = loss
+        dump_model_history['val_loss'] = val_loss
+
+        if self._time_callback.times is not None:
+            dump_model_history['train_time'] = self._time_callback.times
+
+        dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)

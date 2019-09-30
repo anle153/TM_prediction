@@ -151,8 +151,11 @@ class DCRNNSupervisor(object):
                 filter_type_abbr = 'R'
             elif filter_type == 'dual_random_walk':
                 filter_type_abbr = 'DR'
-            run_id = 'dcrnn_%s_%d_%.2f_%d_%d_%s_%g_%d/' % (
-                filter_type_abbr, max_diffusion_step, adj_mx_threshold, horizon, seq_len,
+
+            mon_ratio = kwargs['mon_ratio']
+
+            run_id = 'dcrnn_%s_%g_%d_%.2f_%d_%d_%s_%g_%d/' % (
+                filter_type_abbr, mon_ratio, max_diffusion_step, adj_mx_threshold, horizon, seq_len,
                 structure, learning_rate, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)

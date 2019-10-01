@@ -247,9 +247,9 @@ class ConvLSTM():
 
             tm_pred = scaler.inverse_transform(tm_pred)
             g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
-            er = error_ratio(y_pred=tm_pred,
-                             y_true=g_truth,
-                             measured_matrix=m_indicator)
+            er = metrics.error_ratio(y_pred=tm_pred,
+                                     y_true=g_truth,
+                                     measured_matrix=m_indicator)
             metrics_summary[i, -1] = er
 
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))

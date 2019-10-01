@@ -130,6 +130,19 @@ def masked_mae_loss(scaler, null_val):
     return loss
 
 
+def error_ratio(y_true, y_pred, measured_matrix):
+    y_true_flatten = y_true.flatten()
+    y_pred_flatten = y_pred.flatten()
+    measured_matrix = measured_matrix.flatten()
+    observated_indice = np.where(measured_matrix == 0.0)
+
+    e1 = np.sqrt(np.sum(np.square(y_true_flatten[observated_indice] - y_pred_flatten[observated_indice])))
+    e2 = np.sqrt(np.sum(np.square(y_true_flatten[observated_indice])))
+    if e2 == 0:
+        return 0
+    else:
+        return e1 / e2
+
 def calculate_metrics(df_pred, df_test, null_val):
     """
     Calculate the MAE, MAPE, RMSE

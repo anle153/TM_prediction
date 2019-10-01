@@ -240,7 +240,7 @@ def get_corr_matrix(data, seq_len):
 
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
-                       raw_dataset_dir, data_size, day_size, dataset_dir, batch_size, eval_batch_size=None,
+                       raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
                        val_batch_size=None, adj_mx_threshold=0.5, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1

@@ -550,7 +550,7 @@ def create_data_conv_lstm(data, seq_len, wide, high, channel, mon_ratio, eps):
         data_x[i, ..., 1] = _label
 
         _y = data[idx + seq_len]
-        _y = np.reshape(_y, newshape=(wide, high))
+        # _y = np.reshape(_y, newshape=(wide, high))
 
         data_y[i] = _y
 

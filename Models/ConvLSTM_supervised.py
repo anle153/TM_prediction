@@ -9,6 +9,7 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import Input, ConvLSTM2D, BatchNormalization, Flatten, Dense, Dropout
 from keras.models import Model
 from keras.utils import plot_model
+from tqdm import tqdm
 
 from lib import utils, metrics
 
@@ -204,6 +205,134 @@ class ConvLSTM():
             )
         )
 
+    def _prepare_input(self, data, m_indicator):
+
+        dataX = np.zeros(shape=(1, self._seq_len, self._wide, self._high, self._channel), dtype='float32')
+
+        _x = np.reshape(data, newshape=(self._seq_len, self._wide, self._high))
+        _m = np.reshape(m_indicator, newshape=(self._seq_len, self._wide, self._high))
+
+        dataX[..., 0] = _x
+        dataX[..., 1] = _m
+
+        return dataX
+
+    def _ims_tm_prediction(self, init_data, init_labels):
+        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, self._nodes),
+                                  dtype='float32')
+        multi_steps_tm[0:self._seq_len] = init_data
+
+        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, self._nodes),
+                               dtype='float32')
+        m_indicator[0:self._seq_len] = init_labels
+
+        for ts_ahead in range(self._horizon):
+            rnn_input = self._prepare_input(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
+                                            m_indicator=m_indicator[ts_ahead:ts_ahead + self._seq_len])
+            predictX = self.model.predict(rnn_input)
+            multi_steps_tm[ts_ahead + self._seq_len] = np.squeeze(predictX, axis=1)
+
+        return multi_steps_tm[-self._horizon:]
+
+    @staticmethod
+    def _calculate_consecutive_loss(m_indicator):
+
+        consecutive_losses = []
+        for flow_id in range(m_indicator.shape[1]):
+            flows_labels = m_indicator[:, flow_id]
+            if flows_labels[-1] == 1:
+                consecutive_losses.append(1)
+            else:
+                measured_idx = np.argwhere(flows_labels == 1)
+                if measured_idx.size == 0:
+                    consecutive_losses.append(m_indicator.shape[0])
+                else:
+                    consecutive_losses.append(m_indicator.shape[0] - measured_idx[-1][0])
+
+        consecutive_losses = np.asarray(consecutive_losses)
+        return consecutive_losses
+
+    def _set_measured_flow_fairness(self, m_indicator):
+
+        cl = self._calculate_consecutive_loss(m_indicator).astype(float)
+
+        w = 1 / cl
+
+        sampling = np.zeros(shape=self._nodes, dtype='float32')
+        m = int(self._mon_ratio * self._nodes)
+
+        w = w.flatten()
+        sorted_idx_w = np.argsort(w)
+        sampling[sorted_idx_w[:m]] = 1
+
+        return sampling
+
+    def _run_tm_prediction(self):
+
+        test_data_norm = self._data['test_data_norm']
+
+        tf_a = np.array([1.0, 0.0])
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                               dtype='float32')
+
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                           dtype='float32')
+
+        tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
+        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+
+        y_preds = []
+        y_truths = []
+
+        # Predict the TM from time slot look_back
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
+            # This block is used for iterated multi-step traffic matrices prediction
+
+            predicted_tm = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
+                                                   init_labels=m_indicator[ts:ts + self._seq_len])
+
+            # Get the TM prediction of next time slot
+
+            y_preds.append(np.expand_dims(predicted_tm, axis=0))
+            pred = predicted_tm[0]
+
+            # Using part of current prediction as input to the next estimation
+            # Randomly choose the flows which is measured (using the correct data from test_set)
+
+            # boolean array(1 x n_flows):for choosing value from predicted data
+            if self._flow_selection == 'Random':
+                sampling = np.random.choice(tf_a, size=self._nodes,
+                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+            else:
+                sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+
+            m_indicator[ts + self._seq_len] = sampling
+            # invert of sampling: for choosing value from the original data
+            inv_sampling = 1.0 - sampling
+            pred_input = pred * inv_sampling
+
+            ground_true = test_data_norm[ts + self._seq_len]
+            y_truths.append(
+                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
+
+            measured_input = ground_true * sampling
+
+            # Merge value from pred_input and measured_input
+            new_input = pred_input + measured_input
+            # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
+
+            # Concatenating new_input into current rnn_input
+            tm_pred[ts + self._seq_len] = new_input
+
+        outputs = {
+            'tm_pred': tm_pred[self._seq_len:],
+            'm_indicator': m_indicator[self._seq_len:],
+            'y_preds': y_preds,
+            'y_truths': y_truths
+        }
+
+        return outputs
+
     def test(self):
         scaler = self._data['scaler']
         results_summary = pd.DataFrame(index=range(self._run_times))
@@ -264,6 +393,11 @@ class ConvLSTM():
 
         results_summary['er'] = metrics_summary[:, -1]
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
+
+    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
+        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
+        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
+        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)

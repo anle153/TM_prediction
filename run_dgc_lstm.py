@@ -48,7 +48,6 @@ def print_dgc_lstm_info(mode, config):
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
-        print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')

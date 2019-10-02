@@ -230,7 +230,7 @@ class ConvLSTM():
             rnn_input = self._prepare_input(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
                                             m_indicator=m_indicator[ts_ahead:ts_ahead + self._seq_len])
             predictX = self.model.predict(rnn_input)
-            multi_steps_tm[ts_ahead + self._seq_len] = np.squeeze(predictX, axis=1)
+            multi_steps_tm[ts_ahead + self._seq_len] = np.squeeze(predictX, axis=0)
 
         return multi_steps_tm[-self._horizon:]
 

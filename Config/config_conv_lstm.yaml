@@ -20,7 +20,6 @@ model:
   num_nodes: 144
   num_rnn_layers: 2
   output_dim: 1
-  rnn_units: 64
   seq_len: 36
   wide: 12
   high: 12

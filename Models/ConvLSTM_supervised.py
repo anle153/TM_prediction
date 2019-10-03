@@ -47,7 +47,6 @@ class ConvLSTM():
         self._day_size = self._data_kwargs.get('day_size')
 
         # Model's Args
-        self._hidden = self._model_kwargs.get('rnn_units')
         self._seq_len = self._model_kwargs.get('seq_len')
         self._horizon = self._model_kwargs.get('horizon')
 
@@ -407,12 +406,12 @@ class ConvLSTM():
 
         plt.plot(model_history.history['loss'], label='loss')
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self._log_dir + '[loss]{}.png'.format(self._alg_name))
+        plt.savefig(self._log_dir + 'loss.png')
         plt.legend()
         plt.close()
 
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self._log_dir + '[val_loss]{}.png'.format(self._alg_name))
+        plt.savefig(self._log_dir + 'val_loss.png')
         plt.legend()
         plt.close()
 

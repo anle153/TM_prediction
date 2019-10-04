@@ -25,7 +25,7 @@ model:
   high: 12
   channel: 2
   filters: [2, 4]
-  kernel_size: [[3, 3], [5, 5]]
+  kernel_size: [[3, 3], [3, 3]]
   strides: [[1, 1], [1, 1]]
 train:
   base_lr: 0.01

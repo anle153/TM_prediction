@@ -557,7 +557,7 @@ def create_data_conv_lstm(data, seq_len, wide, high, channel, mon_ratio, eps):
 
 
 def load_dataset_conv_lstm(seq_len, wide, high, channel, mon_ratio,
-                           raw_dataset_dir, dataset_dir, day_size, data_size,
+                           raw_dataset_dir, day_size, data_size,
                            batch_size, eval_batch_size=None, **kwargs):
     data = {}
 

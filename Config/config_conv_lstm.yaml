@@ -7,7 +7,6 @@ mon_ratio: 0.3
 data:
   batch_size: 512
   raw_dataset_dir: Dataset/Abilene2d.npy
-  dataset_dir: Dataset/Abilene2d/conv_lstm/seq_36/
   eval_batch_size: 1
   data_name: Abilene
   day_size: 288
@@ -40,7 +39,7 @@ train:
   max_to_keep: 100
   min_learning_rate: 2.0e-06
   optimizer: adam
-  patience: 30
+  patience: 50
   test_every_n_epochs: 10
   results_name: Abilene-dgc-lstm
   continue_train: False

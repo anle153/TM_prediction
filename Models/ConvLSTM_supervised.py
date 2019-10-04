@@ -297,23 +297,18 @@ class ConvLSTM():
             # boolean array(1 x n_flows):for choosing value from predicted data
             if self._flow_selection == 'Random':
                 sampling = np.random.choice(tf_a, size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+                                            p=[self._mon_ratio, 1.0 - self._mon_ratio])
             else:
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
 
             m_indicator[ts + self._seq_len] = sampling
-            # invert of sampling: for choosing value from the original data
-            inv_sampling = 1.0 - sampling
-            pred_input = pred * inv_sampling
 
             ground_true = test_data_norm[ts + self._seq_len]
             y_truths.append(
                 np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
 
-            measured_input = ground_true * sampling
-
             # Merge value from pred_input and measured_input
-            new_input = pred_input + measured_input
+            new_input = pred * (1.0 - sampling) + (ground_true * sampling)
             # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
 
             # Concatenating new_input into current rnn_input

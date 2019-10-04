@@ -334,7 +334,7 @@ class ConvLSTM():
         metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
-            print('|--- Running time: {}/{}'.format(i, self._run_times))
+            self._logger.info('|--- Running time: {}/{}'.format(i, self._run_times))
 
             outputs = self._run_tm_prediction()
 
@@ -374,7 +374,7 @@ class ConvLSTM():
 
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
 
-            print('ER: {}'.format(er))
+            self._logger.info('ER: {}'.format(er))
 
         for horizon_i in range(self._horizon):
             results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]

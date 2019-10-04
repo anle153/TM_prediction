@@ -30,7 +30,7 @@ def print_dgc_lstm_info(mode, config):
     print('|--- HORIZON:\t{}'.format(config['model']['horizon']))
     print('|--- INPUT_DIM:\t{}'.format(config['model']['input_dim']))
     print('|--- NUM_NODES:\t{}'.format(config['model']['num_nodes']))
-    print('|--- N_RNN_LAYERS:\t{}'.format(config['model']['n_rnn_layers']))
+    print('|--- NUM_RNN_LAYERS:\t{}'.format(config['model']['num_rnn_layers']))
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
 

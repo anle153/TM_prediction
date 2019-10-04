@@ -32,7 +32,7 @@ def print_conv_lstm_info(mode, config):
     print('|--- HIGH:\t{}'.format(config['model']['high']))
     print('|--- CHANNEL:\t{}'.format(config['model']['channel']))
     print('|--- NUM_NODES:\t{}'.format(config['model']['num_nodes']))
-    print('|--- NUM_RNN_LAYERS:\t{}'.format(config['model']['num_rnn_layers']))
+    print('|--- N_RNN_LAYERS:\t{}'.format(config['model']['n_rnn_layers']))
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
     print('|--- FILTERS:\t{}'.format(config['model']['filters']))

@@ -162,7 +162,8 @@ class ConvLSTM():
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
     def load(self):
-        pass
+        self._logger.info("Load trained model from {}".format(self._log_dir))
+        self.model.load_weights(self._log_dir + 'best_model.hdf5')
 
     def train(self):
         training_history = self.model.fit(x=self._data['x_train'],

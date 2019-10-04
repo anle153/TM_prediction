@@ -95,8 +95,8 @@ def test_conv_lstm(config):
     print('|--- TEST CONV-LSTM')
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         conv_lstm_net = build_model(config)
-    conv_lstm_net.load()
-    conv_lstm_net.test()
+        conv_lstm_net.load()
+        conv_lstm_net.test()
 
 
 if __name__ == '__main__':

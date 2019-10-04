@@ -366,6 +366,9 @@ class DCRNNSupervisor(object):
         min_val_loss = float('inf')
         wait = 0
 
+        training_history = pd.DataFrame()
+        losses, val_losses = [], []
+
         max_to_keep = train_kwargs.get('max_to_keep', 100)
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
         model_filename = train_kwargs.get('model_filename')
@@ -424,8 +427,14 @@ class DCRNNSupervisor(object):
             history.append(val_mse)
             # Increases epoch.
             self._epoch += 1
-
+            losses.append(train_loss)
+            val_losses.append(val_loss)
             sys.stdout.flush()
+
+        training_history['epoch'] = np.arange(self._epoch)
+        training_history['loss'] = losses
+        training_history['val_loss']=val_losses
+        training_history.to_csv(self._log_dir+'training_history.csv', index=False)
         return np.min(history)
 
     def _prepare_test_set(self):
@@ -453,7 +462,7 @@ class DCRNNSupervisor(object):
         metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
-            print('|--- Running time: {}'.format(i))
+            self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
             test_results = self._run_tm_prediction(sess, model=self._eval_model)

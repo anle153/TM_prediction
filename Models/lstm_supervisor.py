@@ -325,12 +325,10 @@ class lstm():
         return consecutive_losses
 
     def _ims_tm_prediction(self, init_data, init_labels):
-        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]),
-                                  dtype='float32')
+        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, self._nodes), dtype='float32')
         multi_steps_tm[0:self._seq_len] = init_data
 
-        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, init_labels.shape[1]),
-                               dtype='float32')
+        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, self._nodes), dtype='float32')
         m_indicator[0:self._seq_len] = init_labels
 
         for ts_ahead in range(self._horizon):

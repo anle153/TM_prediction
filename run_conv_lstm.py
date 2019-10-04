@@ -34,7 +34,6 @@ def print_conv_lstm_info(mode, config):
     print('|--- NUM_NODES:\t{}'.format(config['model']['num_nodes']))
     print('|--- N_RNN_LAYERS:\t{}'.format(config['model']['n_rnn_layers']))
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
-    print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
     print('|--- FILTERS:\t{}'.format(config['model']['filters']))
     print('|--- KERNEL_SIZE:\t{}'.format(config['model']['kernel_size']))
     print('|--- STRIDES:\t{}'.format(config['model']['strides']))

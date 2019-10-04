@@ -435,6 +435,7 @@ class DCRNNSupervisor(object):
         training_history['loss'] = losses
         training_history['val_loss']=val_losses
         training_history.to_csv(self._log_dir+'training_history.csv', index=False)
+
         return np.min(history)
 
     def _prepare_test_set(self):

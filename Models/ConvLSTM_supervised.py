@@ -114,10 +114,10 @@ class ConvLSTM():
         if log_dir is None:
             batch_size = kwargs['data'].get('batch_size')
             learning_rate = kwargs['train'].get('base_lr')
-            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
+            n_rnn_layers = kwargs['model'].get('n_rnn_layers')
             rnn_units = kwargs['model'].get('rnn_units')
             structure = '-'.join(
-                ['%d' % rnn_units for _ in range(num_rnn_layers)])
+                ['%d' % rnn_units for _ in range(n_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             mon_r = kwargs['mon_ratio']
             run_id = 'conv_lstm_%g_%d_%s_%g_%d/' % (

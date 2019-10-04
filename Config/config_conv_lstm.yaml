@@ -24,7 +24,7 @@ model:
   wide: 12
   high: 12
   channel: 2
-  filters: [4, 4]
+  filters: [2, 4]
   kernel_size: [[3, 3], [5, 5]]
   strides: [[1, 1], [1, 1]]
 train:

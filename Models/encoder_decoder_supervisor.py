@@ -61,7 +61,7 @@ class EncoderDecoder(lstm):
         if is_training:
             return model
         else:
-            print("|--- Load model from: ", self._log_dir + 'best_model.hdf5')
+            self._logger.info("|--- Load model from: ", self._log_dir + 'best_model.hdf5')
             model.load_weights(self._log_dir + 'best_model.hdf5')
             model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
 
@@ -206,7 +206,7 @@ class EncoderDecoder(lstm):
         metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
-            print('|--- Running time: {}/{}'.format(i, self._run_times))
+            self._logger.info('|--- Running time: {}/{}'.format(i, self._run_times))
 
             outputs = self._run_tm_prediction()
 
@@ -246,7 +246,7 @@ class EncoderDecoder(lstm):
 
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
 
-            print('ER: {}'.format(er))
+            self._logger.info('ER: {}'.format(er))
 
         for horizon_i in range(self._horizon):
             results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
@@ -259,8 +259,6 @@ class EncoderDecoder(lstm):
 
     def train(self):
         self.model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
-
-        print('Shape decoder_input_train: ', self._data['decoder_input_train'].shape)
 
         training_history = self.model.fit([self._data['encoder_input_train'], self._data['decoder_input_train']],
                                           self._data['decoder_target_train'],

@@ -180,7 +180,7 @@ class DCGRUCell(RNNCell):
                 biases = tf.get_variable("biases", [output_size], dtype=dtype,
                                          initializer=tf.constant_initializer(bias_start, dtype=dtype))
                 x = tf.nn.bias_add(x, biases)
-        except ValueError:
+        except:
             with tf.variable_scope(scope, reuse=True):
                 if self._max_diffusion_step == 0:
                     pass

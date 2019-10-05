@@ -90,6 +90,8 @@ class DCGRUCell(RNNCell):
                     fn = self._gconv
                 else:
                     fn = self._fc
+
+                # calculate the reset (r) and update  (u) values
                 value = tf.nn.sigmoid(fn(inputs, state, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
@@ -158,9 +160,12 @@ class DCGRUCell(RNNCell):
                 pass
             else:
                 for support in self._supports:
+
+                    # Applying diffusion process for k = 1
                     x1 = tf.sparse_tensor_dense_matmul(support, x0)
                     x = self._concat(x, x1)
 
+                    # Applying diffusion process for k = 2 to max_step
                     for k in range(2, self._max_diffusion_step + 1):
                         x2 = 2 * tf.sparse_tensor_dense_matmul(support, x1) - x0
                         x = self._concat(x, x2)

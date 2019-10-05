@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
-from Models.dcrnn_cell import DCGRUCell
+from TestModels.DCRNN_cell import DCGRUCell
 
 
 class DCRNNModel(object):
@@ -70,7 +70,7 @@ class DCRNNModel(object):
                     result = prev
                 return result
 
-            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            encoder_outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 

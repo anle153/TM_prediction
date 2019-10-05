@@ -40,10 +40,15 @@ class DCRNNModel(object):
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
+        # cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+        #                  filter_type=filter_type)
+        # cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+        #                                  num_proj=output_dim, filter_type=filter_type)
+
         cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                         filter_type=filter_type)
+                         filter_type=filter_type, reuse=True)
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                         num_proj=output_dim, filter_type=filter_type)
+                                         num_proj=output_dim, filter_type=filter_type, reuse=True)
         encoding_cells = [cell] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)

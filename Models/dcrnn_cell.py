@@ -153,7 +153,7 @@ class DCGRUCell(RNNCell):
         x = tf.expand_dims(x0, axis=0)
 
         scope = tf.get_variable_scope()
-        with tf.variable_scope(scope, reuse=True):
+        with tf.variable_scope(scope):
             if self._max_diffusion_step == 0:
                 pass
             else:
@@ -179,5 +179,7 @@ class DCGRUCell(RNNCell):
             biases = tf.get_variable("biases", [output_size], dtype=dtype,
                                      initializer=tf.constant_initializer(bias_start, dtype=dtype))
             x = tf.nn.bias_add(x, biases)
+
+            tf.get_variable_scope().reuse_variables()
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])

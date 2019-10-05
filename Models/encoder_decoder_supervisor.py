@@ -61,7 +61,7 @@ class EncoderDecoder(lstm):
         if is_training:
             return model
         else:
-            self._logger.info("|--- Load model from: ", self._log_dir + 'best_model.hdf5')
+            self._logger.info("|--- Load model from: {}".format(self._log_dir))
             model.load_weights(self._log_dir + 'best_model.hdf5')
             model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
 

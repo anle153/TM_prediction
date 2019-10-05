@@ -153,7 +153,7 @@ class DCGRUCell(RNNCell):
         x = tf.expand_dims(x0, axis=0)
 
         scope = tf.get_variable_scope()
-        with tf.variable_scope(scope):
+        with tf.variable_scope(scope, reuse=True):
             if self._max_diffusion_step == 0:
                 pass
             else:

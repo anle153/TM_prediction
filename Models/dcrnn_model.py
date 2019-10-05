@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras.layers import RNN
 from tensorflow.contrib import legacy_seq2seq
 
 from Models.dcrnn_cell import DCGRUCell
@@ -40,15 +39,11 @@ class DCRNNModel(object):
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
-        # cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-        #                  filter_type=filter_type)
-        # cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-        #                                  num_proj=output_dim, filter_type=filter_type)
-
         cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                         filter_type=filter_type, reuse=True)
+                         filter_type=filter_type)
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                         num_proj=output_dim, filter_type=filter_type, reuse=True)
+                                         num_proj=output_dim, filter_type=filter_type)
+
         encoding_cells = [cell] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
@@ -77,10 +72,10 @@ class DCRNNModel(object):
                     result = prev
                 return result
 
-            # _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
 
-            encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
-            _, enc_state = encoder_layers(inputs)
+            # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
+            # _, enc_state = encoder_layers(inputs)
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 

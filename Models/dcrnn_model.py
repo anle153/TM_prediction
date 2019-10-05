@@ -75,7 +75,7 @@ class DCRNNModel(object):
             # _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
 
             encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
-            _, enc_state = encoder_layers(inputs, dtype=tf.float32)
+            _, enc_state = encoder_layers(inputs)
             outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
                                                               loop_function=_loop_function)
 

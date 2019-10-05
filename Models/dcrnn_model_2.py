@@ -35,6 +35,7 @@ class DCRNNModel(object):
         self._inputs = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, input_dim), name='inputs')
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels')
+        self._enc_labels = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, 1), name='labels')
 
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
@@ -105,6 +106,10 @@ class DCRNNModel(object):
         return self._labels
 
     @property
+    def enc_labels(self):
+        return self._enc_labels
+
+    @property
     def loss(self):
         return self._loss
 
@@ -119,3 +124,7 @@ class DCRNNModel(object):
     @property
     def outputs(self):
         return self._outputs
+
+    @property
+    def enc_outputs(self):
+        return self._enc_outputs

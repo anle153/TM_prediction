@@ -12,7 +12,7 @@ import tensorflow as tf
 import yaml
 from tqdm import tqdm
 
-from Models.dcrnn_model import DCRNNModel
+from Models.dcrnn_model_2 import DCRNNModel
 from common.error_utils import error_ratio
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
@@ -108,6 +108,9 @@ class DCRNNSupervisor(object):
         output_dim = self._model_kwargs.get('output_dim')
         preds = self._train_model.outputs
         labels = self._train_model.labels[..., :output_dim]
+
+        enc_preds = self._train_model.enc_outputs
+        enc_labels = self._train_model.enc_lables[..., :output_dim]
 
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)

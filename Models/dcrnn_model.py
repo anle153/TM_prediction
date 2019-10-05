@@ -119,3 +119,7 @@ class DCRNNModel(object):
     @property
     def outputs(self):
         return self._outputs
+
+    @property
+    def enc_outputs(self):
+        return self._enc_outputs

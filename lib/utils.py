@@ -284,8 +284,8 @@ def create_data_dcrnn_2(data, seq_len, horizon, input_dim, mon_ratio, eps):
     _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
 
     x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
-    y_1 = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
-    y_2 = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
+    l = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
+    y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
     for idx in range(_data.shape[0] - seq_len - horizon):
         _x = _data[idx: idx + seq_len]
@@ -294,13 +294,13 @@ def create_data_dcrnn_2(data, seq_len, horizon, input_dim, mon_ratio, eps):
         x[idx, :, :, 0] = _x
         x[idx, :, :, 1] = _label
 
-        _y_1 = data[idx + 1:idx + seq_len + 1]
-        _y_2 = data[idx + seq_len:idx + seq_len + horizon]
+        _l = data[idx + 1:idx + seq_len + 1]
+        _y = data[idx + seq_len:idx + seq_len + horizon]
 
-        y_1[idx] = np.expand_dims(_y_1, axis=2)
-        y_2[idx] = np.expand_dims(_y_2, axis=2)
+        l[idx] = np.expand_dims(_l, axis=2)
+        y[idx] = np.expand_dims(_y, axis=2)
 
-    return x, y_1, y_2
+    return x, y, l
 
 
 def get_corr_matrix(data, seq_len):

@@ -20,6 +20,7 @@ class DataLoader(object):
         :param batch_size:
         :param pad_with_last_sample: pad with the last sample to make number of samples divisible to batch_size.
         """
+
         self.batch_size = batch_size
         self.current_ind = 0
         if pad_with_last_sample:
@@ -46,6 +47,53 @@ class DataLoader(object):
                 x_i = self.xs[start_ind: end_ind, ...]
                 y_i = self.ys[start_ind: end_ind, ...]
                 yield (x_i, y_i)
+                self.current_ind += 1
+
+        return _wrapper()
+
+
+class DataLoader_2(object):
+    def __init__(self, xs, ys, ls, batch_size, pad_with_last_sample=True, shuffle=False):
+        """
+
+        :param xs:
+        :param ys:
+        :param batch_size:
+        :param pad_with_last_sample: pad with the last sample to make number of samples divisible to batch_size.
+        """
+
+        self.batch_size = batch_size
+        self.current_ind = 0
+        if pad_with_last_sample:
+            num_padding = (batch_size - (len(xs) % batch_size)) % batch_size
+            x_padding = np.repeat(xs[-1:], num_padding, axis=0)
+            y_padding = np.repeat(ys[-1:], num_padding, axis=0)
+            l_padding = np.repeat(ls[-1:], num_padding, axis=0)
+
+            xs = np.concatenate([xs, x_padding], axis=0)
+            ys = np.concatenate([ys, y_padding], axis=0)
+            ls = np.concatenate([ls, y_padding], axis=0)
+
+        self.size = len(xs)
+        self.num_batch = int(self.size // self.batch_size)
+        if shuffle:
+            permutation = np.random.permutation(self.size)
+            xs, ys, ls = xs[permutation], ys[permutation], ls[permutation]
+        self.xs = xs
+        self.ys = ys
+        self.ls = ls
+
+    def get_iterator(self):
+        self.current_ind = 0
+
+        def _wrapper():
+            while self.current_ind < self.num_batch:
+                start_ind = self.batch_size * self.current_ind
+                end_ind = min(self.size, self.batch_size * (self.current_ind + 1))
+                x_i = self.xs[start_ind: end_ind, ...]
+                y_i = self.ys[start_ind: end_ind, ...]
+                l_i = self.ls[start_ind: end_ind, ...]
+                yield (x_i, y_i, l_i)
                 self.current_ind += 1
 
         return _wrapper()
@@ -394,15 +442,16 @@ def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
                                                      mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
-        _x, _y_1, _y_2 = locals()["x_" + category], locals()["y_" + category + "_1"], locals()["y_" + category + "_2"]
-        print(category, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2", _y_2)
+        _x, _y, _l = locals()["x_" + category], locals()["y_" + category + "_1"], locals()["y_" + category + "_2"]
+        print(category, "x: ", _x.shape, "y:", _y.shape, "l", _l.shape)
         data['x_' + category] = _x
-        data['y_' + category] = [_y_1, _y_2]
+        data['y_' + category] = _y
+        data['l_' + category] = _l
     # Data format
 
-    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
-    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+    data['train_loader'] = DataLoader_2(data['x_train'], data['y_train'], data['l_train'], batch_size, shuffle=True)
+    data['val_loader'] = DataLoader_2(data['x_val'], data['y_val'], data['l_val'], val_batch_size, shuffle=False)
+    data['eval_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')

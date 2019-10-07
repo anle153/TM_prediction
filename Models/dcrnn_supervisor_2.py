@@ -171,15 +171,23 @@ class DCRNNSupervisor(object):
 
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
+        enc_losses = []
         mses = []
         outputs = []
         output_dim = self._model_kwargs.get('output_dim')
         preds = model.outputs
         labels = model.labels[..., :output_dim]
         loss = self._loss_fn(preds=preds, labels=labels)
+
+        enc_preds = model.enc_outputs
+        enc_labels = model.enc_labels[..., :output_dim]
+
+        enc_loss = self._loss_fn(preds=enc_preds, labels=enc_labels)
+
         fetches = {
             'loss': loss,
             'mse': loss,
+            'enc_loss': enc_loss,
             'global_step': tf.train.get_or_create_global_step()
         }
         if training:
@@ -204,7 +212,8 @@ class DCRNNSupervisor(object):
 
             vals = sess.run(fetches, feed_dict=feed_dict)
 
-            losses.append(vals['loss'])
+            losses.append(vals['loss'] + vals['enc_loss'])
+            enc_losses.append(vals['enc_loss'])
             mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
@@ -213,7 +222,8 @@ class DCRNNSupervisor(object):
 
         results = {
             'loss': np.mean(losses),
-            'mse': np.mean(mses)
+            'mse': np.mean(mses),
+            'enc_loss': np.mean(enc_losses),
         }
         if return_output:
             results['outputs'] = outputs
@@ -397,7 +407,8 @@ class DCRNNSupervisor(object):
                                                      self._data['train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
-            train_loss, train_mse = train_results['loss'], train_results['mse']
+            train_loss, train_mse, train_enc_loss = train_results['loss'], train_results['mse'], train_results[
+                'enc_loss']
             # if train_loss > 1e5:
             #     self._logger.warning('Gradient explosion detected. Ending...')
             #     break
@@ -407,14 +418,16 @@ class DCRNNSupervisor(object):
             val_results = self.run_epoch_generator(sess, self._val_model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
-            val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()
+            val_loss, val_mse, val_enc_loss = val_results['loss'].item(), val_results['mse'].item(), val_results[
+                'enc_loss'].item()
 
             utils.add_simple_summary(self._writer,
                                      ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
                                      [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f} lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
+            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f}, train_enc: {:.4f}, val_enc: {:.4f} -  lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, global_step, train_mse, val_mse, train_enc_loss, val_enc_loss, new_lr,
+                (end_time - start_time))
             self._logger.info(message)
             if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
                 self.evaluate(sess)

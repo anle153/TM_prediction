@@ -2,9 +2,10 @@ import argparse
 import os
 import sys
 
+import tensorflow as tf
 import yaml
 
-from algs.dgc_lstm import train_dgc_lstm, test_dgc_lstm, evaluate_dgc_lstm
+from Models.dcrnn_supervisor import DCRNNSupervisor
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
@@ -81,6 +82,40 @@ def print_dgc_lstm_info(mode, config):
 #                                                                Config.ALG, Config.TAG, Config.SCALER)
 #     results_processing(y_true, Config.ARIMA_TESTING_TIME, results_path)
 
+def train_dgc_lstm(config):
+    print('|-- Run model training dgc_lstm.')
+
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.train(sess)
+
+
+def test_dgc_lstm(config):
+    print('|-- Run model testing dgc_lstm.')
+
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.load(sess, config['train']['model_filename'])
+        outputs = model.test(sess)
+        # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
+        #
+        # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
+
+
+def evaluate_dgc_lstm(config):
+    print('|-- Run model testing dgc_lstm.')
+
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.load(sess, config['train']['model_filename'])
+        outputs = model.evaluate(sess)
 
 if __name__ == '__main__':
 

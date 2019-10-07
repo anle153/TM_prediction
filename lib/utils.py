@@ -72,7 +72,7 @@ class DataLoader_2(object):
 
             xs = np.concatenate([xs, x_padding], axis=0)
             ys = np.concatenate([ys, y_padding], axis=0)
-            ls = np.concatenate([ls, y_padding], axis=0)
+            ls = np.concatenate([ls, l_padding], axis=0)
 
         self.size = len(xs)
         self.num_batch = int(self.size // self.batch_size)

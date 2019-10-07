@@ -45,7 +45,7 @@ class DCRNNModel(object):
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                          num_proj=output_dim, filter_type=filter_type)
 
-        encoding_cells = [cell] * num_rnn_layers
+        encoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
         decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
@@ -54,7 +54,6 @@ class DCRNNModel(object):
         # Outputs: (batch_size, timesteps, num_nodes, output_dim)
         with tf.variable_scope('DCRNN_SEQ'):
             inputs = tf.unstack(tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
-            # inputs = tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim))
             labels = tf.unstack(
                 tf.reshape(self._labels[..., :output_dim], (batch_size, horizon, num_nodes * output_dim)), axis=1)
             labels.insert(0, GO_SYMBOL)
@@ -83,6 +82,7 @@ class DCRNNModel(object):
         # Project the output to output_dim.
         outputs = tf.stack(outputs[:-1], axis=1)
         enc_outputs = tf.stack(enc_outputs[:-1], axis=1)
+
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._enc_outputs = tf.reshape(enc_outputs, (batch_size, seq_len, num_nodes, output_dim), name='enc_outputs')
         self._merged = tf.summary.merge_all()

@@ -81,7 +81,7 @@ class DCRNNModel(object):
 
         # Project the output to output_dim.
         outputs = tf.stack(outputs[:-1], axis=1)
-        enc_outputs = tf.stack(enc_outputs[:-1], axis=1)
+        enc_outputs = tf.stack(enc_outputs, axis=1)
 
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._enc_outputs = tf.reshape(enc_outputs, (batch_size, seq_len, num_nodes, output_dim), name='enc_outputs')

@@ -217,6 +217,44 @@ def create_data_dcrnn(data, seq_len, horizon, input_dim, mon_ratio, eps):
     return x, y
 
 
+def create_data_dcrnn_2(data, seq_len, horizon, input_dim, mon_ratio, eps):
+    """
+        Create (x,y) data for dcrnn with 2 outputs (encoder_output, decoder_output)
+    :param data:
+    :param seq_len:
+    :param horizon:
+    :param input_dim:
+    :param mon_ratio:
+    :param eps:
+    :return:
+    """
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
+    _labels = _labels.astype('float32')
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
+    y_1 = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
+    y_2 = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
+
+    for idx in range(_data.shape[0] - seq_len - horizon):
+        _x = _data[idx: idx + seq_len]
+        _label = _labels[idx: idx + seq_len]
+
+        x[idx, :, :, 0] = _x
+        x[idx, :, :, 1] = _label
+
+        _y_1 = data[idx + 1:idx + seq_len + 1]
+        _y_2 = data[idx + seq_len:idx + seq_len + horizon]
+
+        y_1[idx] = np.expand_dims(_y_1, axis=2)
+        y_2[idx] = np.expand_dims(_y_2, axis=2)
+
+    return x, y_1, y_2
+
+
 def get_corr_matrix(data, seq_len):
     corr_matrices = np.zeros(shape=(data.shape[0] - seq_len, data.shape[1], data.shape[1]), dtype='float32')
 
@@ -278,6 +316,88 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
         print(category, "x: ", _x.shape, "y:", _y.shape)
         data['x_' + category] = _x
         data['y_' + category] = _y
+    # Data format
+
+    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
+    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+    data['scaler'] = scaler
+
+    print('|--- Get Correlation Matrix')
+
+    adj_mx = get_corr_matrix(train_data2d, seq_len)
+    adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+    adj_mx[adj_mx >= adj_mx_threshold] = 1.0
+    adj_mx[adj_mx < adj_mx_threshold] = 0.0
+
+    print('Number of edges: {}'.format(np.sum(adj_mx)))
+
+    adj_mx = adj_mx.astype('float32')
+
+    data['adj_mx'] = adj_mx
+
+    return data
+
+
+def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
+                         raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
+                         val_batch_size=None, adj_mx_threshold=0.5, **kwargs):
+    """
+        Load dataset for DCRNN with 2 outputs
+    :param seq_len:
+    :param horizon:
+    :param input_dim:
+    :param mon_ratio:
+    :param test_size:
+    :param raw_dataset_dir:
+    :param data_size:
+    :param day_size:
+    :param batch_size:
+    :param eval_batch_size:
+    :param val_batch_size:
+    :param adj_mx_threshold:
+    :param kwargs:
+    :return:
+    """
+
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    # Convert traffic volume from byte to mega-byte
+    # raw_data = raw_data / 1000000
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+    data = {}
+
+    print('|--- Normalizing the train set.')
+    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    train_data_norm = scaler.transform(train_data2d)
+    valid_data_norm = scaler.transform(valid_data2d)
+    test_data_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data_norm
+
+    x_train, y_train_1, y_train_2 = create_data_dcrnn_2(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                                        input_dim=input_dim,
+                                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val_1, y_val_2 = create_data_dcrnn_2(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
+                                                  input_dim=input_dim,
+                                                  mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval_1, y_eval_2 = create_data_dcrnn_2(data=test_data_norm, seq_len=seq_len, horizon=horizon,
+                                                     input_dim=input_dim,
+                                                     mon_ratio=mon_ratio, eps=train_data_norm.std())
+
+    for category in ['train', 'val', 'eval']:
+        _x, _y_1, _y_2 = locals()["x_" + category], locals()["y_" + category + "_1"], locals()["y_" + category + "_2"]
+        print(category, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2", _y_2)
+        data['x_' + category] = _x
+        data['y_' + category] = [_y_1, _y_2]
     # Data format
 
     data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)

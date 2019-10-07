@@ -53,12 +53,12 @@ class DCRNNSupervisor(object):
         self._run_times = self._test_kwargs.get('run_times')
         # Data preparation
         self._day_size = self._data_kwargs.get('day_size')
-        self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
-                                              horizon=self._model_kwargs.get('horizon'),
-                                              input_dim=self._model_kwargs.get('input_dim'),
-                                              mon_ratio=self._mon_ratio,
-                                              test_size=self._test_size,
-                                              **self._data_kwargs)
+        self._data = utils.load_dataset_dcrnn_2(seq_len=self._model_kwargs.get('seq_len'),
+                                                horizon=self._model_kwargs.get('horizon'),
+                                                input_dim=self._model_kwargs.get('input_dim'),
+                                                mon_ratio=self._mon_ratio,
+                                                test_size=self._test_size,
+                                                **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
@@ -110,12 +110,15 @@ class DCRNNSupervisor(object):
         labels = self._train_model.labels[..., :output_dim]
 
         enc_preds = self._train_model.enc_outputs
-        enc_labels = self._train_model.enc_lables[..., :output_dim]
+        enc_labels = self._train_model.enc_labels[..., :output_dim]
 
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)
         # self._loss_fn = masked_mae_loss(scaler, null_val)
-        self._train_loss = self._loss_fn(preds=preds, labels=labels)
+        self._train_loss_dec = self._loss_fn(preds=preds, labels=labels)
+        self._train_loss_enc = self._loss_fn(preds=enc_preds, labels=enc_labels)
+
+        self._train_loss = self._train_loss_dec + self._train_loss_enc
 
         tvars = tf.trainable_variables()
         grads = tf.gradients(self._train_loss, tvars)
@@ -195,7 +198,8 @@ class DCRNNSupervisor(object):
         for _, (x, y) in enumerate(data_generator):
             feed_dict = {
                 model.inputs: x,
-                model.labels: y,
+                model.labels: y[0],
+                model.enc_labels: y[1],
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)

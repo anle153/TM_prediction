@@ -431,18 +431,18 @@ def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['test_data_norm'] = test_data_norm
 
-    x_train, y_train_1, y_train_2 = create_data_dcrnn_2(data=train_data_norm, seq_len=seq_len, horizon=horizon,
-                                                        input_dim=input_dim,
-                                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_val, y_val_1, y_val_2 = create_data_dcrnn_2(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
-                                                  input_dim=input_dim,
-                                                  mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_eval, y_eval_1, y_eval_2 = create_data_dcrnn_2(data=test_data_norm, seq_len=seq_len, horizon=horizon,
-                                                     input_dim=input_dim,
-                                                     mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_train, y_train, l_train = create_data_dcrnn_2(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                                    input_dim=input_dim,
+                                                    mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val, l_val = create_data_dcrnn_2(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
+                                              input_dim=input_dim,
+                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval, l_eval = create_data_dcrnn_2(data=test_data_norm, seq_len=seq_len, horizon=horizon,
+                                                 input_dim=input_dim,
+                                                 mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
-        _x, _y, _l = locals()["x_" + category], locals()["y_" + category + "_1"], locals()["y_" + category + "_2"]
+        _x, _y, _l = locals()["x_" + category], locals()["y_" + category], locals()["l_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape, "l", _l.shape)
         data['x_' + category] = _x
         data['y_' + category] = _y
@@ -451,7 +451,7 @@ def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['train_loader'] = DataLoader_2(data['x_train'], data['y_train'], data['l_train'], batch_size, shuffle=True)
     data['val_loader'] = DataLoader_2(data['x_val'], data['y_val'], data['l_val'], val_batch_size, shuffle=False)
-    data['eval_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+    data['eval_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], data['l_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')

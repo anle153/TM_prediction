@@ -195,11 +195,11 @@ class DCRNNSupervisor(object):
                 'outputs': model.outputs
             })
 
-        for _, (x, y) in enumerate(data_generator):
+        for _, (x, y, l) in enumerate(data_generator):
             feed_dict = {
                 model.inputs: x,
-                model.labels: y[0],
-                model.enc_labels: y[1],
+                model.labels: y,
+                model.enc_labels: l,
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)

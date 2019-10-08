@@ -239,7 +239,6 @@ class DCRNNSupervisor(object):
 
         y[:] = ground_truth
         y = np.expand_dims(y, axis=2)
-
         return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
 
     @staticmethod
@@ -312,7 +311,8 @@ class DCRNNSupervisor(object):
         }
 
         fetches.update({
-            'outputs': model.outputs
+            'outputs': model.outputs,
+            'enc_outputs': model.enc_outputs
         })
 
         y_truths = []
@@ -339,6 +339,8 @@ class DCRNNSupervisor(object):
             mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
+
+            enc_preds = vals['enc_outputs']
 
             pred = vals['outputs'][0, 0, :, 0]
 

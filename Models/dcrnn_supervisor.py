@@ -153,9 +153,10 @@ class DCRNNSupervisor(object):
                 filter_type_abbr = 'DR'
 
             mon_ratio = kwargs['mon_ratio']
+            adj_method = kwargs['data'].get('adj_method')
 
-            run_id = 'dcrnn_%s_%g_%d_%.2f_%d_%d_%s_%g_%d/' % (
-                filter_type_abbr, mon_ratio, max_diffusion_step, adj_mx_threshold, horizon, seq_len,
+            run_id = 'dcrnn_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (
+                filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, horizon, seq_len,
                 structure, learning_rate, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)

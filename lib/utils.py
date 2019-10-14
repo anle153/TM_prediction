@@ -303,7 +303,7 @@ def create_data_dcrnn_2(data, seq_len, horizon, input_dim, mon_ratio, eps):
     return x, y, l
 
 
-def get_corr_matrix(data, seq_len):
+def correlation_matrix(data, seq_len):
     corr_matrices = np.zeros(shape=(data.shape[0] - seq_len, data.shape[1], data.shape[1]), dtype='float32')
 
     for i in tqdm(range(data.shape[0] - seq_len)):
@@ -327,7 +327,7 @@ def get_corr_matrix(data, seq_len):
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
                        raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
-                       val_batch_size=None, adj_mx_threshold=0.5, **kwargs):
+                       val_batch_size=None, adj_method='correlation', **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -373,10 +373,16 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = get_corr_matrix(train_data2d, seq_len)
-    adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-    adj_mx[adj_mx >= adj_mx_threshold] = 1.0
-    adj_mx[adj_mx < adj_mx_threshold] = 0.0
+    if adj_method == 'correlation':
+        adj_mx_thres_pos = 0.5
+        adj_mx_thres_neg = -0.8
+        adj_mx = correlation_matrix(train_data2d, seq_len)
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
+        adj_mx[adj_mx_thres_pos > adj_mx > adj_mx_thres_neg] = 0.0
+    else:
+        raise ValueError('Adj constructor is not implemented!')
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 

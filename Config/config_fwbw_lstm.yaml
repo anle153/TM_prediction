@@ -8,8 +8,6 @@ mode: train
 data:
   batch_size: 1024
   raw_dataset_dir: Dataset/Abilene2d.npy
-  dataset_dir: Dataset/Abilene2d/fwbw_lstm/seq_36/
-  graph_pkl_filename: Dataset/Abilene2d/fwbw_lstm/seq_36/Abilene-adj-mx
   test_batch_size: 64
   data_name: Abilene
   day_size: 288
@@ -25,7 +23,6 @@ model:
   output_dim: 1
   rnn_units: 64
   seq_len: 36
-  use_curriculum_learning: true
   r: 2
 train:
   base_lr: 0.01
@@ -39,20 +36,11 @@ train:
   max_to_keep: 100
   min_learning_rate: 2.0e-06
   optimizer: adam
-  patience: 20
-  steps:
-    - 20
-    - 30
-    - 40
-    - 50
-  test_every_n_epochs: 10
-  results_path: results/
+  patience: 30
   results_name: Abilene-dgc-lstm
   continue_train: False
 test:
-  results_path: results/dgclstm-abilene/models-5087771.0000-22725.data-00000-of-00001/results
   run_times: 10
-
   flow_selection: Random
   lamda_0: 2.6
   lamda_1: 1.0

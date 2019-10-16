@@ -157,7 +157,7 @@ class DCRNNSupervisorWeighted(object):
             # Adj_method  [CORR1, CORR2, OD, KNN]
             adj_method = kwargs['data'].get('adj_method')
 
-            run_id = 'dcrnn_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (
+            run_id = 'dcrnn_wgt_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (
                 filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, horizon, seq_len,
                 structure, learning_rate, batch_size)
             base_dir = kwargs.get('base_dir')

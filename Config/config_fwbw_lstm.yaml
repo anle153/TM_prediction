@@ -3,7 +3,7 @@ alg: FWBW-LSTM
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 1
-mon_ratio: 0.6
+mon_ratio: 0.7
 mode: train
 data:
   batch_size: 1024

@@ -153,6 +153,8 @@ class DCRNNSupervisor(object):
                 filter_type_abbr = 'DR'
 
             mon_ratio = kwargs['mon_ratio']
+
+            # Adj_method  [CORR1, CORR2, OD, KNN]
             adj_method = kwargs['data'].get('adj_method')
 
             run_id = 'dcrnn_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (

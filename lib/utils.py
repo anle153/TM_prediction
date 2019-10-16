@@ -326,7 +326,7 @@ def correlation_matrix(data, seq_len):
 
 
 def topology_matrix():
-    
+    pass
 
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,

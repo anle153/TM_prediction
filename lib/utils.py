@@ -267,6 +267,39 @@ def create_data_dcrnn(data, seq_len, horizon, input_dim, mon_ratio, eps):
     return x, y
 
 
+def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
+    _labels = _labels.astype('float32')
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    x = np.zeros(shape=(_data.shape[0] - seq_len - seq_len - horizon, seq_len, _data.shape[1], input_dim),
+                 dtype='float32')
+    y = np.zeros(shape=(_data.shape[0] - seq_len - seq_len - horizon, horizon, _data.shape[1], 1), dtype='float32')
+
+    for idx in range(_data.shape[0] - seq_len - seq_len - horizon):
+        _x = _data[idx + seq_len: idx + seq_len + seq_len]
+        _label = _labels[idx + seq_len: idx + seq_len + seq_len]
+
+        _w = []
+        for i in range(seq_len):
+            _w.append(_labels[idx + i:idx + seq_len + i].sum(axis=1) / seq_len)
+
+        _w = np.stack(_w)
+
+        x[idx, :, :, 0] = _x
+        x[idx, :, :, 1] = _label
+        x[idx, :, :, 2] = _w
+
+        _y = data[idx + seq_len + seq_len:idx + seq_len + seq_len + horizon]
+
+        y[idx] = np.expand_dims(_y, axis=2)
+
+    return x, y
+
+
 def create_data_dcrnn_2(data, seq_len, horizon, input_dim, mon_ratio, eps):
     """
         Create (x,y) data for dcrnn with 2 outputs (encoder_output, decoder_output)
@@ -373,6 +406,84 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
                                      mon_ratio=mon_ratio, eps=train_data_norm.std())
     x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
+
+    for category in ['train', 'val', 'eval']:
+        _x, _y = locals()["x_" + category], locals()["y_" + category]
+        print(category, "x: ", _x.shape, "y:", _y.shape)
+        data['x_' + category] = _x
+        data['y_' + category] = _y
+    # Data format
+
+    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
+    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+    data['scaler'] = scaler
+
+    print('|--- Get Correlation Matrix')
+
+    if adj_method == ADJ_METHOD[0]:
+        adj_mx_thres_pos = 0.5
+        adj_mx = correlation_matrix(train_data2d, seq_len)
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        adj_mx[adj_mx < adj_mx_thres_pos] = 0.0
+    elif adj_method == ADJ_METHOD[1]:
+        adj_mx_thres_pos = 0.5
+        adj_mx_thres_neg = -0.8
+        adj_mx = correlation_matrix(train_data2d, seq_len)
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
+        adj_mx[(adj_mx_thres_pos > adj_mx) * (adj_mx > adj_mx_thres_neg)] = 0.0
+    elif adj_method == ADJ_METHOD[2]:
+        adj_mx = od_flow_matrix()
+    else:
+        raise ValueError('Adj constructor is not implemented!')
+
+    print('Number of edges: {}'.format(np.sum(adj_mx)))
+
+    adj_mx = adj_mx.astype('float32')
+
+    data['adj_mx'] = adj_mx
+
+    return data
+
+
+def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_size,
+                                raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
+                                val_batch_size=None, adj_method='correlation', **kwargs):
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    # Convert traffic volume from byte to mega-byte
+    # raw_data = raw_data / 1000000
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+    data = {}
+
+    print('|--- Normalizing the train set.')
+    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    train_data_norm = scaler.transform(train_data2d)
+    valid_data_norm = scaler.transform(valid_data2d)
+    test_data_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data_norm
+
+    x_train, y_train = create_data_dcrnn_weighted(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                                  input_dim=input_dim,
+                                                  mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val = create_data_dcrnn_weighted(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
+                                              input_dim=input_dim,
+                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval = create_data_dcrnn_weighted(data=test_data_norm, seq_len=seq_len, horizon=horizon,
+                                                input_dim=input_dim,
+                                                mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
         _x, _y = locals()["x_" + category], locals()["y_" + category]

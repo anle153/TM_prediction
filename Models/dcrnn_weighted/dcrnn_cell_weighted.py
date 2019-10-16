@@ -42,6 +42,7 @@ class DCGRUCellWeighted(RNNCell):
         self._max_diffusion_step = max_diffusion_step
         self._supports = []
         self._use_gc_for_ru = use_gc_for_ru
+
         supports = []
         if filter_type == "laplacian":
             supports.append(utils.calculate_scaled_laplacian(adj_mx, lambda_max=None))
@@ -54,6 +55,9 @@ class DCGRUCellWeighted(RNNCell):
             supports.append(utils.calculate_scaled_laplacian(adj_mx))
         for support in supports:
             self._supports.append(self._build_sparse_matrix(support))
+
+        self._adj_mx = tf.convert_to_tensor(adj_mx)
+
 
     @staticmethod
     def _build_sparse_matrix(L):
@@ -144,8 +148,9 @@ class DCGRUCellWeighted(RNNCell):
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
         size = inputs.get_shape()[2].value
-        weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 1], [batch_size, self._num_nodes, 1]),
+        weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
                                   shape=(batch_size, self._num_nodes, 1))
+        directed_weight_links = tf.tensordot(self._adj_mx, weight_nodes)
 
         inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 

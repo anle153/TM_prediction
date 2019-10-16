@@ -10,6 +10,8 @@ import tensorflow as tf
 from scipy.sparse import linalg
 from tqdm import tqdm
 
+ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'KNN']
+
 
 class DataLoader(object):
     def __init__(self, xs, ys, batch_size, pad_with_last_sample=True, shuffle=False):
@@ -377,7 +379,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     print('|--- Get Correlation Matrix')
 
-    if adj_method == 'correlation':
+    if adj_method == ADJ_METHOD[0]:
         adj_mx_thres_pos = 0.5
         adj_mx_thres_neg = -0.8
         adj_mx = correlation_matrix(train_data2d, seq_len)

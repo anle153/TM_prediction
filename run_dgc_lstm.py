@@ -24,7 +24,7 @@ def print_dgc_lstm_info(mode, config):
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
     print('|--- BASED_DIR:\t{}'.format(config['base_dir']))
 
-    print('|--- ADJ_THRESHOLD:\t{}'.format(config['data']['adj_mx_threshold']))
+    print('|--- ADJ_METHOD:\t{}'.format(config['data']['adj_method']))
 
     print('----------------------- MODEL -----------------------')
     print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))

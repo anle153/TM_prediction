@@ -175,7 +175,7 @@ class DCGRUCellWeighted(RNNCell):
 
                 P = []
                 for support in self._supports:
-                    P.append(tf.multiply(support, directed_weight_links))
+                    P.append(support.__mul__(directed_weight_links))
 
                 for p in P:
                     x1 = tf.sparse_tensor_dense_matmul(p, x0)

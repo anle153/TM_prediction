@@ -164,6 +164,9 @@ class DCGRUCellWeighted(RNNCell):
         x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
         x = tf.expand_dims(x0, axis=0)
 
+        input_shape = inputs.get_shape()
+        print("inputs_shape", input_shape)
+
         scope = tf.get_variable_scope()
         with tf.variable_scope(scope):
             if self._max_diffusion_step == 0:

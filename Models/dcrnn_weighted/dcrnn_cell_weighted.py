@@ -152,12 +152,12 @@ class DCGRUCellWeighted(RNNCell):
                                   shape=(batch_size, self._num_nodes, 1))
         directed_weight_links = tf.multiply(self._adj_mx, weight_nodes)
 
-        inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+        _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
-        inputs_and_state = tf.concat([inputs, state], axis=2)
+        inputs_and_state = tf.concat([_inputs, state], axis=2)
         input_size = inputs_and_state.get_shape()[2].value
-        dtype = inputs.dtype
+        dtype = _inputs.dtype
 
         x = inputs_and_state
         x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)

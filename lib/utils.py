@@ -327,8 +327,17 @@ def correlation_matrix(data, seq_len):
     return corr_matrix
 
 
-def topology_matrix():
-    pass
+def od_flow_matrix(flow_index_file='./Dataset/demands.csv'):
+    flow_index = pd.read_csv(flow_index_file)
+    nflow = flow_index['index'].size
+    adj_matrix = np.zeros(shape=(nflow, nflow))
+
+    for i in range(nflow):
+        for j in range(nflow):
+            if flow_index.iloc[i].d == flow_index.iloc[j].d:
+                adj_matrix[i, j] = 1.0
+
+    return adj_matrix
 
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
@@ -393,6 +402,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
         adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
         adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
         adj_mx[(adj_mx_thres_pos > adj_mx) * (adj_mx > adj_mx_thres_neg)] = 0.0
+    elif adj_method == ADJ_METHOD[2]:
+        adj_mx = od_flow_matrix()
     else:
         raise ValueError('Adj constructor is not implemented!')
 

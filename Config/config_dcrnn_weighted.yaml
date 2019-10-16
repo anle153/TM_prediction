@@ -2,7 +2,7 @@
 alg: DCRNN_WEIGHTED
 base_dir: logs/pretrained/Abilene
 log_level: INFO
-gpu: 0
+gpu: 1
 mon_ratio: 0.1
 data:
   data_name: Abilene

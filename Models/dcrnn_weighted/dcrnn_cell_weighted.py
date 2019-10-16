@@ -20,7 +20,8 @@ class DCGRUCellWeighted(RNNCell):
         pass
 
     def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
-                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
+                 activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True,
+                 layer_idx=0):
         """
 
         :param num_units:
@@ -42,6 +43,7 @@ class DCGRUCellWeighted(RNNCell):
         self._max_diffusion_step = max_diffusion_step
         self._supports = []
         self._use_gc_for_ru = use_gc_for_ru
+        self._layer_idx = layer_idx
 
         supports = []
         if filter_type == "laplacian":
@@ -133,7 +135,7 @@ class DCGRUCellWeighted(RNNCell):
         value = tf.nn.bias_add(value, biases)
         return value
 
-    def _gconv(self, inputs, state, output_size, bias_start=0.0):
+    def _gconv_0(self, inputs, state, output_size, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
@@ -147,12 +149,15 @@ class DCGRUCellWeighted(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
-        size = inputs.get_shape()[2].value
-        weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
-                                  shape=(batch_size, self._num_nodes, 1))
-        directed_weight_links = tf.multiply(self._adj_mx, weight_nodes)
+        if self._layer_idx == 0:
+            size = inputs.get_shape()[2].value
+            weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
+                                      shape=(batch_size, self._num_nodes, 1))
+            directed_weight_links = tf.multiply(self._adj_mx, weight_nodes)
 
-        _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+            _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+        else:
+            _inputs = inputs
 
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
         inputs_and_state = tf.concat([_inputs, state], axis=2)
@@ -164,18 +169,18 @@ class DCGRUCellWeighted(RNNCell):
         x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
         x = tf.expand_dims(x0, axis=0)
 
-        input_shape = inputs.get_shape()
-        print("inputs_shape", input_shape)
-
         scope = tf.get_variable_scope()
         with tf.variable_scope(scope):
             if self._max_diffusion_step == 0:
                 pass
             else:
 
-                P = []
-                for support in self._supports:
-                    P.append(support.__mul__(directed_weight_links))
+                if self._layer_idx == 0:
+                    P = []
+                    for support in self._supports:
+                        P.append(support.__mul__(directed_weight_links))
+                else:
+                    P = self._supports
 
                 for p in P:
                     x1 = tf.sparse_tensor_dense_matmul(p, x0)

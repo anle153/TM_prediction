@@ -19,7 +19,7 @@ from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
 
 
-class DCRNNSupervisor(object):
+class DCRNNSupervisorWeighted(object):
     """
     Do experiments using Graph Random Walk RNN model.
     """

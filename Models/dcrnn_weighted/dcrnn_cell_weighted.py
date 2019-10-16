@@ -135,7 +135,7 @@ class DCGRUCellWeighted(RNNCell):
         value = tf.nn.bias_add(value, biases)
         return value
 
-    def _gconv_0(self, inputs, state, output_size, bias_start=0.0):
+    def _gconv(self, inputs, state, output_size, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.

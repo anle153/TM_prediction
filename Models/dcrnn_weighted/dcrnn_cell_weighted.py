@@ -150,7 +150,7 @@ class DCGRUCellWeighted(RNNCell):
         size = inputs.get_shape()[2].value
         weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
                                   shape=(batch_size, self._num_nodes, 1))
-        directed_weight_links = tf.tensordot(self._adj_mx, weight_nodes)
+        directed_weight_links = tf.multiply(self._adj_mx, weight_nodes)
 
         inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
@@ -172,7 +172,7 @@ class DCGRUCellWeighted(RNNCell):
 
                 P = []
                 for support in self._supports:
-                    P.append(tf.tensordot(support, directed_weight_links))
+                    P.append(tf.multiply(support, directed_weight_links))
 
                 for p in P:
                     x1 = tf.sparse_tensor_dense_matmul(p, x0)

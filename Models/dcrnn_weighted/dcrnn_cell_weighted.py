@@ -380,4 +380,7 @@ class DCGRUCellWeighted_0(RNNCell):
                                      initializer=tf.constant_initializer(bias_start, dtype=dtype))
             x = tf.nn.bias_add(x, biases)
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-        return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+        x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
+        # todo: concat the weighted to the last dim
+
+        return x

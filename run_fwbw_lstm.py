@@ -7,9 +7,11 @@ import yaml
 
 from Models.fwbw_lstm_supervisor import FwbwLstmRegression
 
-config_gpu = tf.ConfigProto()
-config_gpu.gpu_options.allow_growth = True
-session = tf.Session(config=config_gpu)
+print(tf.__version__)
+if tf.__version__ != '2.0.0':
+    config_gpu = tf.ConfigProto()
+    config_gpu.gpu_options.allow_growth = True
+    session = tf.Session(config=config_gpu)
 
 
 def print_fwbw_lstm_info(mode, config):

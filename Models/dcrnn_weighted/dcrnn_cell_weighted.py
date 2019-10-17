@@ -379,11 +379,11 @@ class DCGRUCellWeighted_0(RNNCell):
                     pass
                 else:
                     for pw in _pws:  # loop for each support pw: (n, n) a sparse tensor
-                        x1 = tf.sparse_tensor_dense_matmul(pw, x0)
+                        x1 = tf.matmul(pw, x0)
                         xk = self._concat(xk, x1)
 
                         for k in range(2, self._max_diffusion_step + 1):
-                            x2 = 2 * tf.sparse_tensor_dense_matmul(pw, x1) - x0
+                            x2 = 2 * tf.matmul(pw, x1) - x0
                             xk = self._concat(xk, x2)
                             x1, x0 = x2, x1
 

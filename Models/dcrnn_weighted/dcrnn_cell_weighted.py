@@ -333,7 +333,7 @@ class DCGRUCellWeighted_0(RNNCell):
                                   shape=(batch_size, self._num_nodes, 1))
         _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
 
-        adj_mx_repeat = tf.tile(self._adj_mx, [batch_size, 1, 1])
+        adj_mx_repeat = tf.tile(tf.expand_dims(self._adj_mx, axis=0), [batch_size, 1, 1])
         directed_weight_links = tf.multiply(adj_mx_repeat, _weight_nodes)  # (batch, num_nodes, num_nodes)
         directed_weight_links = tf.unstack(directed_weight_links, axis=0)  # unstack along batch dim
 

@@ -106,12 +106,11 @@ def build_model(config):
 def train_fwbw_lstm(config):
     print('|-- Run model training fwbw_lstm.')
     if tf.__version__ == '2.0.0':
-        device = 0
+        fwbw_net = build_model(config)
     else:
         device = config['gpu']
-
-    with tf.device('/device:GPU:{}'.format(device)):
-        fwbw_net = build_model(config)
+        with tf.device('/device:GPU:{}'.format(device)):
+            fwbw_net = build_model(config)
 
     fwbw_net.train()
 
@@ -121,12 +120,11 @@ def train_fwbw_lstm(config):
 def evaluate_fwbw_lstm(config):
     print('|--- EVALUATE FWBW-LSTM')
     if tf.__version__ == '2.0.0':
-        device = 0
+        fwbw_net = build_model(config)
     else:
         device = config['gpu']
-
-    with tf.device('/device:GPU:{}'.format(device)):
-        fwbw_net = build_model(config)
+        with tf.device('/device:GPU:{}'.format(device)):
+            fwbw_net = build_model(config)
 
     fwbw_net.load()
     fwbw_net.evaluate()
@@ -135,12 +133,12 @@ def evaluate_fwbw_lstm(config):
 def test_fwbw_lstm(config):
     print('|--- TEST FWBW-LSTM')
     if tf.__version__ == '2.0.0':
-        device = 0
+        fwbw_net = build_model(config)
     else:
         device = config['gpu']
+        with tf.device('/device:GPU:{}'.format(device)):
+            fwbw_net = build_model(config)
 
-    with tf.device('/device:GPU:{}'.format(device)):
-        fwbw_net = build_model(config)
     fwbw_net.load()
     fwbw_net.test()
 

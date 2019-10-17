@@ -46,10 +46,8 @@ def print_fwbw_lstm_info(mode, config):
 
     if mode == 'test':
         print('----------------------- TEST -----------------------')
-        print('|--- LOG_DIR:\t{}'.format(config['train']['log_dir']))
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
         print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
-        print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
         print('|--- LAMBDA 0:\t{}'.format(config['test']['lamda_0']))
         print('|--- LAMBDA 1:\t{}'.format(config['test']['lamda_1']))
         print('|--- LAMBDA 2:\t{}'.format(config['test']['lamda_2']))

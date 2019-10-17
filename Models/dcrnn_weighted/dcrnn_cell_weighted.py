@@ -327,14 +327,15 @@ class DCGRUCellWeighted_0(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
+        # Calculated directed links' weight
         size = inputs.get_shape()[2].value
         weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
                                   shape=(batch_size, self._num_nodes, 1))
-        weight_nodes = tf.tile(weight_nodes, [1, 1, self._adj_mx.shape[1]])
+        _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
 
-        adj_mx_repeat =
-        directed_weight_links = tf.multiply(self._adj_mx, weight_nodes)
-
+        adj_mx_repeat = tf.tile(self.add_metric, [batch_size, 1, 1])
+        directed_weight_links = tf.multiply(adj_mx_repeat, _weight_nodes)  # (batch, num_nodes, num_nodes)
+        # Remove the nodes' weight in the inputs
         inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
@@ -342,31 +343,43 @@ class DCGRUCellWeighted_0(RNNCell):
         input_size = inputs_and_state.get_shape()[2].value
         dtype = inputs.dtype
 
-        x = inputs_and_state
-        x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
-        x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-        x = tf.expand_dims(x0, axis=0)
+        Pws = []
+        for support in self._supports:
+            Pws.append(tf.sparse_tensor_dense_matmul(support, directed_weight_links))
+
+        xb = inputs_and_state
+        # x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
+        # x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
+        # x = tf.expand_dims(x0, axis=0)
+
+        # unstack the inputs_state along the batch dimension
+        xb = tf.unstack(xb, axis=0)
+        # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 
         scope = tf.get_variable_scope()
         with tf.variable_scope(scope):
-            if self._max_diffusion_step == 0:
-                P = self._supports
-            else:
 
-                P = []
-                for support in self._supports:
-                    P.append(support.__mul__(directed_weight_links))
+            # todo: diffusion process for each data in the batch
+            i = 0
+            for _x in xb:
+                x0 = _x
+                xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on x
 
-                for p in P:
-                    x1 = tf.sparse_tensor_dense_matmul(p, x0)
-                    x = self._concat(x, x1)
+                _pws = _Pwb[i]  # _pws (n_support, n, n) as spoarse tensor
+                if self._max_diffusion_step == 0:
+                    pass
+                else:
+                    for pw in _pws:  # loop for each support pw: (n, n) a sparse tensor
+                        x1 = tf.sparse_tensor_dense_matmul(pw, x0)
+                        xk = self._concat(xk, x1)
 
-                    for k in range(2, self._max_diffusion_step + 1):
-                        x2 = 2 * tf.sparse_tensor_dense_matmul(p, x1) - x0
-                        x = self._concat(x, x2)
-                        x1, x0 = x2, x1
+                        for k in range(2, self._max_diffusion_step + 1):
+                            x2 = 2 * tf.sparse_tensor_dense_matmul(pw, x1) - x0
+                            xk = self._concat(xk, x2)
+                            x1, x0 = x2, x1
+                i = i + 1
 
-            num_matrices = len(P) * self._max_diffusion_step + 1  # Adds for x itself.
+            num_matrices = len(self._supports) * self._max_diffusion_step + 1  # Adds for x itself.
             x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
             x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])

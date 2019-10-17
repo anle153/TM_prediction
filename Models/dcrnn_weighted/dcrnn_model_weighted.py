@@ -49,7 +49,7 @@ class DCRNNModelWeighted(object):
                                                  num_nodes=num_nodes,
                                                  num_proj=output_dim, filter_type=filter_type)
 
-        encoding_cells = [cell_0] + [cell] * (num_rnn_layers - 1)
+        encoding_cells = [cell_0] * (num_rnn_layers)
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
         decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)

@@ -335,17 +335,25 @@ class DCGRUCellWeighted_0(RNNCell):
 
         adj_mx_repeat = tf.tile(self.add_metric, [batch_size, 1, 1])
         directed_weight_links = tf.multiply(adj_mx_repeat, _weight_nodes)  # (batch, num_nodes, num_nodes)
+        directed_weight_links = tf.unstack(directed_weight_links, axis=0)  # unstack along batch dim
+
+        # Perform P*W
+        Pwb = []  # shape(batch, nsupport, node, node)
+        for dwl in directed_weight_links:
+            pws = []  # shape (nsupp, node,node)
+            for support in self._supports:
+                pws.append(tf.sparse_tensor_dense_matmul(support, dwl))
+
+            Pwb.append(pws)
+
         # Remove the nodes' weight in the inputs
         inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
+        # prepare the inputs_state
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
         inputs_and_state = tf.concat([inputs, state], axis=2)
         input_size = inputs_and_state.get_shape()[2].value
         dtype = inputs.dtype
-
-        Pws = []
-        for support in self._supports:
-            Pws.append(tf.sparse_tensor_dense_matmul(support, directed_weight_links))
 
         xb = inputs_and_state
         # x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
@@ -361,11 +369,12 @@ class DCGRUCellWeighted_0(RNNCell):
 
             # todo: diffusion process for each data in the batch
             i = 0
+            xkb = []  # results of diffusion process of the batch unstack(batch, nsuport, n, arg_size)
             for _x in xb:
                 x0 = _x
-                xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on x
+                xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x
 
-                _pws = _Pwb[i]  # _pws (n_support, n, n) as spoarse tensor
+                _pws = Pwb[i]  # _pws (n_support, n, n) as spoarse tensor
                 if self._max_diffusion_step == 0:
                     pass
                 else:
@@ -377,23 +386,38 @@ class DCGRUCellWeighted_0(RNNCell):
                             x2 = 2 * tf.sparse_tensor_dense_matmul(pw, x1) - x0
                             xk = self._concat(xk, x2)
                             x1, x0 = x2, x1
+
+                xkb.append(xk)
                 i = i + 1
 
             num_matrices = len(self._supports) * self._max_diffusion_step + 1  # Adds for x itself.
-            x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
-            x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
-            x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+            # x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
+            # x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
+            # x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
 
+            # weights = tf.get_variable(
+            #     'weights', [input_size * num_matrices, output_size], dtype=dtype,
+            #     initializer=tf.contrib.layers.xavier_initializer())
+            # x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
+            #
+            # biases = tf.get_variable("biases", [output_size], dtype=dtype,
+            #                          initializer=tf.constant_initializer(bias_start, dtype=dtype))
+            # x = tf.nn.bias_add(x, biases)
+
+            xkb = tf.stack(xkb, axis=0)  # shape:(batch, nsupport, nodes, arg_size)
+            xkb = tf.transpose(xkb, perm=[0, 2, 3, 1])  # shape (batch, nodes, size, nsupport)
+            xkb = tf.reshape(xkb, shape=[batch_size * self._num_nodes, input_size * num_matrices])
             weights = tf.get_variable(
                 'weights', [input_size * num_matrices, output_size], dtype=dtype,
                 initializer=tf.contrib.layers.xavier_initializer())
-            x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
+            xkb = tf.matmul(xkb, weights)  # (batch_size * self._num_nodes, output_size)
 
             biases = tf.get_variable("biases", [output_size], dtype=dtype,
                                      initializer=tf.constant_initializer(bias_start, dtype=dtype))
-            x = tf.nn.bias_add(x, biases)
-        # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-        x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
-        # todo: concat the weighted to the last dim
+            xkb = tf.nn.bias_add(xkb, biases)
 
-        return x
+        # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
+        # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
+        xkb = tf.reshape(xkb, [batch_size, self._num_nodes, output_size])
+        xkb = tf.concat([xkb, weight_nodes], axis=2)
+        return xkb

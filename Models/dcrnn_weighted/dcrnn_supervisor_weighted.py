@@ -200,7 +200,7 @@ class DCRNNSupervisorWeighted(object):
                 model.labels: y,
             }
 
-            self._logger('sess run!')
+            self._logger.info('sess run!')
             vals = sess.run(fetches, feed_dict=feed_dict)
 
             losses.append(vals['loss'])

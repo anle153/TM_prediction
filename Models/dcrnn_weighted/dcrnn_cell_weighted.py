@@ -266,17 +266,19 @@ class DCGRUCellWeighted_0(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
-        batch_size = inputs.get_shape()[0].value
-        inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
-
-        size = inputs.get_shape()[2].value
-        weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
-                                  shape=(batch_size, self._num_nodes, 1))
-        _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
-        _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
         with tf.variable_scope(scope or "dcgru_cell"):
+            batch_size = inputs.get_shape()[0].value
+            inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
+
+            size = inputs.get_shape()[2].value
+            weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
+                                      shape=(batch_size, self._num_nodes, 1))
+            _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
+            _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+
             with tf.variable_scope("gates"):  # Reset gate and update gate.
+
                 output_size = 2 * self._num_units
                 # We start with bias of 1.0 to not reset and not update.
                 if self._use_gc_for_ru:

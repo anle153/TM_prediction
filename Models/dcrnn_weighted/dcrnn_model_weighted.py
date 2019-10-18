@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
-from Models.dcrnn_weighted.dcrnn_cell_weighted import DCGRUCellWeighted, DCGRUCellWeighted_0
+from Models.dcrnn_weighted.dcrnn_cell_weighted import DCGRUCellWeighted, DCGRUCellWeighted_w
 
 
 class DCRNNModelWeighted(object):
@@ -39,7 +39,7 @@ class DCRNNModelWeighted(object):
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
-        cell_0 = DCGRUCellWeighted_0(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+        cell_w = DCGRUCellWeighted_w(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                      filter_type=filter_type)
 
         cell = DCGRUCellWeighted(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
@@ -49,7 +49,7 @@ class DCRNNModelWeighted(object):
                                                  num_nodes=num_nodes,
                                                  num_proj=output_dim, filter_type=filter_type)
 
-        encoding_cells = [cell_0] * (num_rnn_layers)
+        encoding_cells = [cell_w] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
         decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
@@ -77,7 +77,7 @@ class DCRNNModelWeighted(object):
                     result = prev
                 return result
 
-            enc_outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
 
             # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
             # _, enc_state = encoder_layers(inputs)
@@ -86,7 +86,6 @@ class DCRNNModelWeighted(object):
 
         # Project the output to output_dim.
         outputs = tf.stack(outputs[:-1], axis=1)
-        enc_outputs = tf.stack(enc_outputs[:-1], axis=1)
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
 

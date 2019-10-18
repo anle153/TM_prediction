@@ -188,7 +188,7 @@ class DCGRUCellWeighted(RNNCell):
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])
 
 
-class DCGRUCellWeighted_0(RNNCell):
+class DCGRUCellWeighted_w(RNNCell):
     """Graph Convolution Gated Recurrent Unit cell.
     """
 
@@ -214,7 +214,7 @@ class DCGRUCellWeighted_0(RNNCell):
         :param filter_type: "laplacian", "random_walk", "dual_random_walk".
         :param use_gc_for_ru: whether to use Graph convolution to calculate the reset and update gates.
         """
-        super(DCGRUCellWeighted_0, self).__init__(_reuse=reuse)
+        super(DCGRUCellWeighted_w, self).__init__(_reuse=reuse)
         self._activation = activation
         self._num_nodes = num_nodes
         self._num_proj = num_proj
@@ -255,6 +255,8 @@ class DCGRUCellWeighted_0(RNNCell):
         output_size = self._num_nodes * self._num_units
         if self._num_proj is not None:
             output_size = self._num_nodes * self._num_proj
+        else:
+            output_size = self._num_nodes * (self._num_units + 1)
         return output_size
 
     def __call__(self, inputs, state, scope=None):
@@ -341,7 +343,7 @@ class DCGRUCellWeighted_0(RNNCell):
         """
         # Reshape input and state to (batch_size, num_nodes, input_dim/state_dim)
         batch_size = inputs.get_shape()[0].value
-        inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
+        # inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
         # Calculated directed links' weight
         # size = inputs.get_shape()[2].value
@@ -371,7 +373,7 @@ class DCGRUCellWeighted_0(RNNCell):
         input_size = inputs_and_state.get_shape()[2].value
         dtype = inputs.dtype
 
-        xb = inputs_and_state
+        xb = inputs_and_state  # (batch, num_node,
         # x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
         # x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
         # x = tf.expand_dims(x0, axis=0)

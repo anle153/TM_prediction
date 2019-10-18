@@ -194,15 +194,12 @@ class DCRNNSupervisorWeighted(object):
 
         for _, (x, y) in tqdm(enumerate(data_generator)):
 
-            self._logger.info('x shape: {}, y shape: {}'.format(x.shape, y.shape))
             feed_dict = {
                 model.inputs: x,
                 model.labels: y,
             }
 
-            self._logger.info('sess run!')
             vals = sess.run(fetches, feed_dict=feed_dict)
-            self._logger.info('sess finish!')
 
             losses.append(vals['loss'])
             mses.append(vals['mse'])

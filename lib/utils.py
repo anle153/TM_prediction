@@ -426,15 +426,15 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
         adj_mx_thres_pos = 0.5
         adj_mx = correlation_matrix(train_data2d, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
         adj_mx[adj_mx < adj_mx_thres_pos] = 0.0
     elif adj_method == ADJ_METHOD[1]:
         adj_mx_thres_pos = 0.5
         adj_mx_thres_neg = -0.8
         adj_mx = correlation_matrix(train_data2d, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
-        adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
+        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        # adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
         adj_mx[(adj_mx_thres_pos > adj_mx) * (adj_mx > adj_mx_thres_neg)] = 0.0
     elif adj_method == ADJ_METHOD[2]:
         adj_mx = od_flow_matrix()

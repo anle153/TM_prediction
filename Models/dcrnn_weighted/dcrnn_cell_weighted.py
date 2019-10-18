@@ -300,9 +300,9 @@ class DCGRUCellWeighted_0(RNNCell):
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
             else:
-                output = tf.reshape(output, shape=[batch_size, self._num_nodes, output_size])
+                output = tf.reshape(output, shape=[batch_size, self._num_nodes, self._num_units])
                 output = tf.concat([output, weight_nodes], axis=2)
-                output = tf.reshape(output, shape=(batch_size, self._num_nodes * (output_size + 1)))
+                output = tf.reshape(output, shape=(batch_size, self._num_nodes * (self._num_units + 1)))
 
         return output, new_state
 

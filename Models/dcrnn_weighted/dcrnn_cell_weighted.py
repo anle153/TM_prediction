@@ -306,7 +306,7 @@ class DCGRUCellWeighted_0(RNNCell):
         x_ = tf.expand_dims(x_, 0)
         return tf.concat([x, x_], axis=0)
 
-    def _fc(self, inputs, state, output_size, bias_start=0.0):
+    def _fc(self, inputs, state, weight_nodes, output_size, bias_start=0.0):
         dtype = inputs.dtype
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size * self._num_nodes, -1))

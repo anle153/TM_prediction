@@ -431,4 +431,4 @@ class DCGRUCellWeighted_0(RNNCell):
         # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
         xkb = tf.reshape(xkb, [batch_size, self._num_nodes, output_size])
         # xkb = tf.concat([xkb, weight_nodes], axis=2)
-        return xkb
+        return tf.reshape(xkb, [batch_size, self._num_nodes * output_size])

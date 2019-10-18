@@ -281,7 +281,7 @@ class DCGRUCellWeighted_0(RNNCell):
                     fn = self._gconv
                 else:
                     fn = self._fc
-                value = tf.nn.sigmoid(fn(_inputs, state, output_size, bias_start=1.0))
+                value = tf.nn.sigmoid(fn(_inputs, state, _weight_nodes, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
                 r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
@@ -356,7 +356,7 @@ class DCGRUCellWeighted_0(RNNCell):
             Pwb.append(pws)
 
         # Remove the nodes' weight in the inputs
-        inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+        # inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
         # prepare the inputs_state
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
@@ -428,5 +428,5 @@ class DCGRUCellWeighted_0(RNNCell):
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
         xkb = tf.reshape(xkb, [batch_size, self._num_nodes, output_size])
-        xkb = tf.concat([xkb, weight_nodes], axis=2)
+        # xkb = tf.concat([xkb, weight_nodes], axis=2)
         return xkb

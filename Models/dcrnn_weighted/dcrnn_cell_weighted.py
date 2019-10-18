@@ -266,6 +266,13 @@ class DCGRUCellWeighted_0(RNNCell):
         - New state: Either a single `2-D` tensor, or a tuple of tensors matching
             the arity and shapes of `state`
         """
+        batch_size = inputs.get_shape()[0].value
+        size = inputs.get_shape()[2].value
+        weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
+                                  shape=(batch_size, self._num_nodes, 1))
+        _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
+        _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+
         with tf.variable_scope(scope or "dcgru_cell"):
             with tf.variable_scope("gates"):  # Reset gate and update gate.
                 output_size = 2 * self._num_units
@@ -274,22 +281,24 @@ class DCGRUCellWeighted_0(RNNCell):
                     fn = self._gconv
                 else:
                     fn = self._fc
-                value = tf.nn.sigmoid(fn(inputs, state, output_size, bias_start=1.0))
+                value = tf.nn.sigmoid(fn(_inputs, state, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
                 r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
                 u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
             with tf.variable_scope("candidate"):
-                c = self._gconv(inputs, r * state, self._num_units)
+                c = self._gconv(_inputs, r * state, _weight_nodes, self._num_units)
                 if self._activation is not None:
                     c = self._activation(c)
             output = new_state = u * state + (1 - u) * c
             if self._num_proj is not None:
                 with tf.variable_scope("projection"):
                     w = tf.get_variable('w', shape=(self._num_units, self._num_proj))
-                    batch_size = inputs.get_shape()[0].value
+                    batch_size = _inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
+            else:
+                output = tf.concat([output, weight_nodes], axis=2)
         return output, new_state
 
     @staticmethod
@@ -313,7 +322,7 @@ class DCGRUCellWeighted_0(RNNCell):
         value = tf.nn.bias_add(value, biases)
         return value
 
-    def _gconv(self, inputs, state, output_size, bias_start=0.0):
+    def _gconv(self, inputs, state, weight_nodes, output_size, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
@@ -328,13 +337,13 @@ class DCGRUCellWeighted_0(RNNCell):
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
         # Calculated directed links' weight
-        size = inputs.get_shape()[2].value
-        weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
-                                  shape=(batch_size, self._num_nodes, 1))
-        _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
+        # size = inputs.get_shape()[2].value
+        # weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
+        #                           shape=(batch_size, self._num_nodes, 1))
+        # _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
 
         adj_mx_repeat = tf.tile(tf.expand_dims(self._adj_mx, axis=0), [batch_size, 1, 1])
-        directed_weight_links = tf.multiply(adj_mx_repeat, _weight_nodes)  # (batch, num_nodes, num_nodes)
+        directed_weight_links = tf.multiply(adj_mx_repeat, weight_nodes)  # (batch, num_nodes, num_nodes)
         directed_weight_links = tf.unstack(directed_weight_links, axis=0)  # unstack along batch dim
 
         # Perform P*W

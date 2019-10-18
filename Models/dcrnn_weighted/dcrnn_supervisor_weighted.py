@@ -202,6 +202,7 @@ class DCRNNSupervisorWeighted(object):
 
             self._logger.info('sess run!')
             vals = sess.run(fetches, feed_dict=feed_dict)
+            self._logger.info('sess finish!')
 
             losses.append(vals['loss'])
             mses.append(vals['mse'])

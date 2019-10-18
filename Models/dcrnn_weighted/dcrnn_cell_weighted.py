@@ -267,6 +267,8 @@ class DCGRUCellWeighted_0(RNNCell):
             the arity and shapes of `state`
         """
         batch_size = inputs.get_shape()[0].value
+        inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
+
         size = inputs.get_shape()[2].value
         weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
                                   shape=(batch_size, self._num_nodes, 1))

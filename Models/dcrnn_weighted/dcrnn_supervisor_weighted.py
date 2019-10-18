@@ -384,6 +384,7 @@ class DCRNNSupervisorWeighted(object):
         self._logger.info('Start training ...')
 
         while self._epoch <= epochs:
+            self._logger.info('Training epoch: {}/{}'.format(self._epoch, epochs))
             # Learning rate schedule.
             new_lr = max(min_learning_rate, base_lr * (lr_decay_ratio ** np.sum(self._epoch >= np.array(steps))))
             self.set_lr(sess=sess, lr=new_lr)

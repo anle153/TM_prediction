@@ -435,20 +435,20 @@ class DCGRUCellWeighted_w(RNNCell):
             #                          initializer=tf.constant_initializer(bias_start, dtype=dtype))
             # x = tf.nn.bias_add(x, biases)
 
-            xb = tf.stack(xb, axis=0)  # shape:(batch, nsupport, node, arg_sizes, )
-            xb = tf.transpose(xb, perm=[0, 2, 3, 1])  # shape (batch, nodes, size, nsupport)
-            xb = tf.reshape(xb, shape=[batch_size * self._num_nodes, input_size * num_matrices])
+            x = tf.stack(x, axis=0)  # shape:(batch, nsupport, node, arg_sizes, )
+            x = tf.transpose(x, perm=[0, 2, 3, 1])  # shape (batch, nodes, size, nsupport)
+            x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
             weights = tf.get_variable(
                 'weights', [input_size * num_matrices, output_size], dtype=dtype,
                 initializer=tf.contrib.layers.xavier_initializer())
-            xb = tf.matmul(xb, weights)  # (batch_size * self._num_nodes, output_size)
+            x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
 
             biases = tf.get_variable("biases", [output_size], dtype=dtype,
                                      initializer=tf.constant_initializer(bias_start, dtype=dtype))
-            xb = tf.nn.bias_add(xb, biases)
+            x = tf.nn.bias_add(x, biases)
 
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
-        xb = tf.reshape(xb, [batch_size, self._num_nodes, output_size])
+        x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
         # xkb = tf.concat([xkb, weight_nodes], axis=2)
-        return tf.reshape(xb, [batch_size, self._num_nodes * output_size])
+        return tf.reshape(x, [batch_size, self._num_nodes * output_size])

@@ -3,7 +3,7 @@ alg: DCRNN
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
-mon_ratio: 0.3
+mon_ratio: 0.9
 data:
   data_name: Abilene
   batch_size: 32

@@ -242,7 +242,7 @@ class DCGRUCellWeighted_w(RNNCell):
 
         self._adj_mx = tf.convert_to_tensor(adj_mx)
         for support in self._supports:
-            self._supports_dense.append(tf.convert_to_tensor(support.todense()))
+            self._supports_dense.append(tf.sparse.to_dense(support))
 
     @staticmethod
     def _build_sparse_matrix(L):

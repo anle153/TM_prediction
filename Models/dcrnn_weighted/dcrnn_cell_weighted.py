@@ -406,11 +406,11 @@ class DCGRUCellWeighted_w(RNNCell):
                     for support_dense in self._supports_dense:
                         # pw (num_nodes, num_nodes)
                         pw = tf.multiply(directed_weight_links[batch_idx, :, :], support_dense)
-                        x1 = tf.sparse_tensor_dense_matmul(pw, x0)  # (num_node, arg_size)
+                        x1 = tf.matmul(pw, x0)  # (num_node, arg_size)
                         xk = self._concat(xk, x1)
 
                         for k in range(2, self._max_diffusion_step + 1):
-                            x2 = 2 * tf.sparse_tensor_dense_matmul(pw, x1) - x0
+                            x2 = 2 * tf.matmul(pw, x1) - x0
                             xk = self._concat(xk, x2)
                             x1, x0 = x2, x1
 

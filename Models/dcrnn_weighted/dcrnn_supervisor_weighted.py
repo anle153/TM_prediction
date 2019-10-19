@@ -144,7 +144,6 @@ class DCRNNSupervisorWeighted(object):
                 ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             seq_len = kwargs['model'].get('seq_len')
-            adj_mx_threshold = kwargs['data'].get('adj_mx_threshold')
             filter_type = kwargs['model'].get('filter_type')
             filter_type_abbr = 'L'
             if filter_type == 'random_walk':
@@ -192,7 +191,7 @@ class DCRNNSupervisorWeighted(object):
                 'outputs': model.outputs
             })
 
-        for _, (x, y) in tqdm(enumerate(data_generator)):
+        for _, (x, y) in enumerate(data_generator):
 
             feed_dict = {
                 model.inputs: x,

@@ -397,8 +397,6 @@ class DCGRUCellWeighted_w(RNNCell):
 
         scope = tf.get_variable_scope()
         with tf.variable_scope(scope):
-
-            # todo: diffusion process for each data in the batch
             for batch_idx in range(batch_size):
                 x0 = xb[batch_idx, 0]  # (num_node, arg_size)
 
@@ -447,6 +445,5 @@ class DCGRUCellWeighted_w(RNNCell):
 
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
         # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
-        x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
-        # xkb = tf.concat([xkb, weight_nodes], axis=2)
+        # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])

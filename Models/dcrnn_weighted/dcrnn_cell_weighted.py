@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import scipy.sparse as sp
 import tensorflow as tf
 from tensorflow.contrib.rnn import RNNCell
 
@@ -242,7 +243,7 @@ class DCGRUCellWeighted_w(RNNCell):
 
         self._adj_mx = tf.convert_to_tensor(adj_mx)
         for support in self._supports:
-            self._supports_dense.append(tf.sparse.to_dense(support))
+            self._supports_dense.append(sp.coo_matrix.todense(support))
 
     @staticmethod
     def _build_sparse_matrix(L):

@@ -391,7 +391,9 @@ class DCGRUCellWeighted_w(RNNCell):
         xb = tf.transpose(xb, perm=[0, 3, 1, 2])  # (batch, 1, num_node, arg_size)
         # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 
-        x = tf.zeros(shape=(batch_size, 1, self._num_nodes, input_size))
+        num_matrices = len(self._supports) * self._max_diffusion_step + 1  # Adds for x itself.
+
+        x = tf.zeros(shape=(batch_size, num_matrices, self._num_nodes, input_size))
 
         scope = tf.get_variable_scope()
         with tf.variable_scope(scope):
@@ -419,9 +421,8 @@ class DCGRUCellWeighted_w(RNNCell):
                             xk = self._concat(xk, x2)
                             x1, x0 = x2, x1
 
-                x[batch_idx] = xk
+                tf.assign(xk, x[batch_idx])
 
-            num_matrices = len(self._supports) * self._max_diffusion_step + 1  # Adds for x itself.
             # x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
             # x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)
             # x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])

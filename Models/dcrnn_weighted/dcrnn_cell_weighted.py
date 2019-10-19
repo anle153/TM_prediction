@@ -42,6 +42,8 @@ class DCGRUCellWeighted(RNNCell):
         self._max_diffusion_step = max_diffusion_step
         self._supports = []
         self._use_gc_for_ru = use_gc_for_ru
+        # matrix P*w
+        self._weight_diff_mx = []
 
         supports = []
         if filter_type == "laplacian":
@@ -223,6 +225,7 @@ class DCGRUCellWeighted_w(RNNCell):
         self._supports = []
         self._use_gc_for_ru = use_gc_for_ru
         self._layer_idx = layer_idx
+        self._weight_diff_mx = []
 
         supports = []
         if filter_type == "laplacian":
@@ -252,7 +255,6 @@ class DCGRUCellWeighted_w(RNNCell):
 
     @property
     def output_size(self):
-        output_size = self._num_nodes * self._num_units
         if self._num_proj is not None:
             output_size = self._num_nodes * self._num_proj
         else:
@@ -353,16 +355,18 @@ class DCGRUCellWeighted_w(RNNCell):
 
         adj_mx_repeat = tf.tile(tf.expand_dims(self._adj_mx, axis=0), [batch_size, 1, 1])
         directed_weight_links = tf.multiply(adj_mx_repeat, weight_nodes)  # (batch, num_nodes, num_nodes)
-        directed_weight_links = tf.unstack(directed_weight_links, axis=0)  # unstack along batch dim
+        directed_weight_links = tf.transpose(directed_weight_links, perm=[1, 2, 0])  # node
+        directed_weight_links = tf.reshape(directed_weight_links, shape=[self._num_nodes, self._num_nodes * batch_size])
+        # directed_weight_links = tf.unstack(directed_weight_links, axis=0)  # ([batch], num_node, num_node)
 
         # Perform P*W
-        Pwb = []  # shape(batch, nsupport, node, node)
-        for dwl in directed_weight_links:
-            pws = []  # shape (nsupp, node,node)
-            for support in self._supports:
-                pws.append(tf.sparse_tensor_dense_matmul(support, dwl))
-
-            Pwb.append(pws)
+        # Pwb = []  # shape(batch, nsupport, node, node)
+        # for dwl in directed_weight_links:
+        #     pws = []  # shape (nsupp, node,node)
+        #     for support in self._supports:
+        #         pws.append(tf.sparse_tensor_dense_matmul(support, dwl))
+        #
+        #     Pwb.append(pws)
 
         # Remove the nodes' weight in the inputs
         # inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
@@ -373,31 +377,40 @@ class DCGRUCellWeighted_w(RNNCell):
         input_size = inputs_and_state.get_shape()[2].value
         dtype = inputs.dtype
 
-        xb = inputs_and_state  # (batch, num_node,
+        xb = inputs_and_state  # (batch, num_node, arg_size)
         # x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
         # x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
         # x = tf.expand_dims(x0, axis=0)
 
         # unstack the inputs_state along the batch dimension
-        xb = tf.unstack(xb, axis=0)
+        xb = tf.unstack(xb, axis=0)  # ([batch], (num_node, arg_size))
         # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 
         scope = tf.get_variable_scope()
         with tf.variable_scope(scope):
 
             # todo: diffusion process for each data in the batch
-            i = 0
+            batch_idx = 0
             xkb = []  # results of diffusion process of the batch unstack(batch, nsuport, n, arg_size)
             for _x in xb:
-                x0 = _x
-                xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x
-
-                _pws = Pwb[i]  # _pws (n_support, n, n) as spoarse tensor
+                x0 = _x  # (num_node, arg_size)
+                xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x (1, num_node, arg_size)
                 if self._max_diffusion_step == 0:
                     pass
                 else:
-                    for pw in _pws:  # loop for each support pw: (n, n) a sparse tensor
-                        x1 = tf.matmul(pw, x0)
+                    # for pw in _pws:  # loop for each support pw: (num_node, num_node) a sparse tensor
+                    #     x1 = tf.matmul(pw, x0)  # (num_node, arg_size)
+                    #     xk = self._concat(xk, x1)
+                    #
+                    #     for k in range(2, self._max_diffusion_step + 1):
+                    #         x2 = 2 * tf.matmul(pw, x1) - x0
+                    #         xk = self._concat(xk, x2)
+                    #         x1, x0 = x2, x1
+
+                    for support in self._supports:
+                        pw = support.__mul__(
+                            directed_weight_links[:, self._num_nodes * batch_idx:self._num_nodes * (batch_idx + 1)])
+                        x1 = tf.matmul(pw, x0)  # (num_node, arg_size)
                         xk = self._concat(xk, x1)
 
                         for k in range(2, self._max_diffusion_step + 1):
@@ -406,7 +419,7 @@ class DCGRUCellWeighted_w(RNNCell):
                             x1, x0 = x2, x1
 
                 xkb.append(xk)
-                i = i + 1
+                batch_idx = batch_idx + 1
 
             num_matrices = len(self._supports) * self._max_diffusion_step + 1  # Adds for x itself.
             # x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
@@ -422,7 +435,7 @@ class DCGRUCellWeighted_w(RNNCell):
             #                          initializer=tf.constant_initializer(bias_start, dtype=dtype))
             # x = tf.nn.bias_add(x, biases)
 
-            xkb = tf.stack(xkb, axis=0)  # shape:(batch, nsupport, nodes, arg_size)
+            xkb = tf.stack(xkb, axis=0)  # shape:(batch, nsupport, nodearg_sizes, )
             xkb = tf.transpose(xkb, perm=[0, 2, 3, 1])  # shape (batch, nodes, size, nsupport)
             xkb = tf.reshape(xkb, shape=[batch_size * self._num_nodes, input_size * num_matrices])
             weights = tf.get_variable(

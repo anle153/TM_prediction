@@ -282,7 +282,7 @@ class DCGRUCellWeighted_w(RNNCell):
             weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
                                       shape=(batch_size, self._num_nodes, 1))
             _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
-            _inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+            inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
             with tf.variable_scope("gates"):  # Reset gate and update gate.
 
@@ -292,20 +292,20 @@ class DCGRUCellWeighted_w(RNNCell):
                     fn = self._gconv
                 else:
                     fn = self._fc
-                value = tf.nn.sigmoid(fn(_inputs, state, _weight_nodes, output_size, bias_start=1.0))
+                value = tf.nn.sigmoid(fn(inputs, state, _weight_nodes, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
                 r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
                 u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
             with tf.variable_scope("candidate"):
-                c = self._gconv(_inputs, r * state, _weight_nodes, self._num_units)
+                c = self._gconv(inputs, r * state, _weight_nodes, self._num_units)
                 if self._activation is not None:
                     c = self._activation(c)
             output = new_state = u * state + (1 - u) * c
             if self._num_proj is not None:
                 with tf.variable_scope("projection"):
                     w = tf.get_variable('w', shape=(self._num_units, self._num_proj))
-                    batch_size = _inputs.get_shape()[0].value
+                    batch_size = inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))
             else:
@@ -389,7 +389,6 @@ class DCGRUCellWeighted_w(RNNCell):
         # xb = tf.unstack(xb, axis=0)  # ([batch], (num_node, arg_size))
         xb = tf.expand_dims(xb, axis=3)  # (batch, num_node, arg_size, 1)
         xb = tf.transpose(xb, perm=[0, 3, 1, 2])  # (batch, 1, num_node, arg_size)
-        print('shape xb {} '.format(xb.shape))
         # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 
         scope = tf.get_variable_scope()
@@ -397,7 +396,11 @@ class DCGRUCellWeighted_w(RNNCell):
 
             # todo: diffusion process for each data in the batch
             for batch_idx in range(batch_size):
+                print('shape xb {} '.format(xb.shape))
+
                 x0 = xb[batch_idx, 0]  # (num_node, arg_size)
+                print('shape x0 {} '.format(x0.shape))
+
                 xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x (1, num_node, arg_size)
                 if self._max_diffusion_step == 0:
                     pass

@@ -400,10 +400,7 @@ class DCGRUCellWeighted_w(RNNCell):
 
             # todo: diffusion process for each data in the batch
             for batch_idx in range(batch_size):
-                print('shape xb {} '.format(xb.shape))
-
                 x0 = xb[batch_idx, 0]  # (num_node, arg_size)
-                print('shape x0 {} '.format(x0.shape))
 
                 xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x (1, num_node, arg_size)
                 if self._max_diffusion_step == 0:

@@ -225,7 +225,7 @@ class DCGRUCellWeighted_w(RNNCell):
         self._supports = []
         self._use_gc_for_ru = use_gc_for_ru
         self._layer_idx = layer_idx
-        self._weight_diff_mx = []
+        self._supports_dense = []
 
         supports = []
         if filter_type == "laplacian":
@@ -241,6 +241,8 @@ class DCGRUCellWeighted_w(RNNCell):
             self._supports.append(self._build_sparse_matrix(support))
 
         self._adj_mx = tf.convert_to_tensor(adj_mx)
+        for support in self._supports:
+            self._supports_dense.append(tf.convert_to_tensor(support.todense()))
 
     @staticmethod
     def _build_sparse_matrix(L):
@@ -394,15 +396,15 @@ class DCGRUCellWeighted_w(RNNCell):
 
             # todo: diffusion process for each data in the batch
             for batch_idx in range(batch_size):
-                x0 = xb[batch_idx, 0, ...]  # (num_node, arg_size)
+                x0 = xb[batch_idx, 0, :, :]  # (num_node, arg_size)
                 xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x (1, num_node, arg_size)
                 if self._max_diffusion_step == 0:
                     pass
                 else:
 
-                    for support in self._supports:
+                    for support_dense in self._supports_dense:
                         # pw (num_nodes, num_nodes)
-                        pw = support.__mul__(directed_weight_links[batch_idx])
+                        pw = tf.multiply(directed_weight_links[batch_idx, :, :], support_dense)
                         x1 = tf.sparse_tensor_dense_matmul(pw, x0)  # (num_node, arg_size)
                         xk = self._concat(xk, x1)
 

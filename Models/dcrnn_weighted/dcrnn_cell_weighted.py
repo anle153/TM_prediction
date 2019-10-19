@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import scipy.sparse as sp
 import tensorflow as tf
 from tensorflow.contrib.rnn import RNNCell
 
@@ -238,12 +237,13 @@ class DCGRUCellWeighted_w(RNNCell):
             supports.append(utils.calculate_random_walk_matrix(adj_mx.T).T)
         else:
             supports.append(utils.calculate_scaled_laplacian(adj_mx))
+
         for support in supports:
             self._supports.append(self._build_sparse_matrix(support))
 
         self._adj_mx = tf.convert_to_tensor(adj_mx)
         for support in self._supports:
-            self._supports_dense.append(sp.coo_matrix.todense(support))
+            self._supports_dense.append(tf.sparse.to_dense(support))
 
     @staticmethod
     def _build_sparse_matrix(L):

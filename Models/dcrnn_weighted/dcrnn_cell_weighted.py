@@ -431,7 +431,7 @@ class DCGRUCellWeighted_w(RNNCell):
             #                          initializer=tf.constant_initializer(bias_start, dtype=dtype))
             # x = tf.nn.bias_add(x, biases)
 
-            x = tf.stack(x, axis=0)  # shape:(batch, nsupport, node, arg_sizes, )
+            # x = tf.stack(x, axis=0)  # shape:(batch, nsupport, node, arg_sizes, )
             x = tf.transpose(x, perm=[0, 2, 3, 1])  # shape (batch, nodes, size, nsupport)
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
             weights = tf.get_variable(
@@ -444,6 +444,4 @@ class DCGRUCellWeighted_w(RNNCell):
             x = tf.nn.bias_add(x, biases)
 
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-        # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
-        # x = tf.reshape(x, [batch_size, self._num_nodes, output_size])
         return tf.reshape(x, [batch_size, self._num_nodes * output_size])

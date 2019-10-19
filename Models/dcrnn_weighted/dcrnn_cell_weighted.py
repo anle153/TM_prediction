@@ -387,8 +387,8 @@ class DCGRUCellWeighted_w(RNNCell):
 
         # unstack the inputs_state along the batch dimension
         # xb = tf.unstack(xb, axis=0)  # ([batch], (num_node, arg_size))
-        xb = tf.expand_dims(xb, axis=3)  # (batch, 1, num_node, arg_size)
-        xb = tf.transpose(xb, perm=[0, 3, 1, 2])
+        xb = tf.expand_dims(xb, axis=3)  # (batch, num_node, arg_size, 1)
+        xb = tf.transpose(xb, perm=[0, 3, 1, 2])  # (batch, 1, num_node, arg_size)
 
         # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 
@@ -397,7 +397,7 @@ class DCGRUCellWeighted_w(RNNCell):
 
             # todo: diffusion process for each data in the batch
             for batch_idx in range(batch_size):
-                x0 = xb[batch_idx, 0, :, :]  # (num_node, arg_size)
+                x0 = xb[batch_idx, -1, :, :]  # (num_node, arg_size)
                 xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x (1, num_node, arg_size)
                 if self._max_diffusion_step == 0:
                     pass

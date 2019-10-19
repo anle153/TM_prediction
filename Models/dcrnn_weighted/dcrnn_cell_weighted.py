@@ -384,7 +384,8 @@ class DCGRUCellWeighted_w(RNNCell):
 
         # unstack the inputs_state along the batch dimension
         # xb = tf.unstack(xb, axis=0)  # ([batch], (num_node, arg_size))
-        xb = tf.expand_dims(xb, axis=1)  # (batch, 1, num_node, arg_size)
+        xb = tf.expand_dims(xb, axis=3)  # (batch, 1, num_node, arg_size)
+        xb = tf.transpose(xb, perm=[0, 3, 1, 2])
 
         # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 

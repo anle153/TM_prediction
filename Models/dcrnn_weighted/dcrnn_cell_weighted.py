@@ -389,7 +389,7 @@ class DCGRUCellWeighted_w(RNNCell):
         # xb = tf.unstack(xb, axis=0)  # ([batch], (num_node, arg_size))
         xb = tf.expand_dims(xb, axis=3)  # (batch, num_node, arg_size, 1)
         xb = tf.transpose(xb, perm=[0, 3, 1, 2])  # (batch, 1, num_node, arg_size)
-
+        print('shape xb {} '.format(xb.shape))
         # todo: unstack the _Pwb = [[pw_1, pw_1'], [pw_2, pw_2'],...,[pw_b, pw_b']] (batch, n_support, n, n)
 
         scope = tf.get_variable_scope()
@@ -405,7 +405,7 @@ class DCGRUCellWeighted_w(RNNCell):
 
                     for support_dense in self._supports_dense:
                         # pw (num_nodes, num_nodes)
-                        pw = tf.multiply(directed_weight_links[batch_idx, :, :], support_dense)
+                        pw = tf.multiply(directed_weight_links[batch_idx], support_dense)
                         x1 = tf.matmul(pw, x0)  # (num_node, arg_size)
                         xk = self._concat(xk, x1)
 

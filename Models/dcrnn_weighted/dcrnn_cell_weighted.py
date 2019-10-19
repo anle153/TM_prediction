@@ -421,7 +421,7 @@ class DCGRUCellWeighted_w(RNNCell):
                             xk = self._concat(xk, x2)
                             x1, x0 = x2, x1
 
-                x[batch_idx] = tf.assign(x[batch_idx], xk)
+                x = tf.assign(x[batch_idx], xk)
 
             # x = tf.reshape(x, shape=[num_matrices, self._num_nodes, input_size, batch_size])
             # x = tf.transpose(x, perm=[3, 1, 2, 0])  # (batch_size, num_nodes, input_size, order)

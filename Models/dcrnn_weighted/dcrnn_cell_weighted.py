@@ -398,14 +398,6 @@ class DCGRUCellWeighted_w(RNNCell):
                 if self._max_diffusion_step == 0:
                     pass
                 else:
-                    # for pw in _pws:  # loop for each support pw: (num_node, num_node) a sparse tensor
-                    #     x1 = tf.matmul(pw, x0)  # (num_node, arg_size)
-                    #     xk = self._concat(xk, x1)
-                    #
-                    #     for k in range(2, self._max_diffusion_step + 1):
-                    #         x2 = 2 * tf.matmul(pw, x1) - x0
-                    #         xk = self._concat(xk, x2)
-                    #         x1, x0 = x2, x1
 
                     for support in self._supports:
                         pw = support.__mul__(

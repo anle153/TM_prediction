@@ -7,10 +7,12 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 import tensorflow as tf
+from saxpy.paa import paa
+from saxpy.znorm import znorm
 from scipy.sparse import linalg
 from tqdm import tqdm
 
-ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'KNN']
+ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DWT', 'DWT_PPA', 'SAX']
 
 
 class DataLoader(object):
@@ -372,6 +374,47 @@ def od_flow_matrix(flow_index_file='./Dataset/demands.csv'):
                 adj_matrix[i, j] = 1.0
 
     return adj_matrix
+
+
+def sax_similarity(data, seq_len):
+    pass
+
+
+def dynamic_time_wrap_PPA(data, seq_len):
+    pass
+
+
+def euclidean_PPA(data, seq_len):
+    pass
+
+
+def adj_mx_contruction(adj_method, data, seq_len, pos_thred=1, nag_thred=-1):
+    adj_mx = []
+    if adj_method == ADJ_METHOD[0]:
+        adj_mx = correlation_matrix(data, seq_len)
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        adj_mx[adj_mx < pos_thred] = 0.0
+    elif adj_method == ADJ_METHOD[1]:
+        adj_mx = correlation_matrix(data, seq_len)
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
+        # adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
+        adj_mx[(pos_thred > adj_mx) * (adj_mx > nag_thred)] = 0.0
+    elif adj_method == ADJ_METHOD[2]:
+        adj_mx = od_flow_matrix()
+    elif adj_mx == ADJ_METHOD[3]:
+        pass
+    elif adj_mx == ADJ_METHOD[4]:
+        pass
+    elif adj_mx == ADJ_METHOD[5]:
+        pass
+    elif adj_mx == ADJ_METHOD[6]:
+        pass
+    else:
+        raise ValueError('Adj constructor is not implemented!')
+
+    return adj_mx
 
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
@@ -925,3 +968,16 @@ def load_pickle(pickle_file):
         print('Unable to load data ', pickle_file, ':', e)
         raise
     return pickle_data
+
+
+def time_series_representation(data, seq_len):
+    data_reduced = np.zeros(shape=(int(data.shape[0] / seq_len), data.shape[1]))
+
+    paa_segment = int(data.shape[0] / seq_len)
+
+    for i in tqdm(range(data.shape[1])):
+        dat_znorm = znorm(data[:, i])
+
+        data_reduced[:, i] = paa(dat_znorm, paa_segment)
+
+    return data_reduced

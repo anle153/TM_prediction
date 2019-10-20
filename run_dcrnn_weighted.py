@@ -82,8 +82,8 @@ def print_dgc_lstm_info(mode, config):
 #                                                                Config.ALG, Config.TAG, Config.SCALER)
 #     results_processing(y_true, Config.ARIMA_TESTING_TIME, results_path)
 
-def train_dgc_lstm(config):
-    print('|-- Run model training dgc_lstm.')
+def train_dcrnn_weighted(config):
+    print('|-- Run model training dcrnn_weighted.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
@@ -93,8 +93,8 @@ def train_dgc_lstm(config):
         model.train(sess)
 
 
-def test_dgc_lstm(config):
-    print('|-- Run model testing dgc_lstm.')
+def test_dcrnn_weighted(config):
+    print('|-- Run model testing dcrnn_weighted.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
@@ -107,8 +107,8 @@ def test_dgc_lstm(config):
         # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
 
 
-def evaluate_dgc_lstm(config):
-    print('|-- Run model testing dgc_lstm.')
+def evaluate_dcrnn_weighted(config):
+    print('|-- Run model testing dcrnn_weighted.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
@@ -135,9 +135,9 @@ if __name__ == '__main__':
 
     print_dgc_lstm_info(args.mode, config)
     if args.mode == 'train':
-        train_dgc_lstm(config)
+        train_dcrnn_weighted(config)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_dgc_lstm(config)
+        evaluate_dcrnn_weighted(config)
     else:
-        test_dgc_lstm(config)
+        test_dcrnn_weighted(config)
     # get_results(data)

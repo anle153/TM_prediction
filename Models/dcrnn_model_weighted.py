@@ -6,7 +6,6 @@ import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
 from Models.dcrnn_cell import DCGRUCell
-from Models.dcrnn_cell_weighted_en import DCGRUCellWeighted_en
 
 
 class DCRNNModelWeighted(object):
@@ -40,7 +39,9 @@ class DCRNNModelWeighted(object):
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
-        cell_en = DCGRUCellWeighted_en(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+        # cell_en = DCGRUCellWeighted_en(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+        #                                filter_type=filter_type)
+        cell_en = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                        filter_type=filter_type)
 
         cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,

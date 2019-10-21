@@ -417,7 +417,7 @@ def dynamic_time_wrap_PPA(data, seq_len):
 
 def dynamic_time_wrap(data, seq_len):
     from tslearn.metrics import cdist_dtw
-    print('|--- Construct adj_mx by DTW_PPA')
+    print('|--- Construct adj_mx by DTW')
     dtw_mx_dist = cdist_dtw(data.transpose())
     return dtw_mx_dist
 
@@ -482,6 +482,8 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_th
         raise ValueError('Adj constructor is not implemented!')
 
     np.save(os.path.join(adj_dir, adj_file_name), adj_mx)
+
+    raise RuntimeError('stop')
 
     return adj_mx
 

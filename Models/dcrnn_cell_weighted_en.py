@@ -101,14 +101,10 @@ class DCGRUCellWeighted_en(RNNCell):
                 weight_nodes_tiled = tf.tile(weight_nodes, [1, 1, self._num_nodes])
                 inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
 
-                output_size = 2 * self._num_units
+                outputsize = 2 * self._num_units
                 # We start with bias of 1.0 to not reset and not update.
-                if self._use_gc_for_ru:
-                    fn = self._gconv
-                else:
-                    fn = self._fc
-                value = tf.nn.sigmoid(fn(inputs, state, weight_nodes_tiled, output_size, bias_start=1.0))
-                value = tf.reshape(value, (-1, self._num_nodes, output_size))
+                value = tf.nn.sigmoid(self._gconv(inputs, state, weight_nodes_tiled, outputsize, bias_start=1.0))
+                value = tf.reshape(value, (-1, self._num_nodes, outputsize))
                 r, u = tf.split(value=value, num_or_size_splits=2, axis=-1)
                 r = tf.reshape(r, (-1, self._num_nodes * self._num_units))
                 u = tf.reshape(u, (-1, self._num_nodes * self._num_units))
@@ -135,7 +131,7 @@ class DCGRUCellWeighted_en(RNNCell):
         x_ = tf.expand_dims(x_, 0)
         return tf.concat([x, x_], axis=0)
 
-    def _fc(self, inputs, state, weight_nodes, output_size, bias_start=0.0):
+    def _fc(self, inputs, state, weight_nodes, outputsize, bias_start=0.0):
         dtype = inputs.dtype
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size * self._num_nodes, -1))
@@ -143,15 +139,15 @@ class DCGRUCellWeighted_en(RNNCell):
         inputs_and_state = tf.concat([inputs, state], axis=-1)
         input_size = inputs_and_state.get_shape()[-1].value
         weights = tf.get_variable(
-            'weights', [input_size, output_size], dtype=dtype,
+            'weights', [input_size, outputsize], dtype=dtype,
             initializer=tf.contrib.layers.xavier_initializer())
         value = tf.nn.sigmoid(tf.matmul(inputs_and_state, weights))
-        biases = tf.get_variable("biases", [output_size], dtype=dtype,
+        biases = tf.get_variable("biases", [outputsize], dtype=dtype,
                                  initializer=tf.constant_initializer(bias_start, dtype=dtype))
         value = tf.nn.bias_add(value, biases)
         return value
 
-    def _gconv(self, inputs, state, weight_nodes, output_size, bias_start=0.0):
+    def _gconv(self, inputs, state, weight_nodes, outputsize, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
@@ -165,26 +161,8 @@ class DCGRUCellWeighted_en(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
-        # Calculated directed links' weight
-        # size = inputs.get_shape()[2].value
-        # weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
-        #                           shape=(batch_size, self._num_nodes, 1))
-        # _weight_nodes = tf.tile(weight_nodes, [1, 1, self._num_nodes])
-
         adj_mx_repeat = tf.tile(tf.expand_dims(self._adj_mx, axis=0), [batch_size, 1, 1])
-        directed_weight_links = tf.multiply(adj_mx_repeat, weight_nodes)  # (batch, num_nodes, num_nodes)
-        # directed_weight_links = tf.transpose(directed_weight_links, perm=[1, 2, 0])  # node
-        # directed_weight_links = tf.reshape(directed_weight_links, shape=[self._num_nodes, self._num_nodes * batch_size])
-        # directed_weight_links = tf.unstack(directed_weight_links, axis=0)  # ([batch], num_node, num_node)
-
-        # Perform P*W
-        # Pwb = []  # shape(batch, nsupport, node, node)
-        # for dwl in directed_weight_links:
-        #     pws = []  # shape (nsupp, node,node)
-        #     for support in self._supports:
-        #         pws.append(tf.sparse_tensor_dense_matmul(support, dwl))
-        #
-        #     Pwb.append(pws)
+        directed_weight_links = adj_mx_repeat * weight_nodes  # (batch, num_nodes, num_nodes)
 
         # Remove the nodes' weight in the inputs
         # inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
@@ -196,14 +174,6 @@ class DCGRUCellWeighted_en(RNNCell):
         dtype = inputs.dtype
 
         xb = inputs_and_state  # (batch, num_node, arg_size)
-        # x0 = tf.transpose(x, perm=[1, 2, 0])  # (num_nodes, total_arg_size, batch_size)
-        # x0 = tf.reshape(x0, shape=[self._num_nodes, input_size * batch_size])
-        # x = tf.expand_dims(x0, axis=0)
-
-        # unstack the inputs_state along the batch dimension
-        # xb = tf.unstack(xb, axis=0)  # ([batch], (num_node, arg_size))
-        # xb = tf.expand_dims(xb, axis=3)  # (batch, num_node, arg_size, 1)
-        # xb = tf.transpose(xb, perm=[0, 3, 1, 2])  # (batch, 1, num_node, arg_size)
 
         num_matrices = len(self._supports) * self._max_diffusion_step + 1  # Adds for x itself.
 
@@ -213,12 +183,10 @@ class DCGRUCellWeighted_en(RNNCell):
         with tf.variable_scope(scope):
             for batch_idx in range(batch_size):
                 x0 = xb[batch_idx]  # (num_node, arg_size)
-
                 xk = tf.expand_dims(x0, axis=0)  # results of diffusion process on each input x (1, num_node, arg_size)
                 if self._max_diffusion_step == 0:
                     pass
                 else:
-
                     for support_dense in self._supports_dense:
                         # pw (num_nodes, num_nodes)
                         pw = tf.multiply(directed_weight_links[batch_idx], support_dense)
@@ -236,12 +204,12 @@ class DCGRUCellWeighted_en(RNNCell):
             x = tf.reshape(x, shape=[batch_size * self._num_nodes, input_size * num_matrices])
 
             weights = tf.get_variable(
-                'weights', [input_size * num_matrices, output_size], dtype=dtype,
+                'weights', [input_size * num_matrices, outputsize], dtype=dtype,
                 initializer=tf.contrib.layers.xavier_initializer())
             x = tf.matmul(x, weights)  # (batch_size * self._num_nodes, output_size)
 
-            biases = tf.get_variable("biases", [output_size], dtype=dtype,
+            biases = tf.get_variable("biases", [outputsize], dtype=dtype,
                                      initializer=tf.constant_initializer(bias_start, dtype=dtype))
             x = tf.nn.bias_add(x, biases)
         # Reshape res back to 2D: (batch_size, num_node, state_dim) -> (batch_size, num_node * state_dim)
-        return tf.reshape(x, [batch_size, self._num_nodes * output_size])
+        return tf.reshape(x, [batch_size, self._num_nodes * outputsize])

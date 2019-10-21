@@ -91,6 +91,7 @@ def evaluate_dgc_lstm(config):
         model.load(sess, config['train']['model_filename'])
         outputs = model.evaluate(sess)
 
+
 if __name__ == '__main__':
 
     sys.path.append(os.getcwd())

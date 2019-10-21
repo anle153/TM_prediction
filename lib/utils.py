@@ -12,8 +12,6 @@ from saxpy.znorm import znorm
 from scipy.sparse import linalg
 from tqdm import tqdm
 
-ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DWT', 'DWT_PPA', 'SAX']
-
 
 class DataLoader(object):
     def __init__(self, xs, ys, batch_size, pad_with_last_sample=True, shuffle=False):
@@ -376,43 +374,116 @@ def od_flow_matrix(flow_index_file='./Dataset/demands.csv'):
     return adj_matrix
 
 
+def ppa_representation(data, seq_len):
+    data_reduced = np.zeros(shape=(int(data.shape[0] / seq_len), data.shape[1]))
+
+    paa_segment = int(data.shape[0] / seq_len)
+
+    for i in tqdm(range(data.shape[1])):
+        dat_znorm = znorm(data[:, i])
+
+        data_reduced[:, i] = paa(dat_znorm, paa_segment)
+
+    return data_reduced
+
+
 def sax_similarity(data, seq_len):
-    pass
+    from tslearn.piecewise import SymbolicAggregateApproximation
+
+    print('|--- Calculating the pairwise distance!')
+
+    ppa_segmet = int(data.shape[0] / seq_len)
+    sax_ins = SymbolicAggregateApproximation(n_segments=ppa_segmet, alphabet_size_avg=10)
+
+    sax_repre = sax_ins.fit_transform(np.transpose(data))
+
+    sax_mx_dist = np.zeros(shape=(data.shape[1], data.shape[1]))
+
+    for i in range(data.shape[1]):
+        for j in range(data.shape[1]):
+            sax_mx_dist[i, j] = sax_ins.distance_sax(sax_repre[i], sax_repre[j])
+
+    return sax_mx_dist
 
 
 def dynamic_time_wrap_PPA(data, seq_len):
-    pass
+    from tslearn.metrics import cdist_dtw
+    print('|--- Construct adj_mx by DTW_PPA')
+
+    ppa_re = ppa_representation(data, seq_len)  # (time, -1)
+    dtw_mx_dist = cdist_dtw(ppa_re.transpose())
+    return dtw_mx_dist
+
+
+def dynamic_time_wrap(data, seq_len):
+    from tslearn.metrics import cdist_dtw
+    print('|--- Construct adj_mx by DTW_PPA')
+    dtw_mx_dist = cdist_dtw(data.transpose())
+    return dtw_mx_dist
 
 
 def euclidean_PPA(data, seq_len):
     pass
 
 
-def adj_mx_contruction(adj_method, data, seq_len, pos_thred=1, nag_thred=-1):
-    adj_mx = []
+def knn_ts(data, metric='dtw'):
+    pass
+
+
+#                0        1       2      3        4        5        6      7
+ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN']
+
+
+def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thred=0.7, nag_thred=-0.8):
+    adj_file_name = '{}-{}'.format(adj_method, pos_thred)
+    if adj_method == ADJ_METHOD[1]:
+        adj_file_name = adj_file_name + '-{}'.format(nag_thred)
+
+    adj_file_name = adj_file_name + '.npy'
+
+    if os.path.isfile(os.path.join(adj_dir, adj_file_name)):
+        adj_mx = np.load(os.path.join(adj_dir, adj_file_name))
+        return adj_mx
+
     if adj_method == ADJ_METHOD[0]:
+        # Construct graph by using avg correlation (positive)
         adj_mx = correlation_matrix(data, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
         adj_mx[adj_mx < pos_thred] = 0.0
     elif adj_method == ADJ_METHOD[1]:
+        # Construct graph by using avg correlation (positive and negative)
         adj_mx = correlation_matrix(data, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
-        # adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
         adj_mx[(pos_thred > adj_mx) * (adj_mx > nag_thred)] = 0.0
     elif adj_method == ADJ_METHOD[2]:
+        # Construct graph by destination information
         adj_mx = od_flow_matrix()
-    elif adj_mx == ADJ_METHOD[3]:
-        pass
-    elif adj_mx == ADJ_METHOD[4]:
-        pass
-    elif adj_mx == ADJ_METHOD[5]:
-        pass
-    elif adj_mx == ADJ_METHOD[6]:
-        pass
+    elif adj_method == ADJ_METHOD[3]:
+        raise NotImplementedError('Need to be implemented!')
+    elif adj_method == ADJ_METHOD[4]:
+        # Caculating the pairwise distance of DTW on raw
+        dtw_mx_dist = dynamic_time_wrap(data, seq_len)
+        adj_mx = dtw_mx_dist.max() - dtw_mx_dist
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx < pos_thred] = 0.0
+    elif adj_method == ADJ_METHOD[5]:
+        # Caculating the pairwise distance of DTW on PPA
+        dtw_ppa_mx_dist = dynamic_time_wrap_PPA(data, seq_len)
+        adj_mx = dtw_ppa_mx_dist.max() - dtw_ppa_mx_dist
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx < pos_thred] = 0.0
+    elif adj_method == ADJ_METHOD[6]:
+        # Caculating the pairwise distance of sax representation
+        sax_mx_dist = sax_similarity(data, seq_len)
+        adj_mx = sax_mx_dist.max() - sax_mx_dist
+        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[adj_mx < pos_thred] = 0.0
+    elif adj_method == ADJ_METHOD[7]:
+        raise NotImplementedError('Need to be implemented!')
     else:
         raise ValueError('Adj constructor is not implemented!')
+
+    np.save(os.path.join(adj_dir, adj_file_name.split('.')[0]), adj_mx)
 
     return adj_mx
 
@@ -970,14 +1041,3 @@ def load_pickle(pickle_file):
     return pickle_data
 
 
-def time_series_representation(data, seq_len):
-    data_reduced = np.zeros(shape=(int(data.shape[0] / seq_len), data.shape[1]))
-
-    paa_segment = int(data.shape[0] / seq_len)
-
-    for i in tqdm(range(data.shape[1])):
-        dat_znorm = znorm(data[:, i])
-
-        data_reduced[:, i] = paa(dat_znorm, paa_segment)
-
-    return data_reduced

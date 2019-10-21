@@ -283,14 +283,12 @@ def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps
         _x = _data[idx + seq_len: idx + seq_len + seq_len]
         _label = _labels[idx + seq_len: idx + seq_len + seq_len]
 
-        _w = []
+        _w = np.zeros(shape=(seq_len, _data.shape[1], 1))
         for i in range(seq_len):
-            _w.append(_labels[(idx + i):(idx + seq_len + i)].sum(axis=0) / seq_len)
+            _w[i] = float(_labels[(idx + i):(idx + seq_len + i)].sum(axis=0)) / seq_len
 
-        _w = np.stack(_w)
-        _w = _w.astype('float32')
-
-        x[idx] = np.stack([_x, _label, _w], axis=2)
+        # x[idx] = np.stack([_x, _label, _w], axis=2)
+        x[idx] = np.stack([_x, _w], axis=2)
 
         _y = data[idx + seq_len + seq_len:idx + seq_len + seq_len + horizon]
 
@@ -299,7 +297,7 @@ def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps
     return x, y
 
 
-def create_data_dcrnn_2(data, seq_len, horizon, input_dim, mon_ratio, eps):
+def create_data_dcrnn_fwbw(data, seq_len, horizon, input_dim, mon_ratio, eps):
     """
         Create (x,y) data for dcrnn with 2 outputs (encoder_output, decoder_output)
     :param data:
@@ -606,9 +604,9 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_siz
     return data
 
 
-def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
-                         raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
-                         val_batch_size=None, adj_mx_threshold=0.5, **kwargs):
+def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio, test_size,
+                            dataset_dir, data_size, day_size, batch_size, eval_batch_size,
+                            pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
     """
         Load dataset for DCRNN with 2 outputs
     :param seq_len:
@@ -627,7 +625,7 @@ def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
     :return:
     """
 
-    raw_data = np.load(raw_dataset_dir)
+    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
     # Convert traffic volume from byte to mega-byte
@@ -650,15 +648,15 @@ def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     data['test_data_norm'] = test_data_norm
 
-    x_train, y_train, l_train = create_data_dcrnn_2(data=train_data_norm, seq_len=seq_len, horizon=horizon,
-                                                    input_dim=input_dim,
-                                                    mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_val, y_val, l_val = create_data_dcrnn_2(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
-                                              input_dim=input_dim,
-                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_eval, y_eval, l_eval = create_data_dcrnn_2(data=test_data_norm, seq_len=seq_len, horizon=horizon,
+    x_train, y_train, l_train = create_data_dcrnn_fwbw(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                                       input_dim=input_dim,
+                                                       mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val, l_val = create_data_dcrnn_fwbw(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
                                                  input_dim=input_dim,
                                                  mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval, l_eval = create_data_dcrnn_fwbw(data=test_data_norm, seq_len=seq_len, horizon=horizon,
+                                                    input_dim=input_dim,
+                                                    mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
         _x, _y, _l = locals()["x_" + category], locals()["y_" + category], locals()["l_" + category]
@@ -675,10 +673,8 @@ def load_dataset_dcrnn_2(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = get_corr_matrix(train_data2d, seq_len)
-    adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-    adj_mx[adj_mx >= adj_mx_threshold] = 1.0
-    adj_mx[adj_mx < adj_mx_threshold] = 0.0
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+                                pos_thres=pos_thres, nag_thres=nag_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 

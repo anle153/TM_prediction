@@ -547,9 +547,9 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 
 
 def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_size,
-                                raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size,
+                                dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                                 pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
-    raw_data = np.load(raw_dataset_dir)
+    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
     # Convert traffic volume from byte to mega-byte

@@ -289,6 +289,8 @@ def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps
             _w[i] = np.expand_dims(_mr, axis=1)
 
         # x[idx] = np.stack([_x, _label, _w], axis=2)
+
+        _x = np.expand_dims(_x, axis=2)
         x[idx] = np.concatenate([_x, _w], axis=2)
 
         _y = data[idx + seq_len + seq_len:idx + seq_len + seq_len + horizon]

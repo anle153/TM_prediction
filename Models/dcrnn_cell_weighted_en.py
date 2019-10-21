@@ -96,10 +96,10 @@ class DCGRUCellWeighted_en(RNNCell):
                 inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
                 size = inputs.get_shape()[2].value
-                weight_nodes = tf.reshape(tf.slice(inputs, [0, 0, size - 2], [batch_size, self._num_nodes, 1]),
-                                          shape=(batch_size, self._num_nodes, 1))
+                weight_nodes = inputs[:, :, -1]
+                weight_nodes = tf.reshape(weight_nodes, shape=[batch_size, self._num_nodes, 1])
                 weight_nodes_tiled = tf.tile(weight_nodes, [1, 1, self._num_nodes])
-                inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])
+                inputs = inputs[:, :, :(size - 1)]
 
                 outputsize = 2 * self._num_units
                 # We start with bias of 1.0 to not reset and not update.

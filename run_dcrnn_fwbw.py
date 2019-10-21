@@ -5,14 +5,13 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.dcrnn_supervisor_2 import DCRNNSupervisor
+from Models.dcrnn_fwbw_supervisor import DCRNNSupervisor
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
-CONFIG_FILE = 'config_dgc_lstm.yaml'
 
 
-def print_dgc_lstm_info(mode, config):
+def print_dcrnn_fwbw_info(mode, config):
     print('----------------------- INFO -----------------------')
 
     print('|--- MODE:\t{}'.format(mode))
@@ -56,33 +55,7 @@ def print_dgc_lstm_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-# def get_results(data):
-#     print('|--- Test ARIMA')
-#     if Config.DATA_NAME == Config.DATA_SETS[0]:
-#         day_size = Config.ABILENE_DAY_SIZE
-#     else:
-#         day_size = Config.GEANT_DAY_SIZE
-#
-#     data[data <= 0] = 0.1
-#
-#     train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
-#
-#     if Config.DATA_NAME == Config.DATA_SETS[0]:
-#         print('|--- Remove last 3 days in test_set.')
-#         test_data2d = test_data2d[0:-day_size * 3]
-#
-#     # Data normalization
-#     scaler = data_scalling(train_data2d)
-#
-#     test_data_normalized2d = scaler.transform(test_data2d)
-#
-#     _, _, y_true = prepare_test_set_last_5days(test_data2d, test_data_normalized2d)
-#
-#     results_path = Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-#                                                                Config.ALG, Config.TAG, Config.SCALER)
-#     results_processing(y_true, Config.ARIMA_TESTING_TIME, results_path)
-
-def train_dgc_lstm(config):
+def train_dcrnn_fwbw(config):
     print('|-- Run model training dgc_lstm.')
 
     tf_config = tf.ConfigProto()
@@ -93,7 +66,7 @@ def train_dgc_lstm(config):
         model.train(sess)
 
 
-def test_dgc_lstm(config):
+def test_dcrnn_fwbw(config):
     print('|-- Run model testing dgc_lstm.')
 
     tf_config = tf.ConfigProto()
@@ -104,7 +77,7 @@ def test_dgc_lstm(config):
         model.test(sess)
 
 
-def evaluate_dgc_lstm(config):
+def evaluate_dcrnn_fwbw(config):
     print('|-- Run model testing dgc_lstm.')
 
     tf_config = tf.ConfigProto()
@@ -130,11 +103,11 @@ if __name__ == '__main__':
     with open(args.config_file) as f:
         config = yaml.load(f)
 
-    print_dgc_lstm_info(args.mode, config)
+    print_dcrnn_fwbw_info(args.mode, config)
     if args.mode == 'train':
-        train_dgc_lstm(config)
+        train_dcrnn_fwbw(config)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_dgc_lstm(config)
+        evaluate_dcrnn_fwbw(config)
     else:
-        test_dgc_lstm(config)
+        test_dcrnn_fwbw(config)
     # get_results(data)

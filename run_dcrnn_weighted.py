@@ -7,10 +7,6 @@ import yaml
 
 from Models.dcrnn_supervisor_weighted import DCRNNSupervisorWeighted
 
-HOME_PATH = os.path.expanduser('~/TM_prediction')
-CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
-CONFIG_FILE = 'config_dgc_lstm.yaml'
-
 
 def print_dcrnn_weighted_info(mode, config):
     print('----------------------- INFO -----------------------')

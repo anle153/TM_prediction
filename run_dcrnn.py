@@ -9,10 +9,9 @@ from Models.dcrnn_supervisor import DCRNNSupervisor
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
-CONFIG_FILE = 'config_dgc_lstm.yaml'
 
 
-def print_dgc_lstm_info(mode, config):
+def print_dcrnn_info(mode, config):
     print('----------------------- INFO -----------------------')
 
     print('|--- MODE:\t{}'.format(mode))
@@ -56,8 +55,8 @@ def print_dgc_lstm_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-def train_dgc_lstm(config):
-    print('|-- Run model training dgc_lstm.')
+def train_dcrnn(config):
+    print('|-- Run model training dcrnn.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
@@ -67,8 +66,8 @@ def train_dgc_lstm(config):
         model.train(sess)
 
 
-def test_dgc_lstm(config):
-    print('|-- Run model testing dgc_lstm.')
+def test_dcrnn(config):
+    print('|-- Run model testing dcrnn.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
@@ -81,8 +80,8 @@ def test_dgc_lstm(config):
         # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
 
 
-def evaluate_dgc_lstm(config):
-    print('|-- Run model testing dgc_lstm.')
+def evaluate_dcrnn(config):
+    print('|-- Run model testing dcrnn.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
@@ -107,11 +106,11 @@ if __name__ == '__main__':
     with open(args.config_file) as f:
         config = yaml.load(f)
 
-    print_dgc_lstm_info(args.mode, config)
+    print_dcrnn_info(args.mode, config)
     if args.mode == 'train':
-        train_dgc_lstm(config)
+        train_dcrnn(config)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_dgc_lstm(config)
+        evaluate_dcrnn(config)
     else:
-        test_dgc_lstm(config)
+        test_dcrnn(config)
     # get_results(data)

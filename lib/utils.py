@@ -440,7 +440,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_th
         adj_file_name = adj_file_name + '-{}'.format(nag_thres)
 
     if os.path.isfile(os.path.join(adj_dir, adj_file_name + '.npy')):
-        adj_mx = np.load(os.path.join(adj_dir, adj_file_name))
+        adj_mx = np.load(os.path.join(adj_dir, adj_file_name + '.npy'))
         return adj_mx
 
     if adj_method == ADJ_METHOD[0]:
@@ -482,8 +482,6 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_th
         raise ValueError('Adj constructor is not implemented!')
 
     np.save(os.path.join(adj_dir, adj_file_name), adj_mx)
-
-    raise RuntimeError('stop')
 
     return adj_mx
 

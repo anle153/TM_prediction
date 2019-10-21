@@ -144,7 +144,6 @@ class DCRNNSupervisor(object):
                 ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             seq_len = kwargs['model'].get('seq_len')
-            adj_mx_threshold = kwargs['data'].get('adj_mx_threshold')
             filter_type = kwargs['model'].get('filter_type')
             filter_type_abbr = 'L'
             if filter_type == 'random_walk':
@@ -154,7 +153,7 @@ class DCRNNSupervisor(object):
 
             mon_ratio = kwargs['mon_ratio']
 
-            # Adj_method  [CORR1, CORR2, OD, KNN]
+            # ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN']
             adj_method = kwargs['data'].get('adj_method')
 
             run_id = 'dcrnn_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (

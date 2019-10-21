@@ -56,32 +56,6 @@ def print_dgc_lstm_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-# def get_results(data):
-#     print('|--- Test ARIMA')
-#     if Config.DATA_NAME == Config.DATA_SETS[0]:
-#         day_size = Config.ABILENE_DAY_SIZE
-#     else:
-#         day_size = Config.GEANT_DAY_SIZE
-#
-#     data[data <= 0] = 0.1
-#
-#     train_data2d, test_data2d = prepare_train_test_2d(data=data, day_size=day_size)
-#
-#     if Config.DATA_NAME == Config.DATA_SETS[0]:
-#         print('|--- Remove last 3 days in test_set.')
-#         test_data2d = test_data2d[0:-day_size * 3]
-#
-#     # Data normalization
-#     scaler = data_scalling(train_data2d)
-#
-#     test_data_normalized2d = scaler.transform(test_data2d)
-#
-#     _, _, y_true = prepare_test_set_last_5days(test_data2d, test_data_normalized2d)
-#
-#     results_path = Config.RESULTS_PATH + '{}-{}-{}-{}/'.format(Config.DATA_NAME,
-#                                                                Config.ALG, Config.TAG, Config.SCALER)
-#     results_processing(y_true, Config.ARIMA_TESTING_TIME, results_path)
-
 def train_dgc_lstm(config):
     print('|-- Run model training dgc_lstm.')
 

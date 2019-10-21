@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
-from Models.dcrnn_cell_weighted import DCGRUCellWeighted
+from Models.dcrnn_cell import DCGRUCell
 from Models.dcrnn_cell_weighted_en import DCGRUCellWeighted_en
 
 
@@ -43,12 +43,12 @@ class DCRNNModelWeighted(object):
         cell_en = DCGRUCellWeighted_en(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                        filter_type=filter_type)
 
-        cell = DCGRUCellWeighted(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                 filter_type=filter_type)
+        cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+                         filter_type=filter_type)
 
-        cell_with_projection = DCGRUCellWeighted(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step,
-                                                 num_nodes=num_nodes,
-                                                 num_proj=output_dim, filter_type=filter_type)
+        cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step,
+                                         num_nodes=num_nodes,
+                                         num_proj=output_dim, filter_type=filter_type)
 
         encoding_cells = [cell_en] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]

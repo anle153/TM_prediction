@@ -192,6 +192,7 @@ class DCRNNSupervisor(object):
             })
 
         for _, (x, y) in enumerate(data_generator):
+
             feed_dict = {
                 model.inputs: x,
                 model.labels: y,
@@ -262,7 +263,7 @@ class DCRNNSupervisor(object):
 
         w = 1 / cl
 
-        sampling = np.zeros(shape=self._nodes,dtype='float32')
+        sampling = np.zeros(shape=self._nodes, dtype='float32')
         m = int(self._mon_ratio * self._nodes)
 
         w = w.flatten()
@@ -276,11 +277,11 @@ class DCRNNSupervisor(object):
         test_data_norm = self._data['test_data_norm']
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),dtype='float32')
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
         tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
         # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),dtype='float32')
+        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
         m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         losses = []
@@ -383,6 +384,7 @@ class DCRNNSupervisor(object):
         self._logger.info('Start training ...')
 
         while self._epoch <= epochs:
+            self._logger.info('Training epoch: {}/{}'.format(self._epoch, epochs))
             # Learning rate schedule.
             new_lr = max(min_learning_rate, base_lr * (lr_decay_ratio ** np.sum(self._epoch >= np.array(steps))))
             self.set_lr(sess=sess, lr=new_lr)
@@ -435,8 +437,8 @@ class DCRNNSupervisor(object):
 
         training_history['epoch'] = np.arange(self._epoch)
         training_history['loss'] = losses
-        training_history['val_loss']=val_losses
-        training_history.to_csv(self._log_dir+'training_history.csv', index=False)
+        training_history['val_loss'] = val_losses
+        training_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 
         return np.min(history)
 
@@ -445,7 +447,7 @@ class DCRNNSupervisor(object):
         y_test = np.zeros(shape=(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1,
                                  self._horizon,
                                  self._nodes,
-                                 1),dtype='float32')
+                                 1), dtype='float32')
         for t in range(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1):
             y_test[t] = np.expand_dims(self._data['test_data_norm']
                                        [t + self._seq_len:t + self._seq_len + self._horizon],
@@ -501,7 +503,6 @@ class DCRNNSupervisor(object):
                 metrics_summary[i, horizon_i * n_metrics + 1] = mae
                 metrics_summary[i, horizon_i * n_metrics + 2] = rmse
                 metrics_summary[i, horizon_i * n_metrics + 3] = mape
-
 
             tm_pred = scaler.inverse_transform(test_results['tm_pred'])
             g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])

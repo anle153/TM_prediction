@@ -72,7 +72,7 @@ class DCRNNModel(object):
                     result = prev
                 return result
 
-            enc_outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
+            _, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
 
             # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
             # _, enc_state = encoder_layers(inputs)
@@ -81,7 +81,6 @@ class DCRNNModel(object):
 
         # Project the output to output_dim.
         outputs = tf.stack(outputs[:-1], axis=1)
-        enc_outputs = tf.stack(enc_outputs[:-1], axis=1)
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
 

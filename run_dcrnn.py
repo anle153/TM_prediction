@@ -7,9 +7,6 @@ import yaml
 
 from Models.dcrnn_supervisor import DCRNNSupervisor
 
-HOME_PATH = os.path.expanduser('~/TM_prediction')
-CONFIG_PATH = os.path.join(HOME_PATH, 'Config')
-
 
 def print_dcrnn_info(mode, config):
     print('----------------------- INFO -----------------------')

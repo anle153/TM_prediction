@@ -534,7 +534,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=data, seq_len=seq_len, adj_dir=dataset_dir,
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, nag_thres=nag_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
@@ -547,8 +547,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 
 
 def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_size,
-                                raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
-                                val_batch_size=None, adj_method='correlation', **kwargs):
+                                raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size,
+                                pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -596,24 +596,8 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_siz
 
     print('|--- Get Correlation Matrix')
 
-    if adj_method == ADJ_METHOD[0]:
-        adj_mx_thres_pos = 0.5
-        adj_mx = correlation_matrix(train_data2d, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
-        adj_mx[adj_mx < adj_mx_thres_pos] = 0.0
-    elif adj_method == ADJ_METHOD[1]:
-        adj_mx_thres_pos = 0.5
-        adj_mx_thres_neg = -0.8
-        adj_mx = correlation_matrix(train_data2d, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
-        # adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
-        adj_mx[(adj_mx_thres_pos > adj_mx) * (adj_mx > adj_mx_thres_neg)] = 0.0
-    elif adj_method == ADJ_METHOD[2]:
-        adj_mx = od_flow_matrix()
-    else:
-        raise ValueError('Adj constructor is not implemented!')
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+                                pos_thres=pos_thres, nag_thres=nag_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 

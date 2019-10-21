@@ -10,8 +10,10 @@ data:
   val_batch_size: 32
   eval_batch_size: 1
   test_batch_size: 1
-  raw_dataset_dir: Dataset/Abilene2d.npy
-  adj_method: OD
+  dataset_dir: Dataset
+  adj_method: DTW_PPA
+  pos_thres: 0.7
+  nag_thres: -0.8
   day_size: 288
   data_size: 1.0
   generate_data: False
@@ -53,4 +55,3 @@ train:
 test:
   run_times: 50
   flow_selection: Random
-  test_size: 2

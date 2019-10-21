@@ -434,14 +434,12 @@ def knn_ts(data, metric='dtw'):
 ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN']
 
 
-def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thred=0.7, nag_thred=-0.8):
-    adj_file_name = '{}-{}'.format(adj_method, pos_thred)
+def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_thres=-0.8):
+    adj_file_name = '{}-{}'.format(adj_method, pos_thres)
     if adj_method == ADJ_METHOD[1]:
-        adj_file_name = adj_file_name + '-{}'.format(nag_thred)
+        adj_file_name = adj_file_name + '-{}'.format(nag_thres)
 
-    adj_file_name = adj_file_name + '.npy'
-
-    if os.path.isfile(os.path.join(adj_dir, adj_file_name)):
+    if os.path.isfile(os.path.join(adj_dir, adj_file_name + '.npy')):
         adj_mx = np.load(os.path.join(adj_dir, adj_file_name))
         return adj_mx
 
@@ -449,12 +447,12 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thred=0.7, nag_th
         # Construct graph by using avg correlation (positive)
         adj_mx = correlation_matrix(data, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx < pos_thred] = 0.0
+        adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[1]:
         # Construct graph by using avg correlation (positive and negative)
         adj_mx = correlation_matrix(data, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[(pos_thred > adj_mx) * (adj_mx > nag_thred)] = 0.0
+        adj_mx[(pos_thres > adj_mx) * (adj_mx > nag_thres)] = 0.0
     elif adj_method == ADJ_METHOD[2]:
         # Construct graph by destination information
         adj_mx = od_flow_matrix()
@@ -465,33 +463,33 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thred=0.7, nag_th
         dtw_mx_dist = dynamic_time_wrap(data, seq_len)
         adj_mx = dtw_mx_dist.max() - dtw_mx_dist
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx < pos_thred] = 0.0
+        adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[5]:
         # Caculating the pairwise distance of DTW on PPA
         dtw_ppa_mx_dist = dynamic_time_wrap_PPA(data, seq_len)
         adj_mx = dtw_ppa_mx_dist.max() - dtw_ppa_mx_dist
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx < pos_thred] = 0.0
+        adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[6]:
         # Caculating the pairwise distance of sax representation
         sax_mx_dist = sax_similarity(data, seq_len)
         adj_mx = sax_mx_dist.max() - sax_mx_dist
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[adj_mx < pos_thred] = 0.0
+        adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[7]:
         raise NotImplementedError('Need to be implemented!')
     else:
         raise ValueError('Adj constructor is not implemented!')
 
-    np.save(os.path.join(adj_dir, adj_file_name.split('.')[0]), adj_mx)
+    np.save(os.path.join(adj_dir, adj_file_name), adj_mx)
 
     return adj_mx
 
 
-def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
-                       raw_dataset_dir, data_size, day_size, batch_size, eval_batch_size=None,
-                       val_batch_size=None, adj_method='correlation', **kwargs):
-    raw_data = np.load(raw_dataset_dir)
+def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
+                       dataset_dir, data_size, day_size, batch_size, eval_batch_size,
+                       pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
+    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
     # Convert traffic volume from byte to mega-byte
@@ -536,24 +534,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, test_size,
 
     print('|--- Get Correlation Matrix')
 
-    if adj_method == ADJ_METHOD[0]:
-        adj_mx_thres_pos = 0.5
-        adj_mx = correlation_matrix(train_data2d, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
-        adj_mx[adj_mx < adj_mx_thres_pos] = 0.0
-    elif adj_method == ADJ_METHOD[1]:
-        adj_mx_thres_pos = 0.5
-        adj_mx_thres_neg = -0.8
-        adj_mx = correlation_matrix(train_data2d, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        # adj_mx[adj_mx >= adj_mx_thres_pos] = 1.0
-        # adj_mx[adj_mx <= adj_mx_thres_neg] = 1.0
-        adj_mx[(adj_mx_thres_pos > adj_mx) * (adj_mx > adj_mx_thres_neg)] = 0.0
-    elif adj_method == ADJ_METHOD[2]:
-        adj_mx = od_flow_matrix()
-    else:
-        raise ValueError('Adj constructor is not implemented!')
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=data, seq_len=seq_len, adj_dir=dataset_dir,
+                                pos_thres=pos_thres, nag_thres=nag_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 

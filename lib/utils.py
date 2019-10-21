@@ -285,14 +285,12 @@ def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps
 
         _w = []
         for i in range(seq_len):
-            _w.append(_labels[idx + i:idx + seq_len + i].sum(axis=0) / seq_len)
+            _w.append(_labels[(idx + i):(idx + seq_len + i)].sum(axis=0) / seq_len)
 
         _w = np.stack(_w)
         _w = _w.astype('float32')
 
-        x[idx, :, :, 0] = _x
-        x[idx, :, :, 1] = _label
-        x[idx, :, :, 2] = _w
+        x[idx] = np.stack([_x, _label, _w], axis=2)
 
         _y = data[idx + seq_len + seq_len:idx + seq_len + seq_len + horizon]
 

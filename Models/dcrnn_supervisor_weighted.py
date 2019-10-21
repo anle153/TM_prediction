@@ -220,6 +220,9 @@ class DCRNNSupervisorWeighted(object):
         x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
         y = np.zeros(shape=(self._horizon, self._nodes), dtype='float32')
 
+        _back = m_indicator.shape[0] - self._seq_len
+
+
         x[:, :, 0] = data
         x[:, :, 1] = m_indicator
 
@@ -305,10 +308,15 @@ class DCRNNSupervisorWeighted(object):
 
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
+            if ts - self._seq_len <= 0:
+                _back = 0
+            else:
+                _back = ts - self._seq_len
+
             x, y = self._prepare_input(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
                 data=tm_pred[ts:ts + self._seq_len],
-                m_indicator=m_indicator[ts:ts + self._seq_len]
+                m_indicator=m_indicator[_back:ts + self._seq_len]
             )
 
             y_truths.append(y)

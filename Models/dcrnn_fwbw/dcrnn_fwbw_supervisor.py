@@ -44,10 +44,14 @@ def _get_log_dir(kwargs):
 
         mon_ratio = kwargs['mon_ratio']
 
-        run_id = 'dcrnn_fwbw_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d/' % (
-            filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
-            adj_pos_thres, adj_neg_thres, horizon, seq_len,
-            structure, learning_rate, batch_size)
+        if adj_method != 'OD':
+            run_id = 'dcrnn_fwbw_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d/' % (
+                filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, adj_pos_thres, adj_neg_thres,
+                horizon, seq_len, structure, learning_rate, batch_size)
+        else:
+            run_id = 'dcrnn_fwbw_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (
+                filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
+                horizon, seq_len, structure, learning_rate, batch_size)
         base_dir = kwargs.get('base_dir')
         log_dir = os.path.join(base_dir, run_id)
     if not os.path.exists(log_dir):

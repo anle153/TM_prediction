@@ -434,10 +434,10 @@ def knn_ts(data, metric='dtw'):
 ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN']
 
 
-def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_thres=-0.8):
+def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_thres=-0.8):
     adj_file_name = '{}-{}'.format(adj_method, pos_thres)
     if adj_method == ADJ_METHOD[1]:
-        adj_file_name = adj_file_name + '-{}'.format(nag_thres)
+        adj_file_name = adj_file_name + '-{}'.format(neg_thres)
 
     if os.path.isfile(os.path.join(adj_dir, adj_file_name + '.npy')):
         adj_mx = np.load(os.path.join(adj_dir, adj_file_name + '.npy'))
@@ -452,7 +452,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_th
         # Construct graph by using avg correlation (positive and negative)
         adj_mx = correlation_matrix(data, seq_len)
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[(pos_thres > adj_mx) * (adj_mx > nag_thres)] = 0.0
+        adj_mx[(pos_thres > adj_mx) * (adj_mx > neg_thres)] = 0.0
     elif adj_method == ADJ_METHOD[2]:
         # Construct graph by destination information
         adj_mx = od_flow_matrix()
@@ -488,7 +488,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, nag_th
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                        dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                       pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
+                       pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -535,7 +535,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     print('|--- Get Correlation Matrix')
 
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
-                                pos_thres=pos_thres, nag_thres=nag_thres)
+                                pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 
@@ -548,7 +548,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_size,
                                 dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                                pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
+                                pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -597,7 +597,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_siz
     print('|--- Get Correlation Matrix')
 
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
-                                pos_thres=pos_thres, nag_thres=nag_thres)
+                                pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 
@@ -610,7 +610,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_siz
 
 def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                            pos_thres, nag_thres, val_batch_size, adj_method='CORR1', network_type='fw', **kwargs):
+                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', network_type='fw', **kwargs):
 
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
@@ -672,7 +672,7 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     print('|--- Get Correlation Matrix')
 
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
-                                pos_thres=pos_thres, nag_thres=nag_thres)
+                                pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
 

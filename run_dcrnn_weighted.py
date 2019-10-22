@@ -21,6 +21,8 @@ def print_dcrnn_weighted_info(mode, config):
     print('|--- BASED_DIR:\t{}'.format(config['base_dir']))
 
     print('|--- ADJ_METHOD:\t{}'.format(config['data']['adj_method']))
+    print('|--- ADJ_POS_THRES:\t{}'.format(config['data']['pos_thres']))
+    print('|--- ADJ_NEG_THRES:\t{}'.format(config['data']['neg_thres']))
 
     print('----------------------- MODEL -----------------------')
     print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))

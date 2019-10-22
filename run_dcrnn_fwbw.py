@@ -19,7 +19,9 @@ def print_dcrnn_fwbw_info(mode, config):
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
     print('|--- BASED_DIR:\t{}'.format(config['base_dir']))
 
-    print('|--- ADJ_THRESHOLD:\t{}\n'.format(config['data']['adj_mx_threshold']))
+    print('|--- ADJ_METHOD:\t{}'.format(config['data']['adj_method']))
+    print('|--- ADJ_POS_THRES:\t{}'.format(config['data']['pos_thres']))
+    print('|--- ADJ_NEG_THRES:\t{}'.format(config['data']['neg_thres']))
 
     print('----------------------- MODEL -----------------------')
     print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))

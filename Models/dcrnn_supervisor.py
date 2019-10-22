@@ -57,7 +57,6 @@ class DCRNNSupervisor(object):
                                               horizon=self._model_kwargs.get('horizon'),
                                               input_dim=self._model_kwargs.get('input_dim'),
                                               mon_ratio=self._mon_ratio,
-                                              test_size=self._test_size,
                                               **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):

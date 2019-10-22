@@ -464,9 +464,16 @@ class DCRNN_FWBW(object):
         with tf.Session(config=tf_config) as sess:
             self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config)
             self._fw_net_wrap.train(sess)
+            sess.close()
+
+        tf.reset_default_graph()
+
+        tf_config = tf.ConfigProto()
+        tf_config.gpu_options.allow_growth = True
         with tf.Session(config=tf_config) as sess:
             self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config)
             self._bw_net_wrap.train(sess)
+            sess.close()
 
     def test(self, config_fw, config_bw):
         tf_config = tf.ConfigProto()

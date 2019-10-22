@@ -53,12 +53,12 @@ class DCRNNSupervisor(object):
         self._run_times = self._test_kwargs.get('run_times')
         # Data preparation
         self._day_size = self._data_kwargs.get('day_size')
-        self._data = utils.load_dataset_dcrnn_2(seq_len=self._model_kwargs.get('seq_len'),
-                                                horizon=self._model_kwargs.get('horizon'),
-                                                input_dim=self._model_kwargs.get('input_dim'),
-                                                mon_ratio=self._mon_ratio,
-                                                test_size=self._test_size,
-                                                **self._data_kwargs)
+        self._data = utils.load_dataset_dcrnn_fwbw(seq_len=self._model_kwargs.get('seq_len'),
+                                                   horizon=self._model_kwargs.get('horizon'),
+                                                   input_dim=self._model_kwargs.get('input_dim'),
+                                                   mon_ratio=self._mon_ratio,
+                                                   test_size=self._test_size,
+                                                   **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
@@ -265,12 +265,6 @@ class DCRNNSupervisor(object):
         return consecutive_losses
 
     def set_measured_flow_fairness(self, labels):
-        """
-
-        :param rnn_input: shape(#n_flows, #time-steps)
-        :param labels: shape(n_flows, #time-steps)
-        :return:
-        """
 
         cl = self.calculate_consecutive_loss(labels).astype(float)
 

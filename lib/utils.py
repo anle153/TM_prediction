@@ -303,7 +303,7 @@ def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps
 
 def create_data_dcrnn_fwbw(data, seq_len, horizon, input_dim, mon_ratio, eps):
     """
-        Create (x,y) data for dcrnn with 2 outputs (encoder_output, decoder_output)
+
     :param data:
     :param seq_len:
     :param horizon:
@@ -610,38 +610,26 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_siz
 
 def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio, test_size,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                            pos_thres, nag_thres, val_batch_size, adj_method='CORR1', **kwargs):
-    """
-        Load dataset for DCRNN with 2 outputs
-    :param seq_len:
-    :param horizon:
-    :param input_dim:
-    :param mon_ratio:
-    :param test_size:
-    :param raw_dataset_dir:
-    :param data_size:
-    :param day_size:
-    :param batch_size:
-    :param eval_batch_size:
-    :param val_batch_size:
-    :param adj_mx_threshold:
-    :param kwargs:
-    :return:
-    """
+                            pos_thres, nag_thres, val_batch_size, adj_method='CORR1', network_type='fw', **kwargs):
 
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    # raw_data = raw_data / 1000000
 
     raw_data = raw_data.astype("float32")
 
     raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
 
+    # Remove last 3 days
+    if data_size == 1.0:
+        raw_data = raw_data[:-day_size * 3]
+
+    if network_type == 'bw':
+        raw_data = np.flip(raw_data, axis=0)
+    elif network_type != 'fw':
+        raise ValueError('[Load data] network type must be fw or bw')
+
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
     data = {}
 
     print('|--- Normalizing the train set.')
@@ -650,8 +638,11 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio, test_size,
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
 
-    data['test_data_norm'] = test_data_norm
+    data['test_data_' + network_type + '_norm'] = test_data_norm
 
+    # x(num_sample, seq_len, num_node, input_dim): encoder input
+    # y(num_sample, horizon, num_node, output_dim): decoder output
+    # l(num_sample, seq_len, num_node, output_dim): encoder output
     x_train, y_train, l_train = create_data_dcrnn_fwbw(data=train_data_norm, seq_len=seq_len, horizon=horizon,
                                                        input_dim=input_dim,
                                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
@@ -665,26 +656,30 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio, test_size,
     for category in ['train', 'val', 'eval']:
         _x, _y, _l = locals()["x_" + category], locals()["y_" + category], locals()["l_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape, "l", _l.shape)
-        data['x_' + category] = _x
-        data['y_' + category] = _y
-        data['l_' + category] = _l
+        data['x_' + network_type + '_' + category] = _x
+        data['y_' + network_type + '_' + category] = _y
+        data['l_' + network_type + '_' + category] = _l
     # Data format
+    data['train_' + network_type + '_loader'] = DataLoader_2(data['x_train'], data['y_train'], data['l_train'],
+                                                             batch_size, shuffle=True)
+    data['val_' + network_type + '_loader'] = DataLoader_2(data['x_val'], data['y_val'], data['l_val'], val_batch_size,
+                                                           shuffle=False)
+    data['eval_' + network_type + '_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], data['l_eval'],
+                                                            eval_batch_size, shuffle=False)
 
-    data['train_loader'] = DataLoader_2(data['x_train'], data['y_train'], data['l_train'], batch_size, shuffle=True)
-    data['val_loader'] = DataLoader_2(data['x_val'], data['y_val'], data['l_val'], val_batch_size, shuffle=False)
-    data['eval_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], data['l_eval'], eval_batch_size, shuffle=False)
-    data['scaler'] = scaler
+    if network_type == 'fw':
+        data['scaler'] = scaler
 
-    print('|--- Get Correlation Matrix')
+        print('|--- Get Correlation Matrix')
 
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
-                                pos_thres=pos_thres, nag_thres=nag_thres)
+        adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+                                    pos_thres=pos_thres, nag_thres=nag_thres)
 
-    print('Number of edges: {}'.format(np.sum(adj_mx)))
+        print('Number of edges: {}'.format(np.sum(adj_mx)))
 
-    adj_mx = adj_mx.astype('float32')
+        adj_mx = adj_mx.astype('float32')
 
-    data['adj_mx'] = adj_mx
+        data['adj_mx'] = adj_mx
 
     return data
 

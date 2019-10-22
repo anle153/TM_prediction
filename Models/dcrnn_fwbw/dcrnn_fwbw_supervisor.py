@@ -635,9 +635,9 @@ class DCRNN_FWBW(object):
         y_preds = []
         tf_a = np.array([1.0, 0.0])
 
-        for ts in tqdm(range(1, test_data_norm.shape[0] - self._horizon - self._seq_len)):
+        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
-            x, y_fw, y_bw = self._prepare_input(
+            x, y = self._prepare_input(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
                 data=tm_pred[ts:ts + self._seq_len],
                 m_indicator=m_indicator[ts:ts + self._seq_len]

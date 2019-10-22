@@ -608,7 +608,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_siz
     return data
 
 
-def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio, test_size,
+def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                             pos_thres, nag_thres, val_batch_size, adj_method='CORR1', network_type='fw', **kwargs):
 
@@ -667,19 +667,18 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio, test_size,
     data['eval_' + network_type + '_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], data['l_eval'],
                                                             eval_batch_size, shuffle=False)
 
-    if network_type == 'fw':
-        data['scaler'] = scaler
+    data['scaler'] = scaler
 
-        print('|--- Get Correlation Matrix')
+    print('|--- Get Correlation Matrix')
 
-        adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
-                                    pos_thres=pos_thres, nag_thres=nag_thres)
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+                                pos_thres=pos_thres, nag_thres=nag_thres)
 
-        print('Number of edges: {}'.format(np.sum(adj_mx)))
+    print('Number of edges: {}'.format(np.sum(adj_mx)))
 
-        adj_mx = adj_mx.astype('float32')
+    adj_mx = adj_mx.astype('float32')
 
-        data['adj_mx'] = adj_mx
+    data['adj_mx'] = adj_mx
 
     return data
 

@@ -454,7 +454,7 @@ class FwbwLstmRegression():
 
         return sampling
 
-    def data_correction_v3(self, rnn_input, pred_backward, labels):
+    def _data_correction_v3(self, rnn_input, pred_backward, labels):
         # Shape = (#n_flows, #time-steps)
         _rnn_input = np.copy(rnn_input.T)
         _labels = np.copy(labels.T)
@@ -515,9 +515,9 @@ class FwbwLstmRegression():
             # bw_outputs = bw_outputs.T
 
             # Get the TM prediction of next time slot
-            corrected_data = self.data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                     pred_backward=bw_outputs,
-                                                     labels=m_indicator[ts: ts + self._seq_len])
+            corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
+                                                      pred_backward=bw_outputs,
+                                                      labels=m_indicator[ts: ts + self._seq_len])
             measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
             pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data

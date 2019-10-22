@@ -470,7 +470,7 @@ class DCRNNSupervisor(object):
             self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
-            test_results = self._run_tm_prediction(sess, model=self._eval_model)
+            test_results = self._run_tm_prediction(sess, model=self._test_model)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
             test_loss, y_preds = test_results['loss'], test_results['y_preds']

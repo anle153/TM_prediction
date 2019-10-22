@@ -2,10 +2,9 @@ import argparse
 import os
 import sys
 
-import tensorflow as tf
 import yaml
 
-from Models.dcrnn_fwbw.dcrnn_fwbw_supervisor import DCRNNSupervisor
+from Models.dcrnn_fwbw.dcrnn_fwbw_supervisor import DCRNN_FWBW
 
 
 def print_dcrnn_fwbw_info(mode, config):
@@ -55,34 +54,21 @@ def print_dcrnn_fwbw_info(mode, config):
 def train_dcrnn_fwbw(config):
     print('|-- Run model training dgc_lstm.')
 
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(**config)
-        model.train(sess)
+    model = DCRNN_FWBW(**config)
+    model.train(config)
 
 
-def test_dcrnn_fwbw(config):
+def test_dcrnn_fwbw(config_fw, config_bw):
     print('|-- Run model testing dgc_lstm.')
 
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(**config)
-        model.load(sess, config['train']['model_filename'])
-        model.test(sess)
+    model = DCRNN_FWBW(**config_fw)
+    model.test(config_fw, config_bw)
 
 
 def evaluate_dcrnn_fwbw(config):
     print('|-- Run model testing dgc_lstm.')
-
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(**config)
-        model.load(sess, config['train']['model_filename'])
-        outputs = model.evaluate(sess)
+    model = DCRNN_FWBW(**config)
+    model.evaluate(config)
 
 
 if __name__ == '__main__':
@@ -90,21 +76,24 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
-    parser.add_argument('--config-file', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+    parser.add_argument('--config', type=str,
                         help='Config file for pretrained model.')
+    parser.add_argument('--config-bw', type=str,
+                        help='Config file for pretrained backward model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
-    with open(args.config_file) as f:
-        config = yaml.load(f)
+    with open(args.config) as f:
+        config_fw = yaml.load(f)
 
-    print_dcrnn_fwbw_info(args.mode, config)
+    print_dcrnn_fwbw_info(args.mode, config_fw)
     if args.mode == 'train':
-        train_dcrnn_fwbw(config)
+        train_dcrnn_fwbw(config_fw)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_dcrnn_fwbw(config)
+        evaluate_dcrnn_fwbw(config_fw)
     else:
-        test_dcrnn_fwbw(config)
-    # get_results(data)
+        with open(args.config_bw) as f_bw:
+            config_bw = yaml.load(f_bw)
+        test_dcrnn_fwbw(config_fw, config_bw)

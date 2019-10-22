@@ -546,7 +546,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio, test_size,
+def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
                                 dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                                 pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')

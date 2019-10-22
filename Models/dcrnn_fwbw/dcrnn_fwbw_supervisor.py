@@ -13,7 +13,6 @@ import yaml
 from tqdm import tqdm
 
 from Models.dcrnn_fwbw.dcrnn_fwbw_model import DCRNNModel
-from common.error_utils import error_ratio
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
@@ -78,10 +77,6 @@ class DCRNNSupervisor(object):
         self._horizon = int(self._model_kwargs.get('horizon'))
         self._input_dim = int(self._model_kwargs.get('input_dim'))
         self._nodes = int(self._model_kwargs.get('num_nodes'))
-
-        # Test's args
-        self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._run_times = self._test_kwargs.get('run_times')
 
         # Data preparation
         self._day_size = self._data_kwargs.get('day_size')
@@ -447,15 +442,11 @@ class DCRNN_FWBW(object):
 
         # Test's args
         self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._test_size = self._test_kwargs.get('test_size')
         self._run_times = self._test_kwargs.get('run_times')
         self._lamda = []
         self._lamda.append(self._test_kwargs.get('lamda_0'))
         self._lamda.append(self._test_kwargs.get('lamda_1'))
         self._lamda.append(self._test_kwargs.get('lamda_2'))
-
-        # Data preparation
-        self._day_size = self._data_kwargs.get('day_size')
 
     def train(self, config):
         tf_config = tf.ConfigProto()
@@ -622,7 +613,7 @@ class DCRNN_FWBW(object):
 
         return corrected_data.T
 
-    def _run_tm_prediction(self, sess, writer=None):
+    def _run_tm_prediction(self, sess):
 
         test_data_norm = self._fw_net_wrap.data['test_data_norm']
 
@@ -640,7 +631,7 @@ class DCRNN_FWBW(object):
 
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
-            x, y = self._prepare_input(
+            x, y_fw, y_bw = self._prepare_input(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
                 data=tm_pred[ts:ts + self._seq_len],
                 m_indicator=m_indicator[ts:ts + self._seq_len]
@@ -648,18 +639,18 @@ class DCRNN_FWBW(object):
 
             y_truths.append(y)
 
-            fw_outputs = self._fw_net_wrap.predict(sess, x, y)
-            bw_outputs = self._bw_net_wrap.predict(sess, x, y)
+            _, fw_decoder_outputs = self._fw_net_wrap.predict(sess, x, y)
+            bw_encoder_outputs, _ = self._bw_net_wrap.predict(sess, x, y)
 
             corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                      pred_backward=bw_outputs,
+                                                      pred_backward=bw_encoder_outputs,
                                                       labels=m_indicator[ts: ts + self._seq_len])
             measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
             pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
 
-            y_preds.append(np.expand_dims(fw_outputs, axis=0))
-            pred = fw_outputs[0]
+            y_preds.append(np.expand_dims(fw_decoder_outputs, axis=0))
+            pred = fw_decoder_outputs[0]
 
             # Using part of current prediction as input to the next estimation
             # Randomly choose the flows which is measured (using the correct data from test_set)
@@ -672,7 +663,7 @@ class DCRNN_FWBW(object):
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
             else:
                 sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                   pred_forward=fw_outputs,
+                                                   pred_forward=fw_decoder_outputs,
                                                    m_indicator=m_indicator[ts: ts + self._seq_len].T)
 
             m_indicator[ts + self._seq_len] = sampling
@@ -701,6 +692,7 @@ class DCRNN_FWBW(object):
         return outputs
 
     def _test(self, sess):
+        scaler = self._fw_net_wrap.data['scaler']
 
         results_summary = pd.DataFrame(index=range(self._run_times))
         results_summary['No.'] = range(self._run_times)
@@ -712,21 +704,19 @@ class DCRNN_FWBW(object):
         for i in range(self._run_times):
             self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
-            test_results = self._run_tm_prediction(sess)
+            outputs = self._run_tm_prediction(sess)
 
-            # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-            y_preds = test_results['y_preds']
+            tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
+
             y_preds = np.concatenate(y_preds, axis=0)
-
-            y_truths = test_results['y_truths']
-            y_truths = np.concatenate(y_truths, axis=0)
-            scaler = self._fw_net_wrap.data['scaler']
             predictions = []
+            y_truths = outputs['y_truths']
+            y_truths = np.concatenate(y_truths, axis=0)
 
             for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
+                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
 
-                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
+                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
                 predictions.append(y_pred)
 
                 mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
@@ -738,21 +728,21 @@ class DCRNN_FWBW(object):
                         horizon_i + 1, mse, mae, rmse, mape
                     )
                 )
+
                 metrics_summary[i, horizon_i * n_metrics + 0] = mse
                 metrics_summary[i, horizon_i * n_metrics + 1] = mae
                 metrics_summary[i, horizon_i * n_metrics + 2] = rmse
                 metrics_summary[i, horizon_i * n_metrics + 3] = mape
 
-            tm_pred = scaler.inverse_transform(test_results['tm_pred'])
+            tm_pred = scaler.inverse_transform(tm_pred)
             g_truth = scaler.inverse_transform(self._fw_net_wrap.data['test_data_norm'][self._seq_len:-self._horizon])
-            m_indicator = test_results['m_indicator']
-            er = error_ratio(y_pred=tm_pred,
-                             y_true=g_truth,
-                             measured_matrix=m_indicator)
+
+            er = metrics.error_ratio(y_pred=tm_pred,
+                                     y_true=g_truth,
+                                     measured_matrix=m_indicator)
             metrics_summary[i, -1] = er
 
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
-
             print('ER: {}'.format(er))
 
         for horizon_i in range(self._horizon):
@@ -768,3 +758,6 @@ class DCRNN_FWBW(object):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
         np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
+
+    def evaluate(self, config_fw, config_bw):
+        raise NotImplementedError('Not implemented')

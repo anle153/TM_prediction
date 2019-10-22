@@ -65,10 +65,10 @@ def test_dcrnn_fwbw(config_fw, config_bw):
     model.test(config_fw, config_bw)
 
 
-def evaluate_dcrnn_fwbw(config):
+def evaluate_dcrnn_fwbw(config_fw, config_bw):
     print('|-- Run model testing dgc_lstm.')
-    model = DCRNN_FWBW(**config)
-    model.evaluate(config)
+    model = DCRNN_FWBW(**config_fw)
+    model.evaluate(config_fw, config_bw)
 
 
 if __name__ == '__main__':
@@ -92,7 +92,9 @@ if __name__ == '__main__':
     if args.mode == 'train':
         train_dcrnn_fwbw(config_fw)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_dcrnn_fwbw(config_fw)
+        with open(args.config_bw) as f_bw:
+            config_bw = yaml.load(f_bw)
+        evaluate_dcrnn_fwbw(config_fw, config_bw)
     else:
         with open(args.config_bw) as f_bw:
             config_bw = yaml.load(f_bw)

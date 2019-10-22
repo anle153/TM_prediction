@@ -19,7 +19,7 @@ class DCGRUCellWeighted_en(RNNCell):
     def compute_output_shape(self, input_shape):
         pass
 
-    def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
+    def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, batch_size, num_proj=None,
                  activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
@@ -57,7 +57,8 @@ class DCGRUCellWeighted_en(RNNCell):
         for support in supports:
             self._supports.append(self._build_sparse_matrix(support))
 
-        self._adj_mx = tf.convert_to_tensor(adj_mx)
+        _adj_mx = tf.convert_to_tensor(adj_mx)
+        self._adj_mx_repeat = tf.tile(tf.expand_dims(self._adj_mx, axis=0), [batch_size, 1, 1])
         for support in self._supports:
             self._supports_dense.append(tf.sparse.to_dense(support))
 
@@ -100,6 +101,7 @@ class DCGRUCellWeighted_en(RNNCell):
                 weight_nodes = tf.reshape(weight_nodes, shape=[batch_size, self._num_nodes, 1])
                 weight_nodes_tiled = tf.tile(weight_nodes, [1, 1, self._num_nodes])
                 inputs = inputs[:, :, :(size - 1)]
+                weight_nodes_tiled = self._adj_mx_repeat * weight_nodes_tiled  # (batch, num_nodes, num_nodes)
 
                 outputsize = 2 * self._num_units
                 # We start with bias of 1.0 to not reset and not update.
@@ -147,7 +149,7 @@ class DCGRUCellWeighted_en(RNNCell):
         value = tf.nn.bias_add(value, biases)
         return value
 
-    def _gconv(self, inputs, state, weight_nodes, outputsize, bias_start=0.0):
+    def _gconv(self, inputs, state, directed_weight_links, outputsize, bias_start=0.0):
         """Graph convolution between input and the graph matrix.
 
         :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
@@ -161,8 +163,6 @@ class DCGRUCellWeighted_en(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
-        adj_mx_repeat = tf.tile(tf.expand_dims(self._adj_mx, axis=0), [batch_size, 1, 1])
-        directed_weight_links = adj_mx_repeat * weight_nodes  # (batch, num_nodes, num_nodes)
 
         # Remove the nodes' weight in the inputs
         # inputs = tf.slice(inputs, [0, 0, 0], [batch_size, self._num_nodes, size - 1])

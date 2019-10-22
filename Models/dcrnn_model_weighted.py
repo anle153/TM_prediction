@@ -41,7 +41,7 @@ class DCRNNModelWeighted(object):
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
         cell_en = DCGRUCellWeighted_en(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                       filter_type=filter_type)
+                                       filter_type=filter_type, batch_size=batch_size)
         # cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
         #                                filter_type=filter_type)
 

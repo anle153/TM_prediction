@@ -466,8 +466,6 @@ class DCRNN_FWBW(object):
             self._fw_net_wrap.train(sess)
             sess.close()
 
-        tf.reset_default_graph()
-
         tf_config = tf.ConfigProto()
         tf_config.gpu_options.allow_growth = True
         with tf.Session(config=tf_config) as sess:

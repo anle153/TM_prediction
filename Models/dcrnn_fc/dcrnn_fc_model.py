@@ -5,11 +5,10 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
-from Models.dcrnn_cell import DCGRUCell
-from Models.dcrnn_cell_weighted import DCGRUCellWeighted
+from Models.dcrnn_fc.dcrnn_fc_cell import DCGRUCell
 
 
-class DCRNNModelWeighted(object):
+class DCRNNModel(object):
     def __init__(self, is_training, batch_size, scaler, adj_mx, **model_kwargs):
         # Scaler for data normalization.
         self._scaler = scaler
@@ -40,17 +39,12 @@ class DCRNNModelWeighted(object):
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
-        cell_w = DCGRUCellWeighted(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                   filter_type=filter_type, batch_size=batch_size)
-
         cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                          filter_type=filter_type)
-
-        cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step,
-                                         num_nodes=num_nodes,
+        cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                          num_proj=output_dim, filter_type=filter_type)
 
-        encoding_cells = [cell_w] * num_rnn_layers
+        encoding_cells = [cell] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
         decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
@@ -87,6 +81,7 @@ class DCRNNModelWeighted(object):
 
         # Project the output to output_dim.
         outputs = tf.stack(outputs[:-1], axis=1)
+
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
 

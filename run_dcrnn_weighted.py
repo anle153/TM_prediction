@@ -95,14 +95,14 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
-    parser.add_argument('--config-file', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+    parser.add_argument('--config', default='data/model/pretrained/METR-LA/config.yaml', type=str,
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
-    with open(args.config_file) as f:
+    with open(args.config) as f:
         config = yaml.load(f)
 
     print_dcrnn_weighted_info(args.mode, config)

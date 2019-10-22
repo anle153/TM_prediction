@@ -432,10 +432,6 @@ class DCRNN_FWBW(object):
         self._test_kwargs = kwargs.get('test')
         # logging.
         self._log_dir = _get_log_dir(kwargs)
-        log_level = self._kwargs.get('log_level', 'INFO')
-        self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
-        self._writer = tf.summary.FileWriter(self._log_dir)
-        self._logger.info(kwargs)
 
         self._mon_ratio = float(self._kwargs.get('mon_ratio'))
 
@@ -457,12 +453,13 @@ class DCRNN_FWBW(object):
     def train(self, config):
         tf_config = tf.ConfigProto()
         tf_config.gpu_options.allow_growth = True
-
+        print('|-------------- Training forward network --------------')
         with tf.Session(config=tf_config) as sess:
             self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config)
             self._fw_net_wrap.train(sess)
             sess.close()
 
+        print('|-------------- Training backward network --------------')
         tf_config = tf.ConfigProto()
         tf_config.gpu_options.allow_growth = True
         with tf.Session(config=tf_config) as sess:

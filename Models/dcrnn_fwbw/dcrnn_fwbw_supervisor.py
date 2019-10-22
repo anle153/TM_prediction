@@ -30,7 +30,11 @@ def _get_log_dir(kwargs):
             ['%d' % rnn_units for _ in range(num_rnn_layers)])
         horizon = kwargs['model'].get('horizon')
         seq_len = kwargs['model'].get('seq_len')
-        adj_mx_threshold = kwargs['data'].get('adj_mx_threshold')
+
+        adj_method = kwargs['data'].get('adj_method')
+        adj_pos_thres = kwargs['data'].get('pos_thres')
+        adj_neg_thres = -kwargs['data'].get('neg_thres')
+
         filter_type = kwargs['model'].get('filter_type')
         filter_type_abbr = 'L'
         if filter_type == 'random_walk':
@@ -40,8 +44,9 @@ def _get_log_dir(kwargs):
 
         mon_ratio = kwargs['mon_ratio']
 
-        run_id = 'dcrnn_fwbw_%s_%g_%d_%.2f_%d_%d_%s_%g_%d/' % (
-            filter_type_abbr, mon_ratio, max_diffusion_step, adj_mx_threshold, horizon, seq_len,
+        run_id = 'dcrnn_fwbw_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d/' % (
+            filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
+            adj_pos_thres, adj_neg_thres, horizon, seq_len,
             structure, learning_rate, batch_size)
         base_dir = kwargs.get('base_dir')
         log_dir = os.path.join(base_dir, run_id)

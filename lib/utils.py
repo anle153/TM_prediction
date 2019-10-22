@@ -660,11 +660,17 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
         data['y_' + network_type + '_' + category] = _y
         data['l_' + network_type + '_' + category] = _l
     # Data format
-    data['train_' + network_type + '_loader'] = DataLoader_2(data['x_train'], data['y_train'], data['l_train'],
+    data['train_' + network_type + '_loader'] = DataLoader_2(data['x_' + network_type + '_train'],
+                                                             data['y_' + network_type + '_train'],
+                                                             data['l_' + network_type + '_train'],
                                                              batch_size, shuffle=True)
-    data['val_' + network_type + '_loader'] = DataLoader_2(data['x_val'], data['y_val'], data['l_val'], val_batch_size,
+    data['val_' + network_type + '_loader'] = DataLoader_2(data['x_' + network_type + '_val'],
+                                                           data['y_' + network_type + '_val'],
+                                                           data['l_' + network_type + '_val'], val_batch_size,
                                                            shuffle=False)
-    data['eval_' + network_type + '_loader'] = DataLoader_2(data['x_eval'], data['y_eval'], data['l_eval'],
+    data['eval_' + network_type + '_loader'] = DataLoader_2(data['x_' + network_type + '_eval'],
+                                                            data['y_' + network_type + '_eval'],
+                                                            data['l_' + network_type + '_eval'],
                                                             eval_batch_size, shuffle=False)
 
     data['scaler'] = scaler

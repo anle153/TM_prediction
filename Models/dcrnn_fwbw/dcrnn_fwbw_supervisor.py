@@ -297,7 +297,8 @@ class DCRNNSupervisor(object):
 
             start_time = time.time()
             train_results = self.run_epoch_generator(sess, self.train_model,
-                                                     self.data['train_loader'].get_iterator(),
+                                                     self.data[
+                                                         'train_' + self._network_type + '_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
             train_loss, train_mse, train_enc_loss = train_results['loss'], train_results['mse'], train_results[
@@ -309,7 +310,7 @@ class DCRNNSupervisor(object):
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
             val_results = self.run_epoch_generator(sess, self.val_model,
-                                                   self.data['val_loader'].get_iterator(),
+                                                   self.data['val_' + self._network_type + '_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_mse, val_enc_loss = val_results['loss'].item(), val_results['mse'].item(), val_results[
                 'enc_loss'].item()
@@ -358,7 +359,7 @@ class DCRNNSupervisor(object):
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())
         test_results = self.run_epoch_generator(sess, self.eval_model,
-                                                self.data['eval_loader'].get_iterator(),
+                                                self.data['eval_' + self._network_type + '_loader'].get_iterator(),
                                                 return_output=True,
                                                 training=False)
 
@@ -370,8 +371,8 @@ class DCRNNSupervisor(object):
         scaler = self.data['scaler']
         predictions = []
         y_truths = []
-        for horizon_i in range(self.data['y_eval'].shape[1]):
-            y_truth = scaler.inverse_transform(self.data['y_eval'][:, horizon_i, :, 0])
+        for horizon_i in range(self.data['y_' + self._network_type + '_eval'].shape[1]):
+            y_truth = scaler.inverse_transform(self.data['y_' + self._network_type + '_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)
 
             y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
@@ -634,7 +635,7 @@ class DCRNN_FWBW(object):
         y_preds = []
         tf_a = np.array([1.0, 0.0])
 
-        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
+        for ts in tqdm(range(1, test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
             x, y_fw, y_bw = self._prepare_input(
                 ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],

@@ -57,7 +57,7 @@ def train_dcrnn_fwbw(config):
     print('|-- Run model training dgc_lstm.')
 
     model = DCRNN_FWBW(**config)
-    model.train(config)
+    model.train(config, net_train='bw')
 
 
 def test_dcrnn_fwbw(config_fw, config_bw):

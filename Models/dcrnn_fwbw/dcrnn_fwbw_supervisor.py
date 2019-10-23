@@ -126,9 +126,10 @@ class DCRNNSupervisor(object):
                                              adj_mx=self.data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
-        self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
+        with tf.variable_scope('lr_' + self._network_type):
+            self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
                                    trainable=False)
-        self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
+            self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
         self._lr_update = tf.assign(self._lr, self._new_lr, name='lr_update')
 
         # Configure optimizer
@@ -454,22 +455,25 @@ class DCRNN_FWBW(object):
         self._lamda.append(self._test_kwargs.get('lamda_1'))
         self._lamda.append(self._test_kwargs.get('lamda_2'))
 
-    def train(self, config):
-        tf_config = tf.ConfigProto()
-        tf_config.gpu_options.allow_growth = True
-        print('|-------------- Training forward network --------------')
-        with tf.Session(config=tf_config) as sess:
-            self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config)
-            self._fw_net_wrap.train(sess)
-            sess.close()
+    def train(self, config, net_train=None):
 
-        print('|-------------- Training backward network --------------')
-        tf_config = tf.ConfigProto()
-        tf_config.gpu_options.allow_growth = True
-        with tf.Session(config=tf_config) as sess:
-            self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config)
-            self._bw_net_wrap.train(sess)
-            sess.close()
+        if net_train == 'fw' or net_train is None:
+            tf_config = tf.ConfigProto()
+            tf_config.gpu_options.allow_growth = True
+            print('|-------------- Training forward network --------------')
+            with tf.Session(config=tf_config) as sess:
+                self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config)
+                self._fw_net_wrap.train(sess)
+                sess.close()
+
+        if net_train == 'bw' or net_train is None:
+            print('|-------------- Training backward network --------------')
+            tf_config = tf.ConfigProto()
+            tf_config.gpu_options.allow_growth = True
+            with tf.Session(config=tf_config) as sess:
+                self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config)
+                self._bw_net_wrap.train(sess)
+                sess.close()
 
     def test(self, config_fw, config_bw):
         tf_config = tf.ConfigProto()

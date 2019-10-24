@@ -229,13 +229,16 @@ class DCRNNSupervisorWeighted(object):
 
         _back = m_indicator.shape[0] - self._seq_len
 
-        w = np.zeros(shape=(self._seq_len, self._nodes, 1))
+        _w = np.zeros(shape=(self._seq_len, self._nodes, 1))
 
         for i in range(self._seq_len):
             _mr = m_indicator[i:(_back + i)].sum(axis=0) / _back
-            w[i] = np.expand_dims(_mr, axis=1)
+            _w[i] = np.expand_dims(_mr, axis=1)
 
-        x[:] = np.concatenate([data, m_indicator[-self._seq_len:], w], axis=2)
+        _x = np.expand_dims(data, axis=2)
+        _m = np.expand_dims(m_indicator[-self._seq_len:], axis=2)
+
+        x[:] = np.concatenate([_x, _m, _w], axis=2)
 
         y[:] = ground_truth
         y = np.expand_dims(y, axis=2)

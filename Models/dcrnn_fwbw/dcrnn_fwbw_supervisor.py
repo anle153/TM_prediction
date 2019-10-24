@@ -133,7 +133,7 @@ class DCRNNSupervisor(object):
                 self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
 
         else:
-            with tf.variable_scope('lr_'):
+            with tf.variable_scope('lr'):
                 self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
                                            trainable=False)
                 self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')

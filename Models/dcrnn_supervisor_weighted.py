@@ -232,7 +232,10 @@ class DCRNNSupervisorWeighted(object):
         _w = np.zeros(shape=(self._seq_len, self._nodes, 1))
 
         for i in range(self._seq_len):
-            _mr = m_indicator[i:(_back + i)].sum(axis=0) / _back
+            if _back == 0:
+                _mr = np.ones(shape=(self._nodes,))
+            else:
+                _mr = m_indicator[i:(_back + i)].sum(axis=0) / _back
             _w[i] = np.expand_dims(_mr, axis=1)
 
         _x = np.expand_dims(data, axis=2)

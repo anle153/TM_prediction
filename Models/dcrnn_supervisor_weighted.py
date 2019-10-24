@@ -235,7 +235,7 @@ class DCRNNSupervisorWeighted(object):
             _mr = m_indicator[i:(_back + i)].sum(axis=0) / _back
             w[i] = np.expand_dims(_mr, axis=1)
 
-        x = np.concatenate([data, m_indicator[-self._seq_len:], w])
+        x[:] = np.concatenate([data, m_indicator[-self._seq_len:], w], axis=2)
 
         y[:] = ground_truth
         y = np.expand_dims(y, axis=2)

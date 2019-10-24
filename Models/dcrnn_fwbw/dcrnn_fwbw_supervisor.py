@@ -126,13 +126,7 @@ class DCRNNSupervisor(object):
                                              adj_mx=self.data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
-        if self._network_type == 'bw':
-            with tf.variable_scope('lr_' + self._network_type):
-                self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
-                                   trainable=False)
-                self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
-
-        else:
+        with tf.variable_scope('lr_' + self._network_type):
             self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
                                        trainable=False)
             self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')

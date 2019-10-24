@@ -128,8 +128,9 @@ class DCRNNSupervisor(object):
         # Learning rate.
         with tf.variable_scope('lr_' + self._network_type):
             self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
-                                   trainable=False)
+                                       trainable=False)
             self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
+
         self._lr_update = tf.assign(self._lr, self._new_lr, name='lr_update')
 
         # Configure optimizer

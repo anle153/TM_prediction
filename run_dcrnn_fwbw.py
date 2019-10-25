@@ -2,9 +2,10 @@ import argparse
 import os
 import sys
 
+import tensorflow as tf
 import yaml
 
-from Models.dcrnn_fwbw.dcrnn_fwbw_supervisor import DCRNN_FWBW
+from Models.dcrnn_fwbw.dcrnn_fwbw_supervisor import DCRNNSupervisor
 
 
 def print_dcrnn_fwbw_info(mode, config):
@@ -56,20 +57,24 @@ def print_dcrnn_fwbw_info(mode, config):
 def train_dcrnn_fwbw(config):
     print('|-- Run model training dgc_lstm.')
 
-    model = DCRNN_FWBW(**config)
-    model.train(config, net_train='fw')
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.train(sess)
 
 
 def test_dcrnn_fwbw(config_fw, config_bw):
     print('|-- Run model testing dgc_lstm.')
 
-    model = DCRNN_FWBW(**config_fw)
+    model = DCRNNSupervisor(**config_fw)
     model.test(config_fw, config_bw)
 
 
 def evaluate_dcrnn_fwbw(config_fw, config_bw):
     print('|-- Run model testing dgc_lstm.')
-    model = DCRNN_FWBW(**config_fw)
+    model = DCRNNSupervisor(**config_fw)
     model.evaluate(config_fw, config_bw)
 
 

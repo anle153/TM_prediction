@@ -331,8 +331,9 @@ class DCRNNSupervisor(object):
                                                          'train_' + self._network_type + '_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
-            train_loss, train_mse, train_enc_loss = train_results['loss'], train_results['mse'], train_results[
-                'enc_loss']
+            train_loss, train_mse, train_enc_loss, train_enc_loss_bw = train_results['loss'], train_results['mse'], \
+                                                                       train_results[
+                                                                           'enc_loss'], train_results['enc_loss_bw']
             # if train_loss > 1e5:
             #     self._logger.warning('Gradient explosion detected. Ending...')
             #     break
@@ -342,15 +343,17 @@ class DCRNNSupervisor(object):
             val_results = self.run_epoch_generator(sess, self.val_model,
                                                    self.data['val_' + self._network_type + '_loader'].get_iterator(),
                                                    training=False)
-            val_loss, val_mse, val_enc_loss = val_results['loss'].item(), val_results['mse'].item(), val_results[
-                'enc_loss'].item()
+            val_loss, val_mse, val_enc_loss, val_enc_loss_bw = val_results['loss'].item(), val_results['mse'].item(), \
+                                                               val_results[
+                                                                   'enc_loss'].item(), val_results['enc_loss_bw'].item()
 
             utils.add_simple_summary(self._writer,
                                      ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
                                      [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f}, train_enc: {:.4f}, val_enc: {:.4f} -  lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, global_step, train_mse, val_mse, train_enc_loss, val_enc_loss, new_lr,
+            message = 'Epoch [{}/{}] train_mse: {:.4f}, val_mse: {:.4f}, train_enc: {:.4f}, val_enc: {:.4f},  train_enc_bw: {:.4f}, val_enc_bw: {:.4f} -  lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, global_step, train_mse, val_mse, train_enc_loss, val_enc_loss, train_enc_loss_bw,
+                val_enc_loss_bw, new_lr,
                 (end_time - start_time))
             self._logger.info(message)
             if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:

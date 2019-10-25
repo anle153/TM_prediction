@@ -144,11 +144,19 @@ class DCRNNSupervisor(object):
 
         # Calculate loss
         output_dim = self._model_kwargs.get('output_dim')
+        # fw
         preds = self.train_model.outputs
         labels = self.train_model.labels[..., :output_dim]
 
         enc_preds = self.train_model.enc_outputs
         enc_labels = self.train_model.enc_labels[..., :output_dim]
+
+        # bw
+        preds_bw = self.train_model.outputs_bw
+        labels_bw = self.train_model.labels_bw[..., :output_dim]
+
+        enc_preds_bw = self.train_model.enc_outputs_bw
+        enc_labels_bw = self.train_model.enc_labels_bw[..., :output_dim]
 
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)
@@ -156,7 +164,11 @@ class DCRNNSupervisor(object):
         self._train_loss_dec = self._loss_fn(preds=preds, labels=labels)
         self._train_loss_enc = self._loss_fn(preds=enc_preds, labels=enc_labels)
 
-        self._train_loss = self._train_loss_dec + self._train_loss_enc
+        # backward loss
+        # self._train_loss_dec = self._loss_fn(preds=preds, labels=labels)
+        self._train_loss_enc_bw = self._loss_fn(preds=enc_preds_bw, labels=enc_labels_bw)
+
+        self._train_loss = self._train_loss_dec + self._train_loss_enc + self._train_loss_enc_bw
 
         tvars = tf.trainable_variables()
         grads = tf.gradients(self._train_loss, tvars)
@@ -178,22 +190,31 @@ class DCRNNSupervisor(object):
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
         enc_losses = []
+        enc_losses_bw = []
         mses = []
         outputs = []
+        outputs_bw = []
         output_dim = self._model_kwargs.get('output_dim')
         preds = model.outputs
         labels = model.labels[..., :output_dim]
+        preds_bw = model.outputs
+        labels_bw = model.labels[..., :output_dim]
         loss = self._loss_fn(preds=preds, labels=labels)
+        loss_bw = self._loss_fn(preds=preds_bw, labels=labels_bw)
 
         enc_preds = model.enc_outputs
         enc_labels = model.enc_labels[..., :output_dim]
-
         enc_loss = self._loss_fn(preds=enc_preds, labels=enc_labels)
+
+        enc_preds_bw = model.enc_outputs_bw
+        enc_labels_bw = model.enc_labels_bw[..., :output_dim]
+        enc_loss_bw = self._loss_fn(preds=enc_preds_bw, labels=enc_labels_bw)
 
         fetches = {
             'loss': loss,
             'mse': loss,
             'enc_loss': enc_loss,
+            'enc_loss_bw': enc_loss_bw,
             'global_step': tf.train.get_or_create_global_step()
         }
         if training:
@@ -209,16 +230,18 @@ class DCRNNSupervisor(object):
                 'outputs': model.outputs
             })
 
-        for _, (x, y, l) in enumerate(data_generator):
+        for _, (x, y, enc_l, l_bw, enc_l_bw) in enumerate(data_generator):
             feed_dict = {
                 model.inputs: x,
                 model.labels: y,
-                model.enc_labels: l,
+                model.enc_labels: enc_l,
+                model.labels_bw: l_bw,
+                model.enc_labels_bw: enc_l_bw,
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
 
-            losses.append(vals['loss'] + vals['enc_loss'])
+            losses.append(vals['loss'] + vals['enc_loss'] + vals['enc_loss_bw'])
             enc_losses.append(vals['enc_loss'])
             mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
@@ -230,6 +253,7 @@ class DCRNNSupervisor(object):
             'loss': np.mean(losses),
             'mse': np.mean(mses),
             'enc_loss': np.mean(enc_losses),
+            'enc_loss_bw': np.mean(enc_losses_bw),
         }
         if return_output:
             results['outputs'] = outputs

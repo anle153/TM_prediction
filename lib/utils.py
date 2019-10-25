@@ -405,7 +405,7 @@ def sd_flow_matrix(flow_index_file='./Dataset/demands.csv'):
 
     for i in range(nflow):
         for j in range(nflow):
-            if (flow_index.iloc[i].d == flow_index.iloc[j].d) or (flow_index.iloc[i].s == flow_index.iloc[j].s):
+            if (flow_index.iloc[i].d == flow_index.iloc[j].d) or (flow_index.iloc[i].o == flow_index.iloc[j].o):
                 adj_matrix[i, j] = 1.0
 
     return adj_matrix

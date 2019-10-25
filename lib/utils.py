@@ -313,30 +313,40 @@ def create_data_dcrnn_fwbw(data, seq_len, horizon, input_dim, mon_ratio, eps):
     :return:
     """
     _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
-    _labels = _labels.astype('float32')
+    _m_indicators = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
+    _m_indicators = _m_indicators.astype('float32')
     _data = np.copy(data)
 
-    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+    _data[_m_indicators == 0.0] = np.random.uniform(_data[_m_indicators == 0.0] - eps,
+                                                    _data[_m_indicators == 0.0] + eps)
 
-    x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
-    l = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
-    y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
+    inputs = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
+    enc_labels_fw = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
+    dec_labels_fw = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
+    enc_labels_bw = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
+    dec_labels_bw = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
-    for idx in range(_data.shape[0] - seq_len - horizon):
-        _x = _data[idx: idx + seq_len]
-        _label = _labels[idx: idx + seq_len]
+    for idx in range(horizon, _data.shape[0] - seq_len - horizon, 1):
+        _input = _data[idx: idx + seq_len]
+        _m = _m_indicators[idx: idx + seq_len]
 
-        x[idx, :, :, 0] = _x
-        x[idx, :, :, 1] = _label
+        inputs[idx, :, :, 0] = _input
+        inputs[idx, :, :, 1] = _m
 
-        _l = data[idx + 1:idx + seq_len + 1]
-        _y = data[idx + seq_len:idx + seq_len + horizon]
+        _enc_labels_fw = data[idx + 1:idx + seq_len + 1]
+        _dec_labels_fw = data[idx + seq_len:idx + seq_len + horizon]
 
-        l[idx] = np.expand_dims(_l, axis=2)
-        y[idx] = np.expand_dims(_y, axis=2)
+        enc_labels_fw[idx] = np.expand_dims(_enc_labels_fw, axis=2)
+        dec_labels_fw[idx] = np.expand_dims(_dec_labels_fw, axis=2)
 
-    return x, y, l
+        _enc_labels_bw = data[idx - 1:idx + seq_len - 1]
+        _dec_labels_bw = data[idx - horizon:idx]
+
+        enc_labels_bw[idx] = np.expand_dims(np.flip(_enc_labels_bw, axis=0), axis=2)
+        dec_labels_bw[idx] = np.expand_dims(np.flip(_dec_labels_bw, axis=0), axis=2)
+
+    # return inputs, dec_labels_fw, enc_labels_fw, dec_labels_bw, enc_labels_bw
+    return inputs, enc_labels_fw, dec_labels_fw, enc_labels_bw, dec_labels_bw
 
 
 def correlation_matrix(data, seq_len):
@@ -610,7 +620,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', network_type='fw', **kwargs):
+                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
 
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
@@ -623,11 +633,6 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     if data_size == 1.0:
         raw_data = raw_data[:-day_size * 3]
 
-    if network_type == 'bw':
-        raw_data = np.flip(raw_data, axis=0)
-    elif network_type != 'fw':
-        raise ValueError('[Load data] network type must be fw or bw')
-
     print('|--- Splitting train-test set.')
     train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
     data = {}
@@ -638,44 +643,47 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
 
-    data['test_data_' + network_type + '_norm'] = test_data_norm
+    data['test_data_norm'] = test_data_norm
 
     # x(num_sample, seq_len, num_node, input_dim): encoder input
     # y(num_sample, horizon, num_node, output_dim): decoder output
     # l(num_sample, seq_len, num_node, output_dim): encoder output
-    x_train, y_train, l_train = create_data_dcrnn_fwbw(data=train_data_norm, seq_len=seq_len, horizon=horizon,
-                                                       input_dim=input_dim,
-                                                       mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_val, y_val, l_val = create_data_dcrnn_fwbw(data=valid_data_norm, seq_len=seq_len, horizon=horizon,
-                                                 input_dim=input_dim,
-                                                 mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_eval, y_eval, l_eval = create_data_dcrnn_fwbw(data=test_data_norm, seq_len=seq_len, horizon=horizon,
-                                                    input_dim=input_dim,
-                                                    mon_ratio=mon_ratio, eps=train_data_norm.std())
+    inputs_train, enc_labels_fw_train, dec_labels_fw_train, enc_labels_bw_train, dec_labels_bw_train = create_data_dcrnn_fwbw(
+        data=train_data_norm, seq_len=seq_len, horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio, eps=train_data_norm.std())
+    inputs_val, enc_labels_fw_val, dec_labels_fw_val, enc_labels_bw_val, dec_labels_bw_val = create_data_dcrnn_fwbw(
+        data=valid_data_norm, seq_len=seq_len, horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio, eps=train_data_norm.std())
+    inputs_eval, enc_labels_fw_eval, dec_labels_fw_eval, enc_labels_bw_eval, dec_labels_bw_eval = create_data_dcrnn_fwbw(
+        data=test_data_norm, seq_len=seq_len, horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
         _x, _y, _l = locals()["x_" + category], locals()["y_" + category], locals()["l_" + category]
         print(category, "x: ", _x.shape, "y:", _y.shape, "l", _l.shape)
-        data['x_' + network_type + '_' + category] = _x
-        data['y_' + network_type + '_' + category] = _y
-        data['l_' + network_type + '_' + category] = _l
+        data['x_' + category] = _x
+        data['y_' + category] = _y
+        data['l_' + category] = _l
     # Data format
-    data['train_' + network_type + '_loader'] = DataLoader_2(data['x_' + network_type + '_train'],
-                                                             data['y_' + network_type + '_train'],
-                                                             data['l_' + network_type + '_train'],
-                                                             batch_size, shuffle=True)
-    data['val_' + network_type + '_loader'] = DataLoader_2(data['x_' + network_type + '_val'],
-                                                           data['y_' + network_type + '_val'],
-                                                           data['l_' + network_type + '_val'], val_batch_size,
-                                                           shuffle=False)
-    data['eval_' + network_type + '_loader'] = DataLoader_2(data['x_' + network_type + '_eval'],
-                                                            data['y_' + network_type + '_eval'],
-                                                            data['l_' + network_type + '_eval'],
-                                                            eval_batch_size, shuffle=False)
+    data['train_loader'] = DataLoader_2(data['x_train'],
+                                        data['y_train'],
+                                        data['l_train'],
+                                        batch_size, shuffle=True)
+    data['val_loader'] = DataLoader_2(data['x_val'],
+                                      data['y_val'],
+                                      data['l_val'], val_batch_size,
+                                      shuffle=False)
+    data['eval_loader'] = DataLoader_2(data['x_eval'],
+                                       data['y_eval'],
+                                       data['l_eval'],
+                                       eval_batch_size, shuffle=False)
 
     data['scaler'] = scaler
 
-    print('|--- Network {} Get Correlation Matrix'.format(network_type))
+    print('|--- Get Correlation Matrix')
 
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)

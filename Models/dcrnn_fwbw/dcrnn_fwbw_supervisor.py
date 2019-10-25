@@ -64,18 +64,17 @@ class DCRNNSupervisor(object):
     Do experiments using Graph Random Walk RNN model.
     """
 
-    def __init__(self, network_type='fw', **kwargs):
+    def __init__(self, **kwargs):
 
         self._kwargs = kwargs
         self._data_kwargs = kwargs.get('data')
         self._model_kwargs = kwargs.get('model')
         self._train_kwargs = kwargs.get('train')
         self._test_kwargs = kwargs.get('test')
-        self._network_type = network_type
         # logging.
         self._log_dir = _get_log_dir(kwargs)
         log_level = self._kwargs.get('log_level', 'INFO')
-        self._logger = utils.get_logger(self._log_dir, self._network_type, 'info.log', level=log_level)
+        self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
         self._writer = tf.summary.FileWriter(self._log_dir)
         self._logger.info(kwargs)
 
@@ -93,7 +92,6 @@ class DCRNNSupervisor(object):
                                                   horizon=self._model_kwargs.get('horizon'),
                                                   input_dim=self._model_kwargs.get('input_dim'),
                                                   mon_ratio=self._mon_ratio,
-                                                  network_type=self._network_type,
                                                   **self._data_kwargs)
         for k, v in self.data.items():
             if hasattr(v, 'shape'):
@@ -101,35 +99,34 @@ class DCRNNSupervisor(object):
 
         # Build models.
         scaler = self.data['scaler']
-        with tf.name_scope('Train_' + self._network_type):
-            with tf.variable_scope('DCRNN_' + self._network_type, reuse=False):
+        with tf.name_scope('Train'):
+            with tf.variable_scope('DCRNN', reuse=False):
                 self.train_model = DCRNNModel(is_training=True, scaler=scaler,
                                               batch_size=self._data_kwargs['batch_size'],
                                               adj_mx=self.data['adj_mx'], **self._model_kwargs)
 
-        with tf.name_scope('Val_' + self._network_type):
-            with tf.variable_scope('DCRNN_' + self._network_type, reuse=True):
+        with tf.name_scope('Val'):
+            with tf.variable_scope('DCRNN', reuse=True):
                 self.val_model = DCRNNModel(is_training=False, scaler=scaler,
                                             batch_size=self._data_kwargs['val_batch_size'],
                                             adj_mx=self.data['adj_mx'], **self._model_kwargs)
 
-        with tf.name_scope('Eval_' + self._network_type):
-            with tf.variable_scope('DCRNN_' + self._network_type, reuse=True):
+        with tf.name_scope('Eval'):
+            with tf.variable_scope('DCRNN', reuse=True):
                 self.eval_model = DCRNNModel(is_training=False, scaler=scaler,
                                              batch_size=self._data_kwargs['eval_batch_size'],
                                              adj_mx=self.data['adj_mx'], **self._model_kwargs)
 
-        with tf.name_scope('Test_' + self._network_type):
-            with tf.variable_scope('DCRNN_' + self._network_type, reuse=True):
+        with tf.name_scope('Test'):
+            with tf.variable_scope('DCRNN', reuse=True):
                 self.test_model = DCRNNModel(is_training=False, scaler=scaler,
                                              batch_size=self._data_kwargs['test_batch_size'],
                                              adj_mx=self.data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
-        with tf.variable_scope('lr_' + self._network_type):
-            self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
-                                       trainable=False)
-            self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
+        self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
+                                   trainable=False)
+        self._new_lr = tf.placeholder(tf.float32, shape=(), name='new_learning_rate')
 
         self._lr_update = tf.assign(self._lr, self._new_lr, name='lr_update')
 
@@ -328,7 +325,7 @@ class DCRNNSupervisor(object):
             start_time = time.time()
             train_results = self.run_epoch_generator(sess, self.train_model,
                                                      self.data[
-                                                         'train_' + self._network_type + '_loader'].get_iterator(),
+                                                         'train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
             train_loss, train_mse, train_enc_loss, train_enc_loss_bw = train_results['loss'], train_results['mse'], \
@@ -341,7 +338,7 @@ class DCRNNSupervisor(object):
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
             val_results = self.run_epoch_generator(sess, self.val_model,
-                                                   self.data['val_' + self._network_type + '_loader'].get_iterator(),
+                                                   self.data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_mse, val_enc_loss, val_enc_loss_bw = val_results['loss'].item(), val_results['mse'].item(), \
                                                                val_results[
@@ -392,7 +389,7 @@ class DCRNNSupervisor(object):
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())
         test_results = self.run_epoch_generator(sess, self.eval_model,
-                                                self.data['eval_' + self._network_type + '_loader'].get_iterator(),
+                                                self.data['eval_loader'].get_iterator(),
                                                 return_output=True,
                                                 training=False)
 
@@ -404,8 +401,8 @@ class DCRNNSupervisor(object):
         scaler = self.data['scaler']
         predictions = []
         y_truths = []
-        for horizon_i in range(self.data['y_' + self._network_type + '_eval'].shape[1]):
-            y_truth = scaler.inverse_transform(self.data['y_' + self._network_type + '_eval'][:, horizon_i, :, 0])
+        for horizon_i in range(self.data['y_eval'].shape[1]):
+            y_truth = scaler.inverse_transform(self.data['y_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)
 
             y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
@@ -443,13 +440,13 @@ class DCRNNSupervisor(object):
     def save(self, sess, val_loss):
         config = dict(self._kwargs)
         global_step = sess.run(tf.train.get_or_create_global_step()).item()
-        prefix = os.path.join(self._log_dir, 'models-{}-{:.4f}'.format(self._network_type, val_loss))
+        prefix = os.path.join(self._log_dir, 'models-{:.4f}'.format(val_loss))
         config['train']['epoch'] = self._epoch
         config['train']['global_step'] = global_step
         config['train']['log_dir'] = self._log_dir
         config['train']['model_filename'] = self._saver.save(sess, prefix, global_step=global_step,
                                                              write_meta_graph=False)
-        config_filename = 'config_{}_{}.yaml'.format(self._network_type, self._epoch)
+        config_filename = 'config_{}.yaml'.format(self._epoch)
         with open(os.path.join(self._log_dir, config_filename), 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
         return config['train']['model_filename']

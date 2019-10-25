@@ -467,8 +467,8 @@ def knn_ts(data, metric='dtw'):
     pass
 
 
-#                0        1       2      3        4        5        6      7
-ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN']
+#                0        1       2      3        4        5        6      7      8
+ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 'SD']
 
 
 def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_thres=-0.8):

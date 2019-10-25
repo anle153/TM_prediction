@@ -675,7 +675,7 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
 
     data['scaler'] = scaler
 
-    print('|--- Get Correlation Matrix')
+    print('|--- Network {} Get Correlation Matrix'.format(network_type))
 
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)

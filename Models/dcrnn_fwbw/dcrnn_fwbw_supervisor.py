@@ -481,8 +481,8 @@ class DCRNN_FWBW(object):
         tf_config.gpu_options.allow_growth = True
 
         with tf.Session(config=tf_config) as sess:
-            self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config_fw)
-            self._fw_net_wrap.load(sess, config_fw['train']['model_filename'])
+            # self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config_fw)
+            # self._fw_net_wrap.load(sess, config_fw['train']['model_filename'])
 
             self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config_bw)
             self._bw_net_wrap.load(sess, config_bw['train']['model_filename'])

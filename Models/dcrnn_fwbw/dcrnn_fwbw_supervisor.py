@@ -480,14 +480,15 @@ class DCRNN_FWBW(object):
         tf_config = tf.ConfigProto()
         tf_config.gpu_options.allow_growth = True
 
-        with tf.Session(config=tf_config) as sess:
-            # self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config_fw)
-            # self._fw_net_wrap.load(sess, config_fw['train']['model_filename'])
+        with tf.Session(config=tf_config) as sess_fw:
+            self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config_fw)
+            self._fw_net_wrap.load(sess_fw, config_fw['train']['model_filename'])
+        with tf.Session(config=tf_config) as sess_bw:
 
             self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config_bw)
-            self._bw_net_wrap.load(sess, config_bw['train']['model_filename'])
+            self._bw_net_wrap.load(sess_bw, config_bw['train']['model_filename'])
 
-            self._test(sess)
+        self._test(sess_fw, sess_bw)
 
     def _prepare_input(self, ground_truth, data, m_indicator):
 
@@ -625,7 +626,7 @@ class DCRNN_FWBW(object):
 
         return corrected_data.T
 
-    def _run_tm_prediction(self, sess):
+    def _run_tm_prediction(self, sess_fw, sess_bw):
 
         test_data_norm = self._fw_net_wrap.data['test_data_norm']
 
@@ -651,8 +652,8 @@ class DCRNN_FWBW(object):
 
             y_truths.append(y)
 
-            _, fw_decoder_outputs = self._fw_net_wrap.predict(sess, x, y)
-            bw_encoder_outputs, _ = self._bw_net_wrap.predict(sess, x, y)
+            _, fw_decoder_outputs = self._fw_net_wrap.predict(sess_fw, x, y)
+            bw_encoder_outputs, _ = self._bw_net_wrap.predict(sess_bw, x, y)
 
             corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
                                                       pred_backward=bw_encoder_outputs,
@@ -703,7 +704,7 @@ class DCRNN_FWBW(object):
         }
         return outputs
 
-    def _test(self, sess):
+    def _test(self, sess_fw, sess_bw):
         scaler = self._fw_net_wrap.data['scaler']
 
         results_summary = pd.DataFrame(index=range(self._run_times))
@@ -715,7 +716,7 @@ class DCRNN_FWBW(object):
 
         for i in range(self._run_times):
             # y_test = self._prepare_test_set()
-            outputs = self._run_tm_prediction(sess)
+            outputs = self._run_tm_prediction(sess_fw, sess_bw)
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 

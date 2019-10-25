@@ -85,24 +85,18 @@ if __name__ == '__main__':
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
     parser.add_argument('--config', type=str,
                         help='Config file for pretrained model.')
-    parser.add_argument('--config-bw', type=str,
-                        help='Config file for pretrained backward model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
     with open(args.config) as f:
-        config_fw = yaml.load(f)
+        config = yaml.load(f)
 
-    print_dcrnn_fwbw_info(args.mode, config_fw)
+    print_dcrnn_fwbw_info(args.mode, config)
     if args.mode == 'train':
-        train_dcrnn_fwbw(config_fw)
+        train_dcrnn_fwbw(config)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        with open(args.config_bw) as b_bw:
-            config_bw = yaml.load(b_bw)
-        evaluate_dcrnn_fwbw(config_fw, config_bw)
+        evaluate_dcrnn_fwbw(config)
     else:
-        with open(args.config_bw) as b_bw:
-            config_bw = yaml.load(b_bw)
-        test_dcrnn_fwbw(config_fw, config_bw)
+        test_dcrnn_fwbw(config)

@@ -54,36 +54,48 @@ class DataLoader(object):
         return _wrapper()
 
 
-class DataLoader_2(object):
-    def __init__(self, xs, ys, ls, batch_size, pad_with_last_sample=True, shuffle=False):
+class DataLoader_dcrnn_fwbw(object):
+    def __init__(self, inputs, enc_labels_fw, dec_labels_fw, enc_labels_bw, dec_labels_bw, batch_size,
+                 pad_with_last_sample=True, shuffle=False):
         """
 
-        :param xs:
-        :param ys:
+        :param inputs:
+        :param enc_labels_fw:
+        :param dec_labels_fw:
+        :param enc_labels_bw:
+        :param dec_labels_bw:
         :param batch_size:
-        :param pad_with_last_sample: pad with the last sample to make number of samples divisible to batch_size.
+        :param pad_with_last_sample:
+        :param shuffle:
         """
 
         self.batch_size = batch_size
         self.current_ind = 0
         if pad_with_last_sample:
-            num_padding = (batch_size - (len(xs) % batch_size)) % batch_size
-            x_padding = np.repeat(xs[-1:], num_padding, axis=0)
-            y_padding = np.repeat(ys[-1:], num_padding, axis=0)
-            l_padding = np.repeat(ls[-1:], num_padding, axis=0)
+            num_padding = (batch_size - (len(inputs) % batch_size)) % batch_size
+            inputs_padding = np.repeat(inputs[-1:], num_padding, axis=0)
+            enc_labels_fw_padding = np.repeat(enc_labels_fw[-1:], num_padding, axis=0)
+            dec_labels_fw_padding = np.repeat(dec_labels_fw[-1:], num_padding, axis=0)
+            enc_labels_bw_padding = np.repeat(enc_labels_bw[-1:], num_padding, axis=0)
+            dec_labels_bw_padding = np.repeat(dec_labels_bw[-1:], num_padding, axis=0)
 
-            xs = np.concatenate([xs, x_padding], axis=0)
-            ys = np.concatenate([ys, y_padding], axis=0)
-            ls = np.concatenate([ls, l_padding], axis=0)
+            inputs = np.concatenate([inputs, inputs_padding], axis=0)
+            enc_labels_fw = np.concatenate([enc_labels_fw, enc_labels_fw_padding], axis=0)
+            dec_labels_fw = np.concatenate([dec_labels_fw, dec_labels_fw_padding], axis=0)
+            enc_labels_bw = np.concatenate([enc_labels_bw, enc_labels_bw_padding], axis=0)
+            dec_labels_bw = np.concatenate([dec_labels_bw, dec_labels_bw_padding], axis=0)
 
-        self.size = len(xs)
+        self.size = len(inputs)
         self.num_batch = int(self.size // self.batch_size)
         if shuffle:
             permutation = np.random.permutation(self.size)
-            xs, ys, ls = xs[permutation], ys[permutation], ls[permutation]
-        self.xs = xs
-        self.ys = ys
-        self.ls = ls
+            inputs, enc_labels_fw, dec_labels_fw, enc_labels_bw, dec_labels_bw = inputs[permutation], enc_labels_fw[
+                permutation], dec_labels_fw[permutation], enc_labels_bw[permutation], dec_labels_bw[permutation]
+        self.inputs = inputs
+        self.enc_labels_fw = enc_labels_fw
+        self.dec_labels_fw = dec_labels_fw
+        self.enc_labels_bw = enc_labels_bw
+        self.dec_labels_bw = dec_labels_bw
 
     def get_iterator(self):
         self.current_ind = 0
@@ -92,10 +104,12 @@ class DataLoader_2(object):
             while self.current_ind < self.num_batch:
                 start_ind = self.batch_size * self.current_ind
                 end_ind = min(self.size, self.batch_size * (self.current_ind + 1))
-                x_i = self.xs[start_ind: end_ind, ...]
-                y_i = self.ys[start_ind: end_ind, ...]
-                l_i = self.ls[start_ind: end_ind, ...]
-                yield (x_i, y_i, l_i)
+                inputs_i = self.inputs[start_ind: end_ind, ...]
+                enc_labels_fw_i = self.enc_labels_fw[start_ind: end_ind, ...]
+                dec_labels_fw_i = self.dec_labels_fw[start_ind: end_ind, ...]
+                enc_labels_bw_i = self.enc_labels_bw[start_ind: end_ind, ...]
+                dec_labels_bw_i = self.dec_labels_bw[start_ind: end_ind, ...]
+                yield (inputs_i, enc_labels_fw_i, dec_labels_fw_i, enc_labels_bw_i, dec_labels_bw_i)
                 self.current_ind += 1
 
         return _wrapper()
@@ -662,24 +676,38 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
         mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
-        _x, _y, _l = locals()["x_" + category], locals()["y_" + category], locals()["l_" + category]
-        print(category, "x: ", _x.shape, "y:", _y.shape, "l", _l.shape)
-        data['x_' + category] = _x
-        data['y_' + category] = _y
-        data['l_' + category] = _l
+        _inputs, _enc_labels_fw, _dec_labels_fw, _enc_labels_bw, _dec_labels_bw = locals()["inputs_" + category], \
+                                                                                  locals()["enc_labels_fw_" + category], \
+                                                                                  locals()["dec_labels_fw_" + category], \
+                                                                                  locals()["enc_labels_bw_" + category], \
+                                                                                  locals()["dec_labels_bw_" + category]
+        print(category, "inputs_: ", _inputs.shape, "enc_labels_fw_:", _enc_labels_fw.shape, "dec_labels_fw_",
+              _dec_labels_fw.shape, "enc_labels_bw_:", _enc_labels_bw.shape, "dec_labels_bw_", _dec_labels_bw.shape)
+        data['inputs_' + category] = _inputs
+        data['enc_labels_fw_' + category] = _enc_labels_fw
+        data['dec_labels_fw_' + category] = _dec_labels_fw
+        data['enc_labels_bw_' + category] = _enc_labels_bw
+        data['dec_labels_bw_' + category] = _dec_labels_bw
+
     # Data format
-    data['train_loader'] = DataLoader_2(data['x_train'],
-                                        data['y_train'],
-                                        data['l_train'],
-                                        batch_size, shuffle=True)
-    data['val_loader'] = DataLoader_2(data['x_val'],
-                                      data['y_val'],
-                                      data['l_val'], val_batch_size,
-                                      shuffle=False)
-    data['eval_loader'] = DataLoader_2(data['x_eval'],
-                                       data['y_eval'],
-                                       data['l_eval'],
-                                       eval_batch_size, shuffle=False)
+    data['train_loader'] = DataLoader_dcrnn_fwbw(data['inputs_train'],
+                                                 data['enc_labels_fw_train'],
+                                                 data['dec_labels_fw_train'],
+                                                 data['enc_labels_bw_train'],
+                                                 data['dec_labels_bw_train'],
+                                                 batch_size, shuffle=True)
+    data['val_loader'] = DataLoader_dcrnn_fwbw(data['inputs_val'],
+                                               data['enc_labels_fw_val'],
+                                               data['dec_labels_fw_val'],
+                                               data['enc_labels_bw_val'],
+                                               data['dec_labels_bw_val'],
+                                               batch_size, shuffle=True)
+    data['eval_loader'] = DataLoader_dcrnn_fwbw(data['inputs_eval'],
+                                                data['enc_labels_fw_eval'],
+                                                data['dec_labels_fw_eval'],
+                                                data['enc_labels_bw_eval'],
+                                                data['dec_labels_bw_eval'],
+                                                batch_size, shuffle=True)
 
     data['scaler'] = scaler
 

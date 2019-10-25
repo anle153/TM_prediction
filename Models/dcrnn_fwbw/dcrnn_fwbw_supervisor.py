@@ -152,11 +152,11 @@ class DCRNNSupervisor(object):
         # Calculate loss
         output_dim = self._model_kwargs.get('output_dim')
         # fw
-        preds = self.train_model.outputs
-        labels = self.train_model.labels[..., :output_dim]
+        preds_fw = self.train_model.outputs_fw
+        labels_fw = self.train_model.labels_fw[..., :output_dim]
 
-        enc_preds = self.train_model.enc_outputs
-        enc_labels = self.train_model.enc_labels[..., :output_dim]
+        enc_preds_fw = self.train_model.enc_outputs_fw
+        enc_labels_fw = self.train_model.enc_labels_fw[..., :output_dim]
 
         # bw
         preds_bw = self.train_model.outputs_bw
@@ -168,8 +168,8 @@ class DCRNNSupervisor(object):
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)
         # self._loss_fn = masked_mae_loss(scaler, null_val)
-        self._train_loss_dec = self._loss_fn(preds=preds, labels=labels)
-        self._train_loss_enc = self._loss_fn(preds=enc_preds, labels=enc_labels)
+        self._train_loss_dec = self._loss_fn(preds=preds_fw, labels=labels_fw)
+        self._train_loss_enc = self._loss_fn(preds=enc_preds_fw, labels=enc_labels_fw)
 
         # backward loss
         self._train_loss_enc_bw = self._loss_fn(preds=enc_preds_bw, labels=enc_labels_bw)
@@ -201,16 +201,18 @@ class DCRNNSupervisor(object):
         outputs = []
         outputs_bw = []
         output_dim = self._model_kwargs.get('output_dim')
-        preds = model.outputs
-        labels = model.labels[..., :output_dim]
-        preds_bw = model.outputs
-        labels_bw = model.labels[..., :output_dim]
-        loss = self._loss_fn(preds=preds, labels=labels)
+        preds_fw = model.outputs_fw
+        labels_fw = model.labels_fw[..., :output_dim]
+
+        preds_bw = model.outputs_bw
+        labels_bw = model.labels_bw[..., :output_dim]
+
+        loss = self._loss_fn(preds=preds_fw, labels=labels_fw)
         loss_bw = self._loss_fn(preds=preds_bw, labels=labels_bw)
 
-        enc_preds = model.enc_outputs
-        enc_labels = model.enc_labels[..., :output_dim]
-        enc_loss = self._loss_fn(preds=enc_preds, labels=enc_labels)
+        enc_preds_fw = model.enc_outputs_fw
+        enc_labels_fw = model.enc_labels_fw[..., :output_dim]
+        enc_loss = self._loss_fn(preds=enc_preds_fw, labels=enc_labels_fw)
 
         enc_preds_bw = model.enc_outputs_bw
         enc_labels_bw = model.enc_labels_bw[..., :output_dim]
@@ -218,7 +220,6 @@ class DCRNNSupervisor(object):
 
         fetches = {
             'loss': loss,
-            'mse': loss,
             'enc_loss': enc_loss,
             'enc_loss_bw': enc_loss_bw,
             'global_step': tf.train.get_or_create_global_step()
@@ -239,18 +240,18 @@ class DCRNNSupervisor(object):
         for _, (_inputs, _enc_labels_fw, _dec_labels_fw, _enc_labels_bw, _dec_labels_bw) in enumerate(data_generator):
             feed_dict = {
                 model.inputs: _inputs,
-                model.labels: _dec_labels_fw,
-                model.enc_labels: _enc_labels_fw,
+                model.labels_fw: _dec_labels_fw,
+                model.enc_labels_fw: _enc_labels_fw,
                 model.labels_bw: _dec_labels_bw,
                 model.enc_labels_bw: _enc_labels_bw,
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
 
-            losses.append(vals['loss'] + vals['enc_loss'] + vals['enc_loss_bw'])
+            losses.append(vals['loss'] + vals['enc_loss_bw'])
             enc_losses.append(vals['enc_loss'])
-            enc_losses_bw.append(vals['enc_loss'])
-            mses.append(vals['loss'] + vals['enc_loss'] + vals['enc_loss_bw'])
+            enc_losses_bw.append(vals['enc_loss_bw'])
+            mses.append(vals['loss'] + vals['enc_loss_bw'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
             if return_output:
@@ -258,7 +259,6 @@ class DCRNNSupervisor(object):
 
         results = {
             'loss': np.mean(losses),
-            'mse': np.mean(mses),
             'enc_loss': np.mean(enc_losses),
             'enc_loss_bw': np.mean(enc_losses_bw),
         }
@@ -277,7 +277,6 @@ class DCRNNSupervisor(object):
     def _train(self, sess, base_lr, epoch, steps, patience=50, epochs=100,
                min_learning_rate=2e-6, lr_decay_ratio=0.1, save_model=1,
                test_every_n_epochs=10, **train_kwargs):
-        history = []
         min_val_loss = float('inf')
         wait = 0
 
@@ -306,9 +305,7 @@ class DCRNNSupervisor(object):
                                                          'train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
-            train_loss, train_mse, train_enc_loss, train_enc_loss_bw = train_results['loss'], train_results['mse'], \
-                                                                       train_results[
-                                                                           'enc_loss'], train_results['enc_loss_bw']
+            train_loss, train_enc_loss_bw = train_results['loss'], train_results['enc_loss_bw']
             # if train_loss > 1e5:
             #     self._logger.warning('Gradient explosion detected. Ending...')
             #     break
@@ -318,19 +315,17 @@ class DCRNNSupervisor(object):
             val_results = self.run_epoch_generator(sess, self.val_model,
                                                    self.data['val_loader'].get_iterator(),
                                                    training=False)
-            val_loss, val_mse, val_enc_loss, val_enc_loss_bw = val_results['loss'].item(), val_results['mse'].item(), \
-                                                               val_results[
-                                                                   'enc_loss'].item(), val_results['enc_loss_bw'].item()
+            val_loss, val_enc_loss_bw = val_results['loss'].item(), val_results['enc_loss_bw'].item()
 
             utils.add_simple_summary(self._writer,
-                                     ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
-                                     [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
+                                     ['loss/train_loss', 'loss/val_loss'],
+                                     [train_loss, val_loss], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] train_loss: {:.4f}, val_loss: {:.4f}, train_enc: {:.4f}, val_enc: {:.4f}, train_enc_bw: {:.4f}, val_enc_bw: {:.4f} - lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, train_loss, val_loss, train_enc_loss, val_enc_loss, train_enc_loss_bw,
-                val_enc_loss_bw, new_lr,
-                (end_time - start_time))
+            message = 'Epoch [{}/{}] train_loss: {:.4f}, val_loss: {:.4f}, train_enc_bw: {:.4f}, val_enc_bw: {:.4f} - lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, train_loss, val_loss, train_enc_loss_bw,
+                val_enc_loss_bw, new_lr, (end_time - start_time))
             self._logger.info(message)
+
             if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
                 self.evaluate(sess)
             if val_loss <= min_val_loss:
@@ -346,7 +341,6 @@ class DCRNNSupervisor(object):
                     self._logger.warning('Early stopping at epoch: %d' % self._epoch)
                     break
 
-            history.append(val_mse)
             # Increases epoch.
             self._epoch += 1
             losses.append(train_loss)
@@ -358,7 +352,7 @@ class DCRNNSupervisor(object):
         training_history['val_loss'] = val_losses
         training_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 
-        return np.min(history)
+        return
 
     def train(self, sess, **kwargs):
         kwargs.update(self._train_kwargs)
@@ -623,7 +617,7 @@ class DCRNNSupervisor(object):
             'global_step': tf.train.get_or_create_global_step()
         }
         fetches.update({
-            'outputs': self.test_model.outputs,
+            'outputs_fw': self.test_model.outputs_fw,
             'enc_outputs_bw': self.test_model.enc_outputs_bw
         })
 
@@ -665,7 +659,7 @@ class DCRNNSupervisor(object):
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
             else:
                 sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                   pred_forward=fw_decoder_outputs,
+                                                   pred_forward=decoder_outputs_fw,
                                                    m_indicator=m_indicator[ts: ts + self._seq_len].T)
 
             m_indicator[ts + self._seq_len] = sampling
@@ -721,350 +715,3 @@ class DCRNNSupervisor(object):
         with open(os.path.join(self._log_dir, config_filename), 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
         return config['train']['model_filename']
-
-
-class DCRNN_FWBW(object):
-
-    def __init__(self, **kwargs):
-        self._kwargs = kwargs
-        self._data_kwargs = kwargs.get('data')
-        self._model_kwargs = kwargs.get('model')
-        self._train_kwargs = kwargs.get('train')
-        self._test_kwargs = kwargs.get('test')
-        # logging.
-        self._log_dir = _get_log_dir(kwargs)
-
-        self._mon_ratio = float(self._kwargs.get('mon_ratio'))
-
-        # Model's args
-        self._seq_len = int(self._model_kwargs.get('seq_len'))
-        self._horizon = int(self._model_kwargs.get('horizon'))
-        self._input_dim = int(self._model_kwargs.get('input_dim'))
-        self._nodes = int(self._model_kwargs.get('num_nodes'))
-        self._r = self._model_kwargs.get('r')
-
-        # Test's args
-        self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._run_times = self._test_kwargs.get('run_times')
-        self._lamda = []
-        self._lamda.append(self._test_kwargs.get('lamda_0'))
-        self._lamda.append(self._test_kwargs.get('lamda_1'))
-        self._lamda.append(self._test_kwargs.get('lamda_2'))
-
-    def train(self, config, net_train=None):
-
-        if net_train == 'fw' or net_train is None:
-            tf_config = tf.ConfigProto()
-            tf_config.gpu_options.allow_growth = True
-            print('|-------------- Training forward network --------------')
-            with tf.Session(config=tf_config) as sess:
-                self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config)
-                self._fw_net_wrap.train(sess)
-                sess.close()
-
-        if net_train == 'bw' or net_train is None:
-            print('|-------------- Training backward network --------------')
-            tf_config = tf.ConfigProto()
-            tf_config.gpu_options.allow_growth = True
-            with tf.Session(config=tf_config) as sess:
-                self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config)
-                self._bw_net_wrap.train(sess)
-                sess.close()
-
-    def test(self, config_fw, config_bw):
-        tf_config = tf.ConfigProto()
-        tf_config.gpu_options.allow_growth = True
-
-        with tf.Session(config=tf_config) as sess_fw:
-            self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config_fw)
-            self._fw_net_wrap.load(sess_fw, config_fw['train']['model_filename'])
-        with tf.Session(config=tf_config) as sess_bw:
-
-            self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config_bw)
-            self._bw_net_wrap.load(sess_bw, config_bw['train']['model_filename'])
-
-        self._test(sess_fw, sess_bw)
-
-    def _prepare_input(self, ground_truth, data, m_indicator):
-
-        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
-        y = np.zeros(shape=(self._horizon, self._nodes), dtype='float32')
-
-        x[:, :, 0] = data
-        x[:, :, 1] = m_indicator
-
-        y[:] = ground_truth
-        y = np.expand_dims(y, axis=2)
-        return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
-
-    @staticmethod
-    def _calculate_consecutive_loss(m_indicator):
-
-        consecutive_losses = []
-        for flow_id in range(m_indicator.shape[1]):
-            flows_labels = m_indicator[:, flow_id]
-            if flows_labels[-1] == 1:
-                consecutive_losses.append(1)
-            else:
-                measured_idx = np.argwhere(flows_labels == 1)
-                if measured_idx.size == 0:
-                    consecutive_losses.append(m_indicator.shape[0])
-                else:
-                    consecutive_losses.append(m_indicator.shape[0] - measured_idx[-1][0])
-
-        consecutive_losses = np.asarray(consecutive_losses)
-        return consecutive_losses
-
-    def _set_measured_flow_fairness(self, m_indicator):
-        """
-
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return:
-        """
-
-        cl = self._calculate_consecutive_loss(m_indicator).astype(float)
-
-        w = 1 / cl
-
-        sampling = np.zeros(shape=self._nodes, dtype='float32')
-        m = int(self._mon_ratio * self._nodes)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
-
-    def _calculate_flows_weights(self, fw_losses, m_indicator):
-        """
-
-        :param fw_losses: shape(#n_flows)
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return: w: flow_weight shape(#n_flows)
-        """
-
-        cl = self._calculate_consecutive_loss(m_indicator)
-
-        w = 1 / (fw_losses * self._lamda[0] +
-                 cl * self._lamda[1])
-
-        return w
-
-    def _set_measured_flow(self, rnn_input, pred_forward, m_indicator):
-        """
-
-        :param rnn_input: shape(#seq_len, #nflows)
-        :param pred_forward: shape(#seq_len, #nflows)
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return:
-        """
-
-        n_flows = rnn_input.shape[0]
-
-        fw_losses = []
-        for flow_id in range(m_indicator.shape[1]):
-            idx_fw = m_indicator[1:, flow_id]
-
-            # fw_losses.append(error_ratio(y_true=rnn_input[1:, flow_id][idx_fw == 1.0],
-            #                              y_pred=pred_forward[:-1, flow_id][idx_fw == 1.0],
-            #                              measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
-            fw_losses.append(metrics.masked_mae_np(preds=pred_forward[:-1, flow_id][idx_fw == 1.0],
-                                                   labels=rnn_input[1:, flow_id][idx_fw == 1.0]))
-
-        fw_losses = np.array(fw_losses)
-        fw_losses[fw_losses == 0.] = np.max(fw_losses)
-
-        w = self._calculate_flows_weights(fw_losses=fw_losses,
-                                          m_indicator=m_indicator)
-
-        sampling = np.zeros(shape=n_flows)
-        m = int(self._mon_ratio * n_flows)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
-
-    def _data_correction_v3(self, rnn_input, pred_backward, labels):
-        # Shape = (#n_flows, #time-steps)
-        _rnn_input = np.copy(rnn_input.T)
-        _labels = np.copy(labels.T)
-
-        beta = np.zeros(_rnn_input.shape)
-
-        corrected_range = int(self._seq_len / self._r)
-
-        for i in range(_rnn_input.shape[1] - corrected_range):
-            mu = np.sum(_labels[:, i + 1:i + corrected_range + 1], axis=1) / corrected_range
-
-            h = np.arange(1, corrected_range + 1)
-
-            rho = (1 / (np.log(corrected_range) + 1)) * np.sum(
-                _labels[:, i + 1:i + corrected_range + 1] / h, axis=1)
-
-            beta[:, i] = mu * rho
-
-        considered_backward = pred_backward[:, 1:]
-        considered_rnn_input = _rnn_input[:, 0:-1]
-
-        beta[beta > 0.5] = 0.5
-
-        alpha = 1.0 - beta
-
-        alpha = alpha[:, 0:-1]
-        beta = beta[:, 0:-1]
-        # gamma = gamma[:, 1:-1]
-
-        # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
-        corrected_data = considered_rnn_input * alpha + considered_backward * beta
-
-        return corrected_data.T
-
-    def _run_tm_prediction(self, sess_fw, sess_bw):
-
-        test_data_norm = self._fw_net_wrap.data['test_data_norm']
-
-        # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
-
-        # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
-
-        y_truths = []
-        y_preds = []
-        tf_a = np.array([1.0, 0.0])
-
-        for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
-
-            x, y = self._prepare_input(
-                ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
-                data=tm_pred[ts:ts + self._seq_len],
-                m_indicator=m_indicator[ts:ts + self._seq_len]
-            )
-
-            y_truths.append(y)
-
-            _, fw_decoder_outputs = self._fw_net_wrap.predict(sess_fw, x, y)
-            bw_encoder_outputs, _ = self._bw_net_wrap.predict(sess_bw, x, y)
-
-            corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                      pred_backward=bw_encoder_outputs,
-                                                      labels=m_indicator[ts: ts + self._seq_len])
-            measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
-            pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
-            tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
-
-            y_preds.append(np.expand_dims(fw_decoder_outputs, axis=0))
-            pred = fw_decoder_outputs[0]
-
-            # Using part of current prediction as input to the next estimation
-            # Randomly choose the flows which is measured (using the correct data from test_set)
-
-            # boolean array(1 x n_flows):for choosing value from predicted data
-            if self._flow_selection == 'Random':
-                sampling = np.random.choice(tf_a, size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
-            elif self._flow_selection == 'Fairness':
-                sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
-            else:
-                sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                   pred_forward=fw_decoder_outputs,
-                                                   m_indicator=m_indicator[ts: ts + self._seq_len].T)
-
-            m_indicator[ts + self._seq_len] = sampling
-            # invert of sampling: for choosing value from the original data
-            pred_input = pred * (1.0 - sampling)
-
-            ground_truth = test_data_norm[ts + self._seq_len]
-            y_truths.append(
-                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
-
-            measured_input = ground_truth * sampling
-
-            # Merge value from pred_input and measured_input
-            new_input = pred_input + measured_input
-            # new_input = np.reshape(new_input, (new_input.shape[0], new_input.shape[1], 1))
-
-            # Concatenating new_input into current rnn_input
-            tm_pred[ts + self._seq_len] = new_input
-
-        outputs = {
-            'tm_pred': tm_pred[self._seq_len:],
-            'm_indicator': m_indicator[self._seq_len:],
-            'y_preds': y_preds,
-            'y_truths': y_truths
-        }
-        return outputs
-
-    def _test(self, sess_fw, sess_bw):
-        scaler = self._fw_net_wrap.data['scaler']
-
-        results_summary = pd.DataFrame(index=range(self._run_times))
-        results_summary['No.'] = range(self._run_times)
-
-        n_metrics = 4
-        # Metrics: MSE, MAE, RMSE, MAPE, ER
-        metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
-
-        for i in range(self._run_times):
-            # y_test = self._prepare_test_set()
-            outputs = self._run_tm_prediction(sess_fw, sess_bw)
-
-            tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
-
-            y_preds = np.concatenate(y_preds, axis=0)
-            predictions = []
-            y_truths = outputs['y_truths']
-            y_truths = np.concatenate(y_truths, axis=0)
-
-            for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
-
-                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
-                predictions.append(y_pred)
-
-                mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-                mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-                rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-                print(
-                    "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                        horizon_i + 1, mse, mae, rmse, mape
-                    )
-                )
-
-                metrics_summary[i, horizon_i * n_metrics + 0] = mse
-                metrics_summary[i, horizon_i * n_metrics + 1] = mae
-                metrics_summary[i, horizon_i * n_metrics + 2] = rmse
-                metrics_summary[i, horizon_i * n_metrics + 3] = mape
-
-            tm_pred = scaler.inverse_transform(tm_pred)
-            g_truth = scaler.inverse_transform(self._fw_net_wrap.data['test_data_norm'][self._seq_len:-self._horizon])
-
-            er = metrics.error_ratio(y_pred=tm_pred,
-                                     y_true=g_truth,
-                                     measured_matrix=m_indicator)
-            metrics_summary[i, -1] = er
-
-            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
-            print('ER: {}'.format(er))
-
-        for horizon_i in range(self._horizon):
-            results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
-            results_summary['mae_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 1]
-            results_summary['rmse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 2]
-            results_summary['mape_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 3]
-
-        results_summary['er'] = metrics_summary[:, -1]
-        results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
-
-    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
-        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
-        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
-
-    def evaluate(self, config_fw, config_bw):
-        raise NotImplementedError('Not implemented')

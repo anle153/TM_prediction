@@ -241,7 +241,7 @@ class DCRNNSupervisor(object):
             losses.append(vals['loss'] + vals['enc_loss'] + vals['enc_loss_bw'])
             enc_losses.append(vals['enc_loss'])
             enc_losses_bw.append(vals['enc_loss'])
-            mses.append(vals['mse'])
+            mses.append(vals['loss'] + vals['enc_loss'] + vals['enc_loss_bw'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
             if return_output:

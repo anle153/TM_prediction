@@ -55,7 +55,7 @@ class DataLoader(object):
 
 
 class DataLoader_dcrnn_fwbw(object):
-    def __init__(self, inputs, enc_labels_fw, dec_labels_fw, enc_labels_bw, dec_labels_bw, batch_size,
+    def __init__(self, inputs, dec_labels_fw, enc_labels_bw, batch_size,
                  pad_with_last_sample=True, shuffle=False):
         """
 
@@ -74,28 +74,22 @@ class DataLoader_dcrnn_fwbw(object):
         if pad_with_last_sample:
             num_padding = (batch_size - (len(inputs) % batch_size)) % batch_size
             inputs_padding = np.repeat(inputs[-1:], num_padding, axis=0)
-            enc_labels_fw_padding = np.repeat(enc_labels_fw[-1:], num_padding, axis=0)
             dec_labels_fw_padding = np.repeat(dec_labels_fw[-1:], num_padding, axis=0)
             enc_labels_bw_padding = np.repeat(enc_labels_bw[-1:], num_padding, axis=0)
-            dec_labels_bw_padding = np.repeat(dec_labels_bw[-1:], num_padding, axis=0)
 
             inputs = np.concatenate([inputs, inputs_padding], axis=0)
-            enc_labels_fw = np.concatenate([enc_labels_fw, enc_labels_fw_padding], axis=0)
             dec_labels_fw = np.concatenate([dec_labels_fw, dec_labels_fw_padding], axis=0)
             enc_labels_bw = np.concatenate([enc_labels_bw, enc_labels_bw_padding], axis=0)
-            dec_labels_bw = np.concatenate([dec_labels_bw, dec_labels_bw_padding], axis=0)
 
         self.size = len(inputs)
         self.num_batch = int(self.size // self.batch_size)
         if shuffle:
             permutation = np.random.permutation(self.size)
-            inputs, enc_labels_fw, dec_labels_fw, enc_labels_bw, dec_labels_bw = inputs[permutation], enc_labels_fw[
-                permutation], dec_labels_fw[permutation], enc_labels_bw[permutation], dec_labels_bw[permutation]
+            inputs, dec_labels_fw, enc_labels_bw = inputs[permutation], dec_labels_fw[permutation], \
+                                                   enc_labels_bw[permutation]
         self.inputs = inputs
-        self.enc_labels_fw = enc_labels_fw
         self.dec_labels_fw = dec_labels_fw
         self.enc_labels_bw = enc_labels_bw
-        self.dec_labels_bw = dec_labels_bw
 
     def get_iterator(self):
         self.current_ind = 0
@@ -105,11 +99,9 @@ class DataLoader_dcrnn_fwbw(object):
                 start_ind = self.batch_size * self.current_ind
                 end_ind = min(self.size, self.batch_size * (self.current_ind + 1))
                 inputs_i = self.inputs[start_ind: end_ind, ...]
-                enc_labels_fw_i = self.enc_labels_fw[start_ind: end_ind, ...]
                 dec_labels_fw_i = self.dec_labels_fw[start_ind: end_ind, ...]
                 enc_labels_bw_i = self.enc_labels_bw[start_ind: end_ind, ...]
-                dec_labels_bw_i = self.dec_labels_bw[start_ind: end_ind, ...]
-                yield (inputs_i, enc_labels_fw_i, dec_labels_fw_i, enc_labels_bw_i, dec_labels_bw_i)
+                yield (inputs_i, dec_labels_fw_i, enc_labels_bw_i)
                 self.current_ind += 1
 
         return _wrapper()
@@ -335,10 +327,8 @@ def create_data_dcrnn_fwbw(data, seq_len, horizon, input_dim, mon_ratio, eps):
                                                     _data[_m_indicators == 0.0] + eps)
 
     inputs = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
-    enc_labels_fw = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
     dec_labels_fw = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
     enc_labels_bw = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], 1), dtype='float32')
-    dec_labels_bw = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
     for idx in range(horizon, _data.shape[0] - seq_len - horizon, 1):
         _input = _data[idx: idx + seq_len]
@@ -347,20 +337,14 @@ def create_data_dcrnn_fwbw(data, seq_len, horizon, input_dim, mon_ratio, eps):
         inputs[idx, :, :, 0] = _input
         inputs[idx, :, :, 1] = _m
 
-        _enc_labels_fw = data[idx + 1:idx + seq_len + 1]
         _dec_labels_fw = data[idx + seq_len:idx + seq_len + horizon]
-
-        enc_labels_fw[idx] = np.expand_dims(_enc_labels_fw, axis=2)
         dec_labels_fw[idx] = np.expand_dims(_dec_labels_fw, axis=2)
 
         _enc_labels_bw = data[idx - 1:idx + seq_len - 1]
-        _dec_labels_bw = data[idx - horizon:idx]
-
         enc_labels_bw[idx] = np.expand_dims(np.flip(_enc_labels_bw, axis=0), axis=2)
-        dec_labels_bw[idx] = np.expand_dims(np.flip(_dec_labels_bw, axis=0), axis=2)
 
-    # return inputs, dec_labels_fw, enc_labels_fw, dec_labels_bw, enc_labels_bw
-    return inputs, enc_labels_fw, dec_labels_fw, enc_labels_bw, dec_labels_bw
+    # return inputs, dec_labels_fw, enc_labels_bw
+    return inputs, dec_labels_fw, enc_labels_bw
 
 
 def correlation_matrix(data, seq_len):
@@ -677,51 +661,41 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     # x(num_sample, seq_len, num_node, input_dim): encoder input
     # y(num_sample, horizon, num_node, output_dim): decoder output
     # l(num_sample, seq_len, num_node, output_dim): encoder output
-    inputs_train, enc_labels_fw_train, dec_labels_fw_train, enc_labels_bw_train, dec_labels_bw_train = create_data_dcrnn_fwbw(
+    inputs_train, dec_labels_fw_train, enc_labels_bw_train = create_data_dcrnn_fwbw(
         data=train_data_norm, seq_len=seq_len, horizon=horizon,
         input_dim=input_dim,
         mon_ratio=mon_ratio, eps=train_data_norm.std())
-    inputs_val, enc_labels_fw_val, dec_labels_fw_val, enc_labels_bw_val, dec_labels_bw_val = create_data_dcrnn_fwbw(
-        data=valid_data_norm, seq_len=seq_len, horizon=horizon,
-        input_dim=input_dim,
-        mon_ratio=mon_ratio, eps=train_data_norm.std())
-    inputs_eval, enc_labels_fw_eval, dec_labels_fw_eval, enc_labels_bw_eval, dec_labels_bw_eval = create_data_dcrnn_fwbw(
+    inputs_val, dec_labels_fw_val, enc_labels_bw_val = create_data_dcrnn_fwbw(data=valid_data_norm,
+                                                                              seq_len=seq_len, horizon=horizon,
+                                                                              input_dim=input_dim,
+                                                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
+    inputs_eval, dec_labels_fw_eval, enc_labels_bw_eval = create_data_dcrnn_fwbw(
         data=test_data_norm, seq_len=seq_len, horizon=horizon,
         input_dim=input_dim,
         mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
-        _inputs, _enc_labels_fw, _dec_labels_fw, _enc_labels_bw, _dec_labels_bw = locals()["inputs_" + category], \
-                                                                                  locals()["enc_labels_fw_" + category], \
-                                                                                  locals()["dec_labels_fw_" + category], \
-                                                                                  locals()["enc_labels_bw_" + category], \
-                                                                                  locals()["dec_labels_bw_" + category]
-        print(category, "inputs_: ", _inputs.shape, "enc_labels_fw_:", _enc_labels_fw.shape, "dec_labels_fw_",
-              _dec_labels_fw.shape, "enc_labels_bw_:", _enc_labels_bw.shape, "dec_labels_bw_", _dec_labels_bw.shape)
+        _inputs, _dec_labels_fw, _enc_labels_bw = locals()["inputs_" + category], locals()["dec_labels_fw_" + category], \
+                                                  locals()["enc_labels_bw_" + category]
+
+        print(category, "inputs_: ", _inputs.shape, "dec_labels_fw_", _dec_labels_fw.shape, "enc_labels_bw_:",
+              _enc_labels_bw.shape)
         data['inputs_' + category] = _inputs
-        data['enc_labels_fw_' + category] = _enc_labels_fw
         data['dec_labels_fw_' + category] = _dec_labels_fw
         data['enc_labels_bw_' + category] = _enc_labels_bw
-        data['dec_labels_bw_' + category] = _dec_labels_bw
 
     # Data format
     data['train_loader'] = DataLoader_dcrnn_fwbw(data['inputs_train'],
-                                                 data['enc_labels_fw_train'],
                                                  data['dec_labels_fw_train'],
                                                  data['enc_labels_bw_train'],
-                                                 data['dec_labels_bw_train'],
                                                  batch_size, shuffle=True)
     data['val_loader'] = DataLoader_dcrnn_fwbw(data['inputs_val'],
-                                               data['enc_labels_fw_val'],
                                                data['dec_labels_fw_val'],
                                                data['enc_labels_bw_val'],
-                                               data['dec_labels_bw_val'],
                                                batch_size, shuffle=True)
     data['eval_loader'] = DataLoader_dcrnn_fwbw(data['inputs_eval'],
-                                                data['enc_labels_fw_eval'],
                                                 data['dec_labels_fw_eval'],
                                                 data['enc_labels_bw_eval'],
-                                                data['dec_labels_bw_eval'],
                                                 batch_size, shuffle=True)
 
     data['scaler'] = scaler

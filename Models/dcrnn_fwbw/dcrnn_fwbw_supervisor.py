@@ -151,30 +151,22 @@ class DCRNNSupervisor(object):
 
         # Calculate loss
         output_dim = self._model_kwargs.get('output_dim')
-        # fw
+        # fw decoder
         preds_fw = self.train_model.outputs_fw
         labels_fw = self.train_model.labels_fw[..., :output_dim]
 
-        enc_preds_fw = self.train_model.enc_outputs_fw
-        enc_labels_fw = self.train_model.enc_labels_fw[..., :output_dim]
-
-        # bw
-        preds_bw = self.train_model.outputs_bw
-        labels_bw = self.train_model.labels_bw[..., :output_dim]
-
+        # bw encoder
         enc_preds_bw = self.train_model.enc_outputs_bw
         enc_labels_bw = self.train_model.enc_labels_bw[..., :output_dim]
 
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)
-        # self._loss_fn = masked_mae_loss(scaler, null_val)
         self._train_loss_dec = self._loss_fn(preds=preds_fw, labels=labels_fw)
-        self._train_loss_enc = self._loss_fn(preds=enc_preds_fw, labels=enc_labels_fw)
 
         # backward loss
         self._train_loss_enc_bw = self._loss_fn(preds=enc_preds_bw, labels=enc_labels_bw)
 
-        self._train_loss = self._train_loss_dec + self._train_loss_enc + self._train_loss_enc_bw
+        self._train_loss = self._train_loss_dec + self._train_loss_enc_bw
 
         tvars = tf.trainable_variables()
         grads = tf.gradients(self._train_loss, tvars)
@@ -195,24 +187,22 @@ class DCRNNSupervisor(object):
 
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
-        enc_losses = []
+        dec_losses_fw = []
         enc_losses_bw = []
-        mses = []
         outputs = []
-        outputs_bw = []
         output_dim = self._model_kwargs.get('output_dim')
+
         preds_fw = model.outputs_fw
         labels_fw = model.labels_fw[..., :output_dim]
-
-        preds_bw = model.outputs_bw
-        labels_bw = model.labels_bw[..., :output_dim]
-
         loss = self._loss_fn(preds=preds_fw, labels=labels_fw)
-        loss_bw = self._loss_fn(preds=preds_bw, labels=labels_bw)
 
-        enc_preds_fw = model.enc_outputs_fw
-        enc_labels_fw = model.enc_labels_fw[..., :output_dim]
-        enc_loss = self._loss_fn(preds=enc_preds_fw, labels=enc_labels_fw)
+        # preds_bw = model.outputs_bw
+        # labels_bw = model.labels_bw[..., :output_dim]
+        # loss_bw = self._loss_fn(preds=preds_bw, labels=labels_bw)
+
+        # enc_preds_fw = model.enc_outputs_fw
+        # enc_labels_fw = model.enc_labels_fw[..., :output_dim]
+        # enc_loss = self._loss_fn(preds=enc_preds_fw, labels=enc_labels_fw)
 
         enc_preds_bw = model.enc_outputs_bw
         enc_labels_bw = model.enc_labels_bw[..., :output_dim]
@@ -220,7 +210,6 @@ class DCRNNSupervisor(object):
 
         fetches = {
             'loss': loss,
-            'enc_loss': enc_loss,
             'enc_loss_bw': enc_loss_bw,
             'global_step': tf.train.get_or_create_global_step()
         }
@@ -237,21 +226,18 @@ class DCRNNSupervisor(object):
                 'outputs': model.outputs
             })
 
-        for _, (_inputs, _enc_labels_fw, _dec_labels_fw, _enc_labels_bw, _dec_labels_bw) in enumerate(data_generator):
+        for _, (_inputs, _dec_labels_fw, _enc_labels_bw) in enumerate(data_generator):
             feed_dict = {
                 model.inputs: _inputs,
                 model.labels_fw: _dec_labels_fw,
-                model.enc_labels_fw: _enc_labels_fw,
-                model.labels_bw: _dec_labels_bw,
                 model.enc_labels_bw: _enc_labels_bw,
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
 
             losses.append(vals['loss'] + vals['enc_loss_bw'])
-            enc_losses.append(vals['enc_loss'])
+            dec_losses_fw.append(vals['loss'])
             enc_losses_bw.append(vals['enc_loss_bw'])
-            mses.append(vals['loss'] + vals['enc_loss_bw'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
             if return_output:
@@ -259,8 +245,8 @@ class DCRNNSupervisor(object):
 
         results = {
             'loss': np.mean(losses),
-            'enc_loss': np.mean(enc_losses),
             'enc_loss_bw': np.mean(enc_losses_bw),
+            'dec_loss_fw': np.mean(dec_losses_fw),
         }
         if return_output:
             results['outputs'] = outputs
@@ -306,6 +292,7 @@ class DCRNNSupervisor(object):
                                                      training=True,
                                                      writer=self._writer)
             train_loss, train_enc_loss_bw = train_results['loss'], train_results['enc_loss_bw']
+            train_dec_loss_fw = train_results['dec_loss_fw']
             # if train_loss > 1e5:
             #     self._logger.warning('Gradient explosion detected. Ending...')
             #     break
@@ -316,13 +303,14 @@ class DCRNNSupervisor(object):
                                                    self.data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_enc_loss_bw = val_results['loss'].item(), val_results['enc_loss_bw'].item()
+            val_dec_loss_fw = val_results['dec_loss_fw'].item()
 
             utils.add_simple_summary(self._writer,
                                      ['loss/train_loss', 'loss/val_loss'],
                                      [train_loss, val_loss], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] train_loss: {:.4f}, val_loss: {:.4f}, train_enc_bw: {:.4f}, val_enc_bw: {:.4f} - lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, train_loss, val_loss, train_enc_loss_bw,
+            message = 'Epoch [{}/{}] train_loss: {:.4f}, val_loss: {:.4f} || train_dec_fw: {:.4f}, val_dec_fw: {:.4f}, train_enc_bw: {:.4f}, val_enc_bw: {:.4f} - lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, train_loss, val_loss, train_dec_loss_fw, val_dec_loss_fw, train_enc_loss_bw,
                 val_enc_loss_bw, new_lr, (end_time - start_time))
             self._logger.info(message)
 

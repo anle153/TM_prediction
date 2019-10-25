@@ -37,9 +37,9 @@ class DCRNNModel(object):
 
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels_fw = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels_fw')
-        self._labels_bw = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels_bw')
-        self._enc_labels_fw = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, 1),
-                                             name='enc_labels_fw')
+        # self._labels_bw = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels_bw')
+        # self._enc_labels_fw = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, 1),
+        #                                      name='enc_labels_fw')
         self._enc_labels_bw = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, 1),
                                              name='enc_labels_bw')
 
@@ -78,7 +78,8 @@ class DCRNNModel(object):
                     result_fw = prev_fw
                 return result_fw
 
-            enc_outputs_fw, enc_state_fw = tf.contrib.rnn.static_rnn(encoding_cells_fw, inputs_fw, dtype=tf.float32)
+            # enc_outputs_fw, enc_state_fw = tf.contrib.rnn.static_rnn(encoding_cells_fw, inputs_fw, dtype=tf.float32)
+            _, enc_state_fw = tf.contrib.rnn.static_rnn(encoding_cells_fw, inputs_fw, dtype=tf.float32)
 
             # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
             # _, enc_state = encoder_layers(inputs)
@@ -87,51 +88,51 @@ class DCRNNModel(object):
 
         # Project the output to output_dim.
         outputs_fw = tf.stack(outputs_fw[:-1], axis=1)
-        enc_outputs_fw = tf.stack(enc_outputs_fw, axis=1)
+        # enc_outputs_fw = tf.stack(enc_outputs_fw, axis=1)
 
         self._outputs_fw = tf.reshape(outputs_fw, (batch_size, horizon, num_nodes, output_dim), name='outputs_fw')
-        self._enc_outputs_fw = tf.reshape(enc_outputs_fw, (batch_size, seq_len, num_nodes, output_dim),
-                                          name='enc_outputs_fw')
+        # self._enc_outputs_fw = tf.reshape(enc_outputs_fw, (batch_size, seq_len, num_nodes, output_dim),
+        #                                   name='enc_outputs_fw')
 
         # construct backward network
         encoding_cells_bw = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
-        decoding_cells_bw = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
+        # decoding_cells_bw = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells_bw = tf.contrib.rnn.MultiRNNCell(encoding_cells_bw, state_is_tuple=True)
-        decoding_cells_bw = tf.contrib.rnn.MultiRNNCell(decoding_cells_bw, state_is_tuple=True)
+        # decoding_cells_bw = tf.contrib.rnn.MultiRNNCell(decoding_cells_bw, state_is_tuple=True)
 
         with tf.variable_scope('DCRNN_SEQ_BW'):
             inputs_bw = tf.unstack(tf.reshape(inputs_bw, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
 
-            labels_bw = tf.unstack(
-                tf.reshape(self._labels_bw[..., :output_dim], (batch_size, horizon, num_nodes * output_dim)), axis=1)
-            labels_bw.insert(0, GO_SYMBOL)
+            # labels_bw = tf.unstack(
+            #     tf.reshape(self._labels_bw[..., :output_dim], (batch_size, horizon, num_nodes * output_dim)), axis=1)
+            # labels_bw.insert(0, GO_SYMBOL)
 
-            def _loop_function_bw(prev_bw, i):
-                if is_training:
-                    # Return either the model's prediction or the previous ground truth in training.
-                    if use_curriculum_learning:
-                        c = tf.random_uniform((), minval=0, maxval=1.)
-                        threshold = self._compute_sampling_threshold(global_step, cl_decay_steps)
-                        result_bw = tf.cond(tf.less(c, threshold), lambda: labels_bw[i], lambda: prev_bw)
-                    else:
-                        result_bw = labels_bw[i]
-                else:
-                    # Return the prediction of the model in testing.
-                    result_bw = prev_bw
-                return result_bw
+            # def _loop_function_bw(prev_bw, i):
+            #     if is_training:
+            #         # Return either the model's prediction or the previous ground truth in training.
+            #         if use_curriculum_learning:
+            #             c = tf.random_uniform((), minval=0, maxval=1.)
+            #             threshold = self._compute_sampling_threshold(global_step, cl_decay_steps)
+            #             result_bw = tf.cond(tf.less(c, threshold), lambda: labels_bw[i], lambda: prev_bw)
+            #         else:
+            #             result_bw = labels_bw[i]
+            #     else:
+            #         # Return the prediction of the model in testing.
+            #         result_bw = prev_bw
+            #     return result_bw
 
             enc_outputs_bw, enc_state_bw = tf.contrib.rnn.static_rnn(encoding_cells_bw, inputs_bw, dtype=tf.float32)
 
             # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
             # _, enc_state = encoder_layers(inputs)
-            outputs_bw, final_state_bw = legacy_seq2seq.rnn_decoder(labels_bw, enc_state_bw, decoding_cells_bw,
-                                                                    loop_function=_loop_function_bw)
+            # outputs_bw, final_state_bw = legacy_seq2seq.rnn_decoder(labels_bw, enc_state_bw, decoding_cells_bw,
+            #                                                         loop_function=_loop_function_bw)
 
         # Project the output to output_dim.
-        outputs_bw = tf.stack(outputs_bw[:-1], axis=1)
+        # outputs_bw = tf.stack(outputs_bw[:-1], axis=1)
         enc_outputs_bw = tf.stack(enc_outputs_bw, axis=1)
 
-        self._outputs_bw = tf.reshape(outputs_bw, (batch_size, horizon, num_nodes, output_dim), name='outputs_bw')
+        # self._outputs_bw = tf.reshape(outputs_bw, (batch_size, horizon, num_nodes, output_dim), name='outputs_bw')
         self._enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim),
                                           name='enc_outputs_bw')
 
@@ -155,13 +156,13 @@ class DCRNNModel(object):
     def labels_fw(self):
         return self._labels_fw
 
-    @property
-    def labels_bw(self):
-        return self._labels_bw
-
-    @property
-    def enc_labels_fw(self):
-        return self._enc_labels_fw
+    # @property
+    # def labels_bw(self):
+    #     return self._labels_bw
+    #
+    # @property
+    # def enc_labels_fw(self):
+    #     return self._enc_labels_fw
 
     @property
     def enc_labels_bw(self):
@@ -183,13 +184,13 @@ class DCRNNModel(object):
     def outputs_fw(self):
         return self._outputs_fw
 
-    @property
-    def enc_outputs_fw(self):
-        return self._enc_outputs_fw
+    # @property
+    # def enc_outputs_fw(self):
+    #     return self._enc_outputs_fw
 
-    @property
-    def outputs_bw(self):
-        return self._outputs_bw
+    # @property
+    # def outputs_bw(self):
+    #     return self._outputs_bw
 
     @property
     def enc_outputs_bw(self):

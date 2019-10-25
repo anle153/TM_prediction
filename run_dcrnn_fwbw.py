@@ -94,10 +94,10 @@ if __name__ == '__main__':
     if args.mode == 'train':
         train_dcrnn_fwbw(config_fw)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        with open(args.config_bw) as f_bw:
-            config_bw = yaml.load(f_bw)
+        with open(args.config_bw) as b_bw:
+            config_bw = yaml.load(b_bw)
         evaluate_dcrnn_fwbw(config_fw, config_bw)
     else:
-        with open(args.config_bw) as f_bw:
-            config_bw = yaml.load(f_bw)
+        with open(args.config_bw) as b_bw:
+            config_bw = yaml.load(b_bw)
         test_dcrnn_fwbw(config_fw, config_bw)

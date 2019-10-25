@@ -33,6 +33,8 @@ class DCRNNModel(object):
 
         # Input (batch_size, timesteps, num_sensor, input_dim)
         self._inputs = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, input_dim), name='inputs')
+        inputs_bw = tf.reverse(tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
+
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels')
         self._labels_bw = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels_bw')
@@ -95,8 +97,6 @@ class DCRNNModel(object):
         decoding_cells_bw = tf.contrib.rnn.MultiRNNCell(decoding_cells_bw, state_is_tuple=True)
 
         with tf.variable_scope('DCRNN_SEQ_BW'):
-            inputs_bw = tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim))
-            inputs_bw = tf.reverse(inputs_bw, axis=1)
             inputs_bw = tf.unstack(tf.reshape(inputs_bw, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
 
             labels_bw = tf.unstack(

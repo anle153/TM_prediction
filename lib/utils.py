@@ -398,6 +398,19 @@ def od_flow_matrix(flow_index_file='./Dataset/demands.csv'):
     return adj_matrix
 
 
+def sd_flow_matrix(flow_index_file='./Dataset/demands.csv'):
+    flow_index = pd.read_csv(flow_index_file)
+    nflow = flow_index['index'].size
+    adj_matrix = np.zeros(shape=(nflow, nflow))
+
+    for i in range(nflow):
+        for j in range(nflow):
+            if (flow_index.iloc[i].d == flow_index.iloc[j].d) or (flow_index.iloc[i].s == flow_index.iloc[j].s):
+                adj_matrix[i, j] = 1.0
+
+    return adj_matrix
+
+
 def ppa_representation(data, seq_len):
     data_reduced = np.zeros(shape=(int(data.shape[0] / seq_len), data.shape[1]))
 
@@ -502,6 +515,8 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
         adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[7]:
         raise NotImplementedError('Need to be implemented!')
+    elif adj_method == ADJ_METHOD[8]:
+        adj_mx = sd_flow_matrix()
     else:
         raise ValueError('Adj constructor is not implemented!')
 

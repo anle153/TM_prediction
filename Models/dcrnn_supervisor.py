@@ -152,7 +152,7 @@ class DCRNNSupervisor(object):
 
             mon_ratio = kwargs['mon_ratio']
 
-            # ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN']
+            # ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 'SD']
             adj_method = kwargs['data'].get('adj_method')
             adj_pos_thres = kwargs['data'].get('pos_thres')
             adj_neg_thres = -kwargs['data'].get('neg_thres')

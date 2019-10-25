@@ -95,7 +95,8 @@ class DCRNNModel(object):
         decoding_cells_bw = tf.contrib.rnn.MultiRNNCell(decoding_cells_bw, state_is_tuple=True)
 
         with tf.variable_scope('DCRNN_SEQ_BW'):
-            inputs_bw = tf.reverse(self._inputs, axis=1)
+            inputs_bw = tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim))
+            inputs_bw = tf.reverse(inputs_bw, axis=1)
             inputs_bw = tf.unstack(tf.reshape(inputs_bw, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
 
             labels_bw = tf.unstack(

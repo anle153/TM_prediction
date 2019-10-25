@@ -484,8 +484,8 @@ class DCRNN_FWBW(object):
             self._fw_net_wrap = DCRNNSupervisor(network_type='fw', **config_fw)
             self._fw_net_wrap.load(sess, config_fw['train']['model_filename'])
 
-            # self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config_bw)
-            # self._fw_net_wrap.load(sess, config_bw['train']['model_filename'])
+            self._bw_net_wrap = DCRNNSupervisor(network_type='bw', **config_bw)
+            self._bw_net_wrap.load(sess, config_bw['train']['model_filename'])
 
             self._test(sess)
 
@@ -714,7 +714,6 @@ class DCRNN_FWBW(object):
         metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
-            self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
             outputs = self._run_tm_prediction(sess)
 
@@ -735,7 +734,7 @@ class DCRNN_FWBW(object):
                 mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
                 mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
                 rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-                self._logger.info(
+                print(
                     "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
                         horizon_i + 1, mse, mae, rmse, mape
                     )

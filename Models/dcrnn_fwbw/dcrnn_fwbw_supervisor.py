@@ -227,19 +227,20 @@ class DCRNNSupervisor(object):
                 'outputs': model.outputs
             })
 
-        for _, (x, y, enc_l, l_bw, enc_l_bw) in enumerate(data_generator):
+        for _, (_inputs, _enc_labels_fw, _dec_labels_fw, _enc_labels_bw, _dec_labels_bw) in enumerate(data_generator):
             feed_dict = {
-                model.inputs: x,
-                model.labels: y,
-                model.enc_labels: enc_l,
-                model.labels_bw: l_bw,
-                model.enc_labels_bw: enc_l_bw,
+                model.inputs: _inputs,
+                model.labels: _dec_labels_fw,
+                model.enc_labels: _enc_labels_fw,
+                model.labels_bw: _dec_labels_bw,
+                model.enc_labels_bw: _enc_labels_bw,
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
 
             losses.append(vals['loss'] + vals['enc_loss'] + vals['enc_loss_bw'])
             enc_losses.append(vals['enc_loss'])
+            enc_losses_bw.append(vals['enc_loss'])
             mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
@@ -256,37 +257,37 @@ class DCRNNSupervisor(object):
             results['outputs'] = outputs
         return results
 
-    def predict(self, sess, x, y):
-
-        if self._network_type == 'bw':
-            x = np.flip(x, axis=1)
-            y = np.flip(y, axis=1)
-
-        output_dim = self._model_kwargs.get('output_dim')
-        preds = self.test_model.outputs
-        labels = self.test_model.labels[..., :output_dim]
-        loss = self._loss_fn(preds=preds, labels=labels)
-        fetches = {
-            'loss': loss,
-            'mse': loss,
-            'global_step': tf.train.get_or_create_global_step()
-        }
-
-        fetches.update({
-            'outputs': self.test_model.outputs,
-            'enc_outputs': self.test_model.enc_outputs
-        })
-
-        feed_dict = {
-            self.test_model.inputs: x,
-            self.test_model.labels: y,
-        }
-        vals = sess.run(fetches, feed_dict=feed_dict)
-
-        if self._network_type == 'fw':
-            return vals['enc_outputs'], vals['outputs']
-        else:
-            return np.flip(vals['enc_outputs'], axis=1), np.flip(vals['outputs'], axis=1)
+    # def predict(self, sess, x, y):
+    #
+    #     if self._network_type == 'bw':
+    #         x = np.flip(x, axis=1)
+    #         y = np.flip(y, axis=1)
+    #
+    #     output_dim = self._model_kwargs.get('output_dim')
+    #     preds = self.test_model.outputs
+    #     labels = self.test_model.labels[..., :output_dim]
+    #     loss = self._loss_fn(preds=preds, labels=labels)
+    #     fetches = {
+    #         'loss': loss,
+    #         'mse': loss,
+    #         'global_step': tf.train.get_or_create_global_step()
+    #     }
+    #
+    #     fetches.update({
+    #         'outputs': self.test_model.outputs,
+    #         'enc_outputs': self.test_model.enc_outputs
+    #     })
+    #
+    #     feed_dict = {
+    #         self.test_model.inputs: x,
+    #         self.test_model.labels: y,
+    #     }
+    #     vals = sess.run(fetches, feed_dict=feed_dict)
+    #
+    #     if self._network_type == 'fw':
+    #         return vals['enc_outputs'], vals['outputs']
+    #     else:
+    #         return np.flip(vals['enc_outputs'], axis=1), np.flip(vals['outputs'], axis=1)
 
     def get_lr(self, sess):
         return sess.run(self._lr).item()

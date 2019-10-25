@@ -349,8 +349,8 @@ class DCRNNSupervisor(object):
                                      ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
                                      [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] train_mse: {:.4f}, val_mse: {:.4f}, train_enc: {:.4f}, val_enc: {:.4f},  train_enc_bw: {:.4f}, val_enc_bw: {:.4f} -  lr:{:.6f} {:.1f}s'.format(
-                self._epoch, epochs, global_step, train_mse, val_mse, train_enc_loss, val_enc_loss, train_enc_loss_bw,
+            message = 'Epoch [{}/{}] train_loss: {:.4f}, val_loss: {:.4f}, train_enc: {:.4f}, val_enc: {:.4f},  train_enc_bw: {:.4f}, val_enc_bw: {:.4f} -  lr:{:.6f} {:.1f}s'.format(
+                self._epoch, epochs, global_step, train_loss, val_loss, train_enc_loss, val_enc_loss, train_enc_loss_bw,
                 val_enc_loss_bw, new_lr,
                 (end_time - start_time))
             self._logger.info(message)

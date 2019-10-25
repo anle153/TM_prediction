@@ -68,8 +68,12 @@ def train_dcrnn_fwbw(config):
 def test_dcrnn_fwbw(config_fw, config_bw):
     print('|-- Run model testing dgc_lstm.')
 
-    model = DCRNNSupervisor(**config_fw)
-    model.test(config_fw, config_bw)
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.load(sess, config['train']['model_filename'])
+        model.test(sess)
 
 
 def evaluate_dcrnn_fwbw(config_fw, config_bw):

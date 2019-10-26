@@ -48,7 +48,7 @@ train:
     - 30
     - 40
     - 50
-  test_every_n_epochs: 10
+  test_every_n_epochs: 1
   results_path: results/
   results_name: Abilene-dgc-lstm
   continue_train: False

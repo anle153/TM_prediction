@@ -11,9 +11,9 @@ data:
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/
-  adj_method: CORR3
-  pos_thres: 0.7
-  neg_thres: -0.8
+  adj_method: CORR1
+  pos_thres: 0.3
+  neg_thres: -0.3
   day_size: 288
   data_size: 1.0
   generate_data: False

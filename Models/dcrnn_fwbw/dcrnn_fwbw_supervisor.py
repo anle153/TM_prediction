@@ -223,7 +223,7 @@ class DCRNNSupervisor(object):
 
         if return_output:
             fetches.update({
-                'outputs': model.outputs
+                'outputs': model.outputs_fw
             })
 
         for _, (_inputs, _dec_labels_fw, _enc_labels_bw) in enumerate(data_generator):

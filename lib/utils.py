@@ -436,7 +436,7 @@ def dynamic_time_wrap_PPA(data, seq_len):
     return dtw_mx_dist
 
 
-def dynamic_time_wrap(data, seq_len):
+def dynamic_time_wrap(data):
     from tslearn.metrics import cdist_dtw
     print('|--- Construct adj_mx by DTW')
     dtw_mx_dist = cdist_dtw(data.transpose())
@@ -481,7 +481,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
         raise NotImplementedError('Need to be implemented!')
     elif adj_method == ADJ_METHOD[4]:
         # Caculating the pairwise distance of DTW on raw
-        dtw_mx_dist = dynamic_time_wrap(data, seq_len)
+        dtw_mx_dist = dynamic_time_wrap(data)
         adj_mx = dtw_mx_dist.max() - dtw_mx_dist
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
         adj_mx[adj_mx < pos_thres] = 0.0
@@ -665,7 +665,8 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
         data=train_data_norm, seq_len=seq_len, horizon=horizon,
         input_dim=input_dim,
         mon_ratio=mon_ratio, eps=train_data_norm.std())
-    inputs_val, dec_labels_fw_val, enc_labels_bw_val = create_data_dcrnn_fwbw(data=valid_data_norm,
+    inputs_val, dec_labels_fw_val, enc_labels_bw_val = create_data_dcrnn_fwbw(
+        data=valid_data_norm,
                                                                               seq_len=seq_len, horizon=horizon,
                                                                               input_dim=input_dim,
                                                                               mon_ratio=mon_ratio, eps=train_data_norm.std())
@@ -692,11 +693,11 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     data['val_loader'] = DataLoader_dcrnn_fwbw(data['inputs_val'],
                                                data['dec_labels_fw_val'],
                                                data['enc_labels_bw_val'],
-                                               batch_size, shuffle=True)
+                                               val_batch_size, shuffle=True)
     data['eval_loader'] = DataLoader_dcrnn_fwbw(data['inputs_eval'],
                                                 data['dec_labels_fw_eval'],
                                                 data['enc_labels_bw_eval'],
-                                                batch_size, shuffle=True)
+                                                eval_batch_size, shuffle=True)
 
     data['scaler'] = scaler
 

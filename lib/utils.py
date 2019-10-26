@@ -184,6 +184,20 @@ def calculate_scaled_laplacian(adj_mx, lambda_max=2, undirected=True):
     return L.astype(np.float32)
 
 
+def adj_to_bias(adj, sizes, nhood=1):
+    nb_graphs = adj.shape[0]
+    mt = np.empty(adj.shape)
+    for g in range(nb_graphs):
+        mt[g] = np.eye(adj.shape[1])
+        for _ in range(nhood):
+            mt[g] = np.matmul(mt[g], (adj[g] + np.eye(adj.shape[1])))
+        for i in range(sizes[g]):
+            for j in range(sizes[g]):
+                if mt[g][i][j] > 0.0:
+                    mt[g][i][j] = 1.0
+    return -1e9 * (1.0 - mt)
+
+
 def config_logging(log_dir, log_filename='info.log', level=logging.INFO):
     # Add file handler and stdout handler
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -451,8 +465,8 @@ def knn_ts(data, metric='dtw'):
     pass
 
 
-#                0        1       2      3        4        5        6      7      8
-ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 'SD']
+#                0        1       2      3        4        5        6      7      8      9
+ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 'SD', 'CORR3']
 
 
 def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_thres=-0.8):
@@ -467,12 +481,12 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
     if adj_method == ADJ_METHOD[0]:
         # Construct graph by using avg correlation (positive)
         adj_mx = correlation_matrix(data, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        # adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
         adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[1]:
         # Construct graph by using avg correlation (positive and negative)
         adj_mx = correlation_matrix(data, seq_len)
-        adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        # adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
         adj_mx[(pos_thres > adj_mx) * (adj_mx > neg_thres)] = 0.0
     elif adj_method == ADJ_METHOD[2]:
         # Construct graph by destination information
@@ -501,6 +515,12 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
         raise NotImplementedError('Need to be implemented!')
     elif adj_method == ADJ_METHOD[8]:
         adj_mx = sd_flow_matrix()
+    elif adj_method == ADJ_METHOD[9]:
+        # Construct graph by using avg correlation (positive/ no weights)
+        adj_mx = correlation_matrix(data, seq_len)
+        # adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
+        adj_mx[pos_thres > adj_mx] = 0.0
+        adj_mx[adj_mx >= pos_thres] = 1.0
     else:
         raise ValueError('Adj constructor is not implemented!')
 

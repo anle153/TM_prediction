@@ -36,13 +36,16 @@ class DCRNNModel(object):
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels')
 
+        self._bias_mt = tf.placeholder(tf.float32, shape=(batch_size, num_nodes, num_nodes), name='bias_mx')
+
+
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 
         cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                         filter_type=filter_type)
+                         filter_type=filter_type, batch_size=batch_size)
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                         num_proj=output_dim, filter_type=filter_type)
+                                         num_proj=output_dim, filter_type=filter_type, batch_size=batch_size)
 
         encoding_cells = [cell] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]

@@ -72,7 +72,7 @@ class DCGRUCell(RNNCell):
     def compute_output_shape(self, input_shape):
         pass
 
-    def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, num_proj=None,
+    def __init__(self, num_units, adj_mx, max_diffusion_step, num_nodes, batch_size, num_proj=None,
                  activation=tf.nn.tanh, reuse=None, filter_type="laplacian", use_gc_for_ru=True):
         """
 
@@ -109,6 +109,10 @@ class DCGRUCell(RNNCell):
             self._supports.append(self._build_sparse_matrix(support))
 
         self._bias_mt = tf.convert_to_tensor(utils.adj_to_bias(adj_mx, [self._num_nodes], nhood=1))
+        _adj_mx = tf.convert_to_tensor(adj_mx)
+        self._adj_mx_repeat = tf.tile(tf.expand_dims(_adj_mx, axis=0), [batch_size, 1, 1])
+        for support in self._supports:
+            self._supports_dense.append(tf.sparse.to_dense(support))
 
     @staticmethod
     def _build_sparse_matrix(L):
@@ -185,18 +189,21 @@ class DCGRUCell(RNNCell):
         return value
 
     def _gconv(self, inputs, state, outputsize, bias_start=0.0):
-        """Graph convolution between input and the graph matrix.
-
-        :param args: a 2D Tensor or a list of 2D, batch x n, Tensors.
-        :param output_size:
-        :param bias:
+        """
+        Graph convolution between input and the graph matrix.
+        :param inputs:
+        :param state:
+        :param outputsize:
         :param bias_start:
-        :param scope:
         :return:
         """
         # Reshape input and state to (batch_size, num_nodes, input_dim/state_dim)
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
+
+        _att_weights = attn_head(self._inputs, bias_mat=self._bias_mt, out_sz=1, activation=tf.nn.elu,
+                                 in_drop=0.5, coef_drop=0.5, residual=False)
+
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))
         inputs_and_state = tf.concat([inputs, state], axis=2)
         input_size = inputs_and_state.get_shape()[2].value
@@ -218,7 +225,7 @@ class DCGRUCell(RNNCell):
                 else:
                     for support_dense in self._supports_dense:
                         # pw (num_nodes, num_nodes)
-                        pw = directed_weight_links[batch_idx] * support_dense
+                        pw = _att_weights[batch_idx] * support_dense
                         x1 = tf.matmul(pw, x0)  # (num_node, arg_size)
                         xk = self._concat(xk, x1)
 

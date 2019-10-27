@@ -36,9 +36,6 @@ class DCRNNModel(object):
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels')
 
-        self._bias_mt = tf.placeholder(tf.float32, shape=(batch_size, num_nodes, num_nodes), name='bias_mx')
-
-
         # GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * input_dim))
         GO_SYMBOL = tf.zeros(shape=(batch_size, num_nodes * output_dim))
 

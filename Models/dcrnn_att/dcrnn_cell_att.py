@@ -108,7 +108,8 @@ class DCGRUCell(RNNCell):
         for support in supports:
             self._supports.append(self._build_sparse_matrix(support))
 
-        self._bias_mt = tf.convert_to_tensor(utils.adj_to_bias(adj_mx, [self._num_nodes], nhood=1))
+        self._bias_mt = tf.convert_to_tensor(utils.adj_to_bias(np.expand_dims(adj_mx, axis=0),
+                                                               [self._num_nodes], nhood=1))
         _adj_mx = tf.convert_to_tensor(adj_mx)
         self._adj_mx_repeat = tf.tile(tf.expand_dims(_adj_mx, axis=0), [batch_size, 1, 1])
         for support in self._supports:

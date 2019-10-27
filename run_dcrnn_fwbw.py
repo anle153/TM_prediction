@@ -65,7 +65,7 @@ def train_dcrnn_fwbw(config):
         model.train(sess)
 
 
-def test_dcrnn_fwbw(config_fw, config_bw):
+def test_dcrnn_fwbw(config):
     print('|-- Run model testing dgc_lstm.')
 
     tf_config = tf.ConfigProto()
@@ -76,10 +76,14 @@ def test_dcrnn_fwbw(config_fw, config_bw):
         model.test(sess)
 
 
-def evaluate_dcrnn_fwbw(config_fw, config_bw):
+def evaluate_dcrnn_fwbw(config):
     print('|-- Run model testing dgc_lstm.')
-    model = DCRNNSupervisor(**config_fw)
-    model.evaluate(config_fw, config_bw)
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        model = DCRNNSupervisor(**config)
+        model.load(sess, config['train']['model_filename'])
+        model.evaluate(sess)
 
 
 if __name__ == '__main__':

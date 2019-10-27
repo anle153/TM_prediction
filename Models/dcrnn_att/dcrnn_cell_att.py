@@ -96,6 +96,7 @@ class DCGRUCell(RNNCell):
         self._supports = []
         self._use_gc_for_ru = use_gc_for_ru
         supports = []
+        self._supports_dense = []
         if filter_type == "laplacian":
             supports.append(utils.calculate_scaled_laplacian(adj_mx, lambda_max=None))
         elif filter_type == "random_walk":

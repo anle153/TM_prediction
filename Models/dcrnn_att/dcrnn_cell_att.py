@@ -27,22 +27,22 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
 
         seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
 
-        print('seq_fts shape: ', seq_fts.shape)
+        # print('seq_fts shape: ', seq_fts.shape)
 
         # simplest self-attention possible
         f_1 = tf.layers.conv1d(seq_fts, 1, 1)
         f_2 = tf.layers.conv1d(seq_fts, 1, 1)
 
-        print('f_1 shape: ', f_1.shape)
-        print('f_2 shape: ', tf.transpose(f_2, [0, 2, 1]).shape)
+        # print('f_1 shape: ', f_1.shape)
+        # print('f_2 shape: ', tf.transpose(f_2, [0, 2, 1]).shape)
 
         logits = f_1 + tf.transpose(f_2, [0, 2, 1])
-        print('logits shape: ', logits.shape)
+        # print('logits shape: ', logits.shape)
 
         # alpha_ij
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
 
-        print('coefs shape: ', coefs.shape)
+        # print('coefs shape: ', coefs.shape)
 
         if coef_drop != 0.0:
             coefs = tf.nn.dropout(coefs, 1.0 - coef_drop)

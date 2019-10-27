@@ -203,7 +203,7 @@ class DCGRUCell(RNNCell):
         batch_size = inputs.get_shape()[0].value
         inputs = tf.reshape(inputs, (batch_size, self._num_nodes, -1))
 
-        _att_weights = attn_head(self._inputs, bias_mat=self._bias_mt, out_sz=1, activation=tf.nn.elu,
+        _att_weights = attn_head(inputs, bias_mat=self._bias_mt, out_sz=1, activation=tf.nn.elu,
                                  in_drop=0.5, coef_drop=0.5, residual=False)
 
         state = tf.reshape(state, (batch_size, self._num_nodes, -1))

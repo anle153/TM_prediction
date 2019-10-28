@@ -622,7 +622,7 @@ class DCRNNSupervisor(object):
             }
             vals = sess.run(fetches, feed_dict=feed_dict)
 
-            encoder_outputs_bw, decoder_outputs_fw = vals['enc_outputs_bw'], vals['outputs']
+            encoder_outputs_bw, decoder_outputs_fw = vals['enc_outputs_bw'], vals['outputs_fw']
 
             encoder_outputs_bw = np.flip(encoder_outputs_bw, axis=0)
 

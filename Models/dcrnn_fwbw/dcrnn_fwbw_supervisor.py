@@ -624,6 +624,8 @@ class DCRNNSupervisor(object):
 
             encoder_outputs_bw, decoder_outputs_fw = vals['enc_outputs_bw'], vals['outputs_fw']
 
+            print(encoder_outputs_bw.shape, decoder_outputs_fw.shape)
+
             encoder_outputs_bw = np.flip(encoder_outputs_bw, axis=0)
 
             corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],

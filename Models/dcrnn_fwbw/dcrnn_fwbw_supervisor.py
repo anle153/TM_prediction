@@ -85,7 +85,7 @@ class DCRNNSupervisor(object):
         self._horizon = int(self._model_kwargs.get('horizon'))
         self._input_dim = int(self._model_kwargs.get('input_dim'))
         self._nodes = int(self._model_kwargs.get('num_nodes'))
-        self._r = self._model_kwargs.get('r')
+        self._r = int(self._model_kwargs.get('r'))
 
         # Test's args
         self._flow_selection = self._test_kwargs.get('flow_selection')

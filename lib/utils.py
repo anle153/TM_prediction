@@ -580,7 +580,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)
 
-    print('Number of edges: {}'.format(np.sum(adj_mx)))
+    print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
 
     adj_mx = adj_mx.astype('float32')
 

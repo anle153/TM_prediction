@@ -12,8 +12,8 @@ data:
   test_batch_size: 1
   dataset_dir: Dataset/
   adj_method: SAX
-  pos_thres: 0.5
-  neg_thres: -0.5
+  pos_thres: 0.8
+  neg_thres: -0.8
   day_size: 288
   data_size: 1.0
   generate_data: False

@@ -11,7 +11,7 @@ data:
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/
-  adj_method: CORR1
+  adj_method: SAX
   pos_thres: 0.2
   neg_thres: -0.2
   day_size: 288

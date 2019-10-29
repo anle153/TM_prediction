@@ -519,7 +519,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
         # Construct graph by using avg correlation (positive/ no weights)
         adj_mx = correlation_matrix(data, seq_len)
         # adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
-        adj_mx[pos_thres > adj_mx] = 0.0
+        adj_mx[adj_mx < pos_thres] = 0.0
         adj_mx[adj_mx >= pos_thres] = 1.0
     else:
         raise ValueError('Adj constructor is not implemented!')

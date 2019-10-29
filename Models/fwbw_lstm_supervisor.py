@@ -509,7 +509,7 @@ class FwbwLstmRegression():
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
             # This block is used for iterated multi-step traffic matrices prediction
 
-            # fw_outputs (horizon, num_flows); bw_outputs (seq_len, num_flows)
+            # fw_outputs (horizon, num_flows); bw_outputs (num_flows, seq_len)
             fw_outputs, bw_outputs = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
                                                              init_labels=m_indicator[ts:ts + self._seq_len])
 

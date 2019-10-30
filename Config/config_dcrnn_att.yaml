@@ -6,8 +6,8 @@ gpu: 0
 mon_ratio: 0.3
 data:
   data_name: Abilene
-  batch_size: 8
-  val_batch_size: 8
+  batch_size: 16
+  val_batch_size: 16
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/
@@ -31,7 +31,7 @@ model:
   seq_len: 36
   use_curriculum_learning: true
 train:
-  base_lr: 0.001
+  base_lr: 0.0001
   dropout: 0.2
   epoch: 64
   epochs: 50000

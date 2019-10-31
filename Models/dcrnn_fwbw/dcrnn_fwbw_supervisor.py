@@ -629,14 +629,17 @@ class DCRNNSupervisor(object):
             encoder_outputs_bw = np.squeeze(encoder_outputs_bw, axis=-1)
             encoder_outputs_bw = encoder_outputs_bw.T
 
-            # corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
-            #                                           pred_backward=encoder_outputs_bw,
-            #                                           labels=m_indicator[ts: ts + self._seq_len])
-            # measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
-            # pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
-            # tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
+            corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
+                                                      pred_backward=encoder_outputs_bw,
+                                                      labels=m_indicator[ts: ts + self._seq_len])
+            measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+            pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+            tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
 
             y_preds.append(decoder_outputs_fw)
+            y_truths.append(
+                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon].copy(), axis=0))
+
             decoder_outputs_fw = np.squeeze(decoder_outputs_fw, axis=0)
             pred = decoder_outputs_fw[0]
 
@@ -655,12 +658,7 @@ class DCRNNSupervisor(object):
                                                    m_indicator=m_indicator[ts: ts + self._seq_len].T)
 
             m_indicator[ts + self._seq_len] = sampling
-            # invert of sampling: for choosing value from the original data
-
             ground_truth = test_data_norm[ts + self._seq_len].copy()
-            y_truths.append(
-                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon].copy(), axis=0))
-
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = pred * (1.0 - sampling) + ground_truth * sampling
 

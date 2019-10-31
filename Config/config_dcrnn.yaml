@@ -6,8 +6,8 @@ gpu: 0
 mon_ratio: 0.3
 data:
   data_name: Abilene
-  batch_size: 32
-  val_batch_size: 32
+  batch_size: 128
+  val_batch_size: 128
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/

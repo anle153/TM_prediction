@@ -91,7 +91,7 @@ class DCRNNModel(object):
         self._outputs_fw = tf.reshape(outputs_fw, (batch_size, horizon, num_nodes, output_dim), name='outputs_fw')
 
         # construct backward network
-        encoding_cells_bw = [cell_with_projection] * num_rnn_layers
+        encoding_cells_bw = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells_bw = tf.contrib.rnn.MultiRNNCell(encoding_cells_bw, state_is_tuple=True)
 
         with tf.variable_scope('DCRNN_SEQ_BW'):

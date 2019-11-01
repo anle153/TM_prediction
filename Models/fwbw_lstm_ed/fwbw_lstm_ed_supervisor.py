@@ -26,7 +26,7 @@ class TimeHistory(keras_callbacks.Callback):
         self.times.append(time.time() - self.epoch_time_start)
 
 
-class FwbwLstmRegression():
+class FwbwLstmED():
 
     def __init__(self, **kwargs):
 
@@ -191,6 +191,7 @@ class FwbwLstmRegression():
 
             # Construct E_D model for predicting
             self.encoder_model = Model(encoder_inputs, encoder_states)
+            self.encoder_model_bw = Model(encoder_inputs, en_outputs_bw)
 
             decoder_state_input_h = Input(shape=(self._hidden,))
             decoder_state_input_c = Input(shape=(self._hidden,))
@@ -204,6 +205,7 @@ class FwbwLstmRegression():
                 [decoder_outputs] + decoder_states)
 
             plot_model(model=self.encoder_model, to_file=self._log_dir + '/encoder.png', show_shapes=True)
+            plot_model(model=self.encoder_model_bw, to_file=self._log_dir + '/encoder_bw.png', show_shapes=True)
             plot_model(model=self.decoder_model, to_file=self._log_dir + '/decoder.png', show_shapes=True)
 
             return model

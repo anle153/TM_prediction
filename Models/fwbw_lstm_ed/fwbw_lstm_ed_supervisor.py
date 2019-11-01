@@ -65,8 +65,6 @@ class FwbwLstmED():
         # Test's args
         self._run_times = self._test_kwargs.get('run_times')
         self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._test_size = self._test_kwargs.get('test_size')
-        self._results_path = self._test_kwargs.get('results_path')
         self._lamda = []
         self._lamda.append(self._test_kwargs.get('lamda_0'))
         self._lamda.append(self._test_kwargs.get('lamda_1'))
@@ -122,16 +120,10 @@ class FwbwLstmED():
         log_dir = kwargs['train'].get('log_dir')
         if log_dir is None:
             batch_size = kwargs['data'].get('batch_size')
-            learning_rate = kwargs['train'].get('base_lr')
-            num_rnn_layers = kwargs['model'].get('num_rnn_layers')
             rnn_units = kwargs['model'].get('rnn_units')
-            structure = '-'.join(
-                ['%d' % rnn_units for _ in range(num_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
             mon_r = kwargs['mon_ratio']
-            run_id = 'fwbw_lstm_ed_%g_%d_%s_%g_%d/' % (
-                mon_r,
-                horizon, structure, learning_rate, batch_size)
+            run_id = 'fwbw_lstm_ed_%d_%g_%d_%d/' % (rnn_units, mon_r, horizon, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

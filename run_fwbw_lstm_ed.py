@@ -69,7 +69,7 @@ def build_model(config, is_training=True):
     return fwbw_net
 
 
-def train_fwbw_lstm(config):
+def train_fwbw_lstm_ed(config):
     print('|-- Run model training fwbw_lstm.')
     if tf.__version__ == '2.0.0':
         fwbw_net = build_model(config, is_training=True)
@@ -83,7 +83,7 @@ def train_fwbw_lstm(config):
     return
 
 
-def evaluate_fwbw_lstm(config):
+def evaluate_fwbw_lstm_ed(config):
     print('|--- EVALUATE FWBW-LSTM')
     if tf.__version__ == '2.0.0':
         fwbw_net = build_model(config, is_training=False)
@@ -96,7 +96,7 @@ def evaluate_fwbw_lstm(config):
     fwbw_net.evaluate()
 
 
-def test_fwbw_lstm(config):
+def test_fwbw_lstm_ed(config):
     print('|--- TEST FWBW-LSTM')
     if tf.__version__ == '2.0.0':
         fwbw_net = build_model(config, is_training=False)
@@ -124,11 +124,11 @@ if __name__ == '__main__':
     with open(args.config) as f:
         config = yaml.load(f)
 
-    print_fwbw_lstm_info(args.mode, config)
+    print_fwbw_lstm_ed_info(args.mode, config)
 
     if args.mode == 'train':
-        train_fwbw_lstm(config)
+        train_fwbw_lstm_ed(config)
     elif args.mode == 'evaluate':
-        evaluate_fwbw_lstm(config)
+        evaluate_fwbw_lstm_ed(config)
     else:
-        test_fwbw_lstm(config)
+        test_fwbw_lstm_ed(config)

@@ -629,12 +629,12 @@ class DCRNNSupervisor(object):
             encoder_outputs_bw = np.squeeze(encoder_outputs_bw, axis=-1)
             encoder_outputs_bw = encoder_outputs_bw.T
 
-            corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                      pred_backward=encoder_outputs_bw,
-                                                      labels=m_indicator[ts: ts + self._seq_len])
-            measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
-            pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
-            tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
+            # corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
+            #                                           pred_backward=encoder_outputs_bw,
+            #                                           labels=m_indicator[ts: ts + self._seq_len])
+            # measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+            # pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+            # tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
 
             y_preds.append(decoder_outputs_fw)
             y_truths.append(

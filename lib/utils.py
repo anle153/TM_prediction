@@ -886,7 +886,8 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
         input_dim=input_dim,
         mon_ratio=mon_ratio,
         eps=train_data2d_norm.std())
-    inputs_val, dec_inputs_val, enc_labels_bw_val, dec_labels_val = create_data_fwbw_lstm_ed(data=valid_data2d_norm,
+    inputs_val, dec_inputs_val, enc_labels_bw_val, dec_labels_val = create_data_fwbw_lstm_ed(
+        data=valid_data2d_norm,
                                                                                              seq_len=seq_len,
                                                                                              horizon=horizon,
                                                                                              input_dim=input_dim,

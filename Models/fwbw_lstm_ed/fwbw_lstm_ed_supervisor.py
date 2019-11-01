@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape
+from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input
 from keras.models import Model
 from keras.utils import plot_model
 from tqdm import tqdm
@@ -132,7 +132,6 @@ class FwbwLstmED():
 
     def construct_fwbw_lstm_ed(self, is_training=True):
         encoder_inputs = Input(shape=(None, self._input_dim))
-        seq_len = encoder_inputs.get_shape()[1].value
 
         # encoder fw
         encoder = LSTM(self._hidden, return_state=True)
@@ -144,20 +143,22 @@ class FwbwLstmED():
         encoder_bw = LSTM(self._hidden, return_sequences=True, go_backwards=True)
         encoder_outputs_bw = encoder_bw(encoder_inputs)
 
-        bw_drop_out = Dropout(self._drop_out)(encoder_outputs_bw)
-        bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
-        bw_dense = TimeDistributed(Dense(128, ))(bw_flat_layer)
-        bw_output = TimeDistributed(Dense(1, ))(bw_dense)
-
-        seq_len = encoder_inputs.get_shape()[1].value
-
-        bw_input_tensor_flatten = Reshape((-1, seq_len * self._input_dim, 1))(encoder_inputs)
-        _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
-
-        _input_bw = Flatten()(_input_bw)
-        _input_bw = Dense(256, )(_input_bw)
-        _input_bw = Dense(128, )(_input_bw)
-        en_outputs_bw = Dense(self._seq_len, name='bw_outputs')(_input_bw)
+        encoder_outputs_bw = TimeDistributed(Flatten())(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(128, ))(encoder_outputs_bw)
+        encoder_outputs_bw = Dropout(self._drop_out)(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(64, ))(encoder_outputs_bw)
+        encoder_outputs_bw = Dropout(self._drop_out)(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(1, ))(encoder_outputs_bw)
+        #
+        # seq_len = encoder_inputs.get_shape()[1].value
+        #
+        # bw_input_tensor_flatten = Reshape((-1, seq_len * self._input_dim, 1))(encoder_inputs)
+        # _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
+        #
+        # _input_bw = Flatten()(_input_bw)
+        # _input_bw = Dense(256, )(_input_bw)
+        # _input_bw = Dense(128, )(_input_bw)
+        # en_outputs_bw = Dense(self._seq_len, name='bw_outputs')(_input_bw)
 
         # Set up the decoder, using `encoder_states` as initial state.
         decoder_inputs = Input(shape=(None, 1))
@@ -173,7 +174,7 @@ class FwbwLstmED():
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        model = Model([encoder_inputs, decoder_inputs], [en_outputs_bw, decoder_outputs])
+        model = Model([encoder_inputs, decoder_inputs], [encoder_outputs_bw, decoder_outputs])
 
         if is_training:
             return model

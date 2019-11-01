@@ -789,7 +789,7 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
     inputs = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, seq_len, input_dim), dtype='float32')
     dec_inputs = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, horizon + 1, 1), dtype='float32')
     dec_labels = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, horizon + 1, 1), dtype='float32')
-    enc_labels_bw = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, seq_len), dtype='float32')
+    enc_labels_bw = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, seq_len, 1), dtype='float32')
 
     i = 0
     for flow in range(_F):
@@ -801,7 +801,7 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
             dec_inputs[i, 1:, 0] = data[idx + seq_len - 1:idx + seq_len + horizon - 1, flow]
             dec_labels[i, :, 0] = data[idx + seq_len - 1:idx + seq_len + horizon, flow]
 
-            enc_labels_bw[i] = data[idx - 1:idx + seq_len - 1, flow]
+            enc_labels_bw[i, :, 0] = data[idx - 1:idx + seq_len - 1, flow]
 
             i += 1
 

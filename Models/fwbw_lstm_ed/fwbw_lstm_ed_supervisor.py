@@ -134,8 +134,8 @@ class FwbwLstmED():
         encoder_inputs = Input(shape=(None, self._input_dim))
 
         # encoder fw
-        encoder = LSTM(self._hidden, return_state=True)
-        encoder_outputs, state_h, state_c = encoder(encoder_inputs, name='encoder-fw')
+        encoder = LSTM(self._hidden, return_state=True, name='encoder-fw')
+        encoder_outputs, state_h, state_c = encoder(encoder_inputs)
         # We discard `encoder_outputs` and only keep the states.
         encoder_states = [state_h, state_c]
 
@@ -144,11 +144,11 @@ class FwbwLstmED():
         encoder_outputs_bw = encoder_bw(encoder_inputs)
 
         encoder_outputs_bw = TimeDistributed(Flatten())(encoder_outputs_bw)
-        encoder_outputs_bw = TimeDistributed(Dense(128, ))(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(128, activation='relu'))(encoder_outputs_bw)
         encoder_outputs_bw = Dropout(self._drop_out)(encoder_outputs_bw)
-        encoder_outputs_bw = TimeDistributed(Dense(64, ))(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(64, activation='relu'))(encoder_outputs_bw)
         encoder_outputs_bw = Dropout(self._drop_out)(encoder_outputs_bw)
-        encoder_outputs_bw = TimeDistributed(Dense(1, ), name='encoder_bw')(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(1, activation='relu'), name='encoder_bw')(encoder_outputs_bw)
         #
         # seq_len = encoder_inputs.get_shape()[1].value
         #
@@ -169,8 +169,8 @@ class FwbwLstmED():
         decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
                                              initial_state=encoder_states)
 
-        decoder_dense = Dense(1, activation='relu')
-        decoder_outputs = decoder_dense(decoder_outputs, name='decoder')
+        decoder_dense = Dense(1, activation='relu', name='decoder')
+        decoder_outputs = decoder_dense(decoder_outputs)
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`

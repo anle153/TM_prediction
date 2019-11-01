@@ -1,0 +1,33 @@
+---
+alg: FWBW-LSTM-ED
+base_dir: logs/pretrained/Abilene
+log_level: INFO
+gpu: 1
+mon_ratio: 0.4
+mode: train
+data:
+  data_name: Abilene
+  batch_size: 1024
+  val_batch_size: 1024
+  eval_batch_size: 1
+  test_batch_size: 1
+  day_size: 288
+model:
+  horizon: 3
+  input_dim: 2
+  num_nodes: 144
+  output_dim: 1
+  rnn_units: 64
+  seq_len: 36
+  r: 2
+train:
+  dropout: 0
+  epochs: 50000
+  optimizer: adam
+  patience: 30
+test:
+  run_times: 50
+  flow_selection: Random
+  lamda_0: 2.6
+  lamda_1: 1.0
+  lamda_2: 1.0

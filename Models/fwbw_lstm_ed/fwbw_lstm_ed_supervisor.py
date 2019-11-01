@@ -177,6 +177,7 @@ class FwbwLstmED():
         model = Model([encoder_inputs, decoder_inputs], [encoder_outputs_bw, decoder_outputs])
 
         if is_training:
+            model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
             return model
         else:
             self._logger.info("|--- Load model from: {}".format(self._log_dir))

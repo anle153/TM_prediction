@@ -12,6 +12,7 @@ data:
   eval_batch_size: 1
   test_batch_size: 1
   day_size: 288
+  dataset_dir: Dataset/
 model:
   horizon: 3
   input_dim: 2

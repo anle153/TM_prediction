@@ -854,7 +854,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
 
 
 def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
-                              raw_dataset_dir, day_size, data_size,
+                              raw_dataset_dir, day_size, data_size=1.0,
                               **kwargs):
     data = {}
 

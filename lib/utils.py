@@ -799,7 +799,7 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
 
             dec_inputs[i, 0, 0] = 0
             dec_inputs[i, 1:, 0] = data[idx + seq_len - 1:idx + seq_len + horizon - 1, flow]
-            dec_labels[i, :, 0] = data[idx + seq_len - 1:idx + seq_len + horizon - 1, flow]
+            dec_labels[i, :, 0] = data[idx + seq_len - 1:idx + seq_len + horizon, flow]
 
             enc_labels_bw[i, :, 0] = data[idx - 1:idx + seq_len - 1, flow]
 

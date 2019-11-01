@@ -150,7 +150,7 @@ class FwbwLstmED():
         bw_dense_3 = TimeDistributed(Dense(32, ))(bw_dense_2)
         bw_output = TimeDistributed(Dense(1, ))(bw_dense_3)
 
-        bw_input_tensor_flatten = Reshape((encoder_inputs.shape[0] * encoder_inputs.shape[1], 1))(encoder_inputs)
+        bw_input_tensor_flatten = Reshape((self._input_shape[1] * self._input_shape[2], 1))(encoder_inputs)
         _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
 
         _input_bw = Flatten()(_input_bw)

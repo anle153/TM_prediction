@@ -55,7 +55,6 @@ class lstm():
         self._input_shape = (self._seq_len, self._input_dim)
         self._output_dim = self._model_kwargs.get('output_dim')
         self._nodes = self._model_kwargs.get('num_nodes')
-        self._n_rnn_layers = self._model_kwargs.get('n_rnn_layers')
 
         # Train's args
         self._drop_out = self._train_kwargs.get('dropout')
@@ -65,8 +64,6 @@ class lstm():
         # Test's args
         self._run_times = self._test_kwargs.get('run_times')
         self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._test_size = self._test_kwargs.get('test_size')
-        self._results_path = self._test_kwargs.get('results_path')
 
         self._mon_ratio = self._kwargs.get('mon_ratio')
 
@@ -74,12 +71,12 @@ class lstm():
         if self._model_type == 'lstm':
             self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
                                                  input_dim=self._input_dim,
-                                                 mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                 mon_ratio=self._mon_ratio,
                                                  **self._data_kwargs)
         elif self._model_type == 'ed' or self._model_type == 'encoder_decoder':
             self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
                                                     input_dim=self._input_dim,
-                                                    mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                    mon_ratio=self._mon_ratio,
                                                     **self._data_kwargs)
         else:
             raise RuntimeError("Model must be lstm or encoder_decoder")
@@ -113,21 +110,14 @@ class lstm():
         log_dir = kwargs['train'].get('log_dir')
         if log_dir is None:
             batch_size = kwargs['data'].get('batch_size')
-            learning_rate = kwargs['train'].get('base_lr')
-            max_diffusion_step = kwargs['model'].get('max_diffusion_step')
-            n_rnn_layers = kwargs['model'].get('n_rnn_layers')
             rnn_units = kwargs['model'].get('rnn_units')
-            structure = '-'.join(
-                ['%d' % rnn_units for _ in range(n_rnn_layers)])
             horizon = kwargs['model'].get('horizon')
 
             mon_ratio = kwargs['mon_ratio']
 
             model_type = kwargs['model'].get('model_type')
 
-            run_id = '%s_%g_%d_%s_%g_%d/' % (
-                model_type, mon_ratio, horizon,
-                structure, learning_rate, batch_size)
+            run_id = '%s_%d_%g_%d_%d/' % (model_type, rnn_units, mon_ratio, horizon, batch_size)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

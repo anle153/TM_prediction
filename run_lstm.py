@@ -20,7 +20,6 @@ def print_lstm_info(mode, config):
     print('|--- ALG:\t{}'.format(config['alg']))
     print('|--- DATA:\t{}'.format(config['data']['data_name']))
     print('|--- GPU:\t{}'.format(config['gpu']))
-    print('|--- GENERATE_DATA:\t{}'.format(config['data']['generate_data']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
 
@@ -30,25 +29,20 @@ def print_lstm_info(mode, config):
     print('|--- HORIZON:\t{}'.format(config['model']['horizon']))
     print('|--- INPUT_DIM:\t{}'.format(config['model']['input_dim']))
     print('|--- NUM_NODES:\t{}'.format(config['model']['num_nodes']))
-    print('|--- Nn_RNN_LAYERS:\t{}'.format(config['model']['n_rnn_layers']))
     print('|--- OUTPUT_DIMS:\t{}'.format(config['model']['output_dim']))
     print('|--- RNN_UNITS:\t{}'.format(config['model']['rnn_units']))
 
     if mode == 'train':
         print('----------------------- TRAIN -----------------------')
         print('|--- EPOCHS:\t{}'.format(config['train']['epochs']))
-        print('|--- LEARNING_RATE:\t{}'.format(config['train']['base_lr']))
         print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
-        print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
         print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
         print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
-        print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
 
     else:
         print('----------------------- TEST -----------------------')
         print('|--- RUN_TIMES:\t{}'.format(config['test']['run_times']))
         print('|--- FLOW_SELECTION:\t{}'.format(config['test']['flow_selection']))
-        print('|--- RESULTS_PATH:\t{}'.format(config['test']['results_path']))
 
     print('----------------------------------------------------')
     infor_correct = input('Is the information correct? y(Yes)/n(No):')

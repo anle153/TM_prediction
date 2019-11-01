@@ -813,6 +813,51 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
+def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
+                              raw_dataset_dir, day_size, data_size,
+                              batch_size, eval_batch_size=None, **kwargs):
+    data = {}
+
+    raw_data = np.load(raw_dataset_dir)
+    raw_data[raw_data <= 0] = 0.1
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+
+    print('|--- Normalizing the train set.')
+    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
+    scaler.fit(train_data2d)
+    train_data2d_norm = scaler.transform(train_data2d)
+    valid_data2d_norm = scaler.transform(valid_data2d)
+    test_data2d_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data2d_norm
+
+    x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                                          mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_eval, y_eval_1, y_eval_2 = create_data_fwbw_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
+                                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+
+    for cat in ["train", "val", "eval"]:
+        _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
+        print(cat, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2:", _y_2.shape)
+
+        data['x_' + cat] = _x
+        data['y_' + cat + '_1'] = _y_1
+        data['y_' + cat + '_2'] = _y_2
+
+    data['scaler'] = scaler
+
+    return data
+
+
 def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
@@ -839,7 +884,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     return data_x, data_y
 
 
-def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio, test_size,
+def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
                       raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
@@ -910,7 +955,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     return e_x, d_x, d_y
 
 
-def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio, test_size,
+def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
                          raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
@@ -927,7 +972,7 @@ def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio, test_size,
     print('|--- Normalizing the train set.')
     data = {}
 
-    scaler = MinMaxScaler()
+    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
     scaler.fit(train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)

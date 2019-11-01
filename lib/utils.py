@@ -769,6 +769,39 @@ def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
     return data_x, data_y_1, data_y_2
 
 
+def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
+    _tf = np.array([1.0, 0.0])
+    _m_indicators = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+
+    _data = np.copy(data)
+    _data[_m_indicators == 0.0] = np.random.uniform(_data[_m_indicators == 0.0] - eps,
+                                                    _data[_m_indicators == 0.0] + eps)
+
+    _F = data.shape[1]
+
+    inputs = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, input_dim), dtype='float32')
+    dec_inputs = np.zeros(shape=((data.shape[0] - seq_len - horizon) * _F, horizon + 1, 1), dtype='float32')
+    dec_labels = np.zeros(shape=((data.shape[0] - seq_len - horizon) * _F, horizon + 1, 1), dtype='float32')
+    enc_labels_bw = np.zeros(shape=((data.shape[0] - seq_len - horizon) * _F, seq_len, 1), dtype='float32')
+
+    i = 0
+    for flow in range(_F):
+        for idx in range(horizon, _data.shape[0] - seq_len - horizon, 1):
+            inputs[i, :, :, 0] = _data[idx: idx + seq_len]
+            inputs[i, :, :, 1] = _m_indicators[idx: idx + seq_len]
+
+            dec_inputs[i, 0, 0] = 0
+            dec_inputs[i, 1:, 0] = data[idx + seq_len - 1:idx + seq_len + horizon - 1]
+            dec_labels[i, :, 0] = data[idx + seq_len - 1:idx + seq_len + horizon - 1]
+
+            enc_labels_bw[i, :, 0] = data[idx - 1:idx + seq_len - 1]
+
+            i += 1
+
+    # return inputs, dec_labels_fw, enc_labels_bw
+    return inputs, dec_inputs, enc_labels_bw, dec_labels
+
+
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
                            raw_dataset_dir, day_size, data_size,
                            batch_size, eval_batch_size=None, **kwargs):
@@ -838,20 +871,39 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
 
     data['test_data_norm'] = test_data2d_norm
 
-    x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                                          mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval_1, y_eval_2 = create_data_fwbw_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    inputs_train, dec_inputs_train, enc_labels_bw_train, dec_labels_train = create_data_fwbw_lstm_ed(
+        data=train_data2d_norm,
+        seq_len=seq_len,
+        horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio,
+        eps=train_data2d_norm.std())
+    inputs_val, dec_inputs_val, enc_labels_bw_val, dec_labels_val = create_data_fwbw_lstm_ed(data=valid_data2d_norm,
+                                                                                             seq_len=seq_len,
+                                                                                             horizon=horizon,
+                                                                                             input_dim=input_dim,
+                                                                                             mon_ratio=mon_ratio,
+                                                                                             eps=train_data2d_norm.std())
+    inputs_eval, dec_inputs_eval, enc_labels_bw_eval, dec_labels_eval = create_data_fwbw_lstm_ed(
+        data=test_data2d_norm,
+        seq_len=seq_len,
+        horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio,
+        eps=train_data2d_norm.std())
 
     for cat in ["train", "val", "eval"]:
-        _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
-        print(cat, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2:", _y_2.shape)
+        inputs, dec_inputs, enc_labels_bw, dec_labels = locals()["inputs_" + cat], \
+                                                        locals()["dec_inputs_" + cat], \
+                                                        locals()["enc_labels_bw_" + cat], \
+                                                        locals()["dec_labels_" + cat]
+        print(cat, "inputs: ", inputs.shape, "dec_inputs:", dec_inputs.shape, "enc_labels_bw:", enc_labels_bw.shape,
+              "dec_labels:", dec_labels.shape)
 
-        data['x_' + cat] = _x
-        data['y_' + cat + '_1'] = _y_1
-        data['y_' + cat + '_2'] = _y_2
+        data['inputs_' + cat] = inputs
+        data['dec_inputs_' + cat + '_1'] = dec_inputs
+        data['enc_labels_bw_' + cat + '_2'] = enc_labels_bw
+        data['dec_labels_' + cat + '_2'] = dec_labels
 
     data['scaler'] = scaler
 

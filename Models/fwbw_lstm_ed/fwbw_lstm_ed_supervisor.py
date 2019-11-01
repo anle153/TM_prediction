@@ -75,10 +75,10 @@ class FwbwLstmRegression():
         self._mon_ratio = self._kwargs.get('mon_ratio')
 
         # Load data
-        self._data = utils.load_dataset_fwbw_lstm(seq_len=self._seq_len, horizon=self._horizon,
-                                                  input_dim=self._input_dim,
-                                                  mon_ratio=self._mon_ratio, test_size=self._test_size,
-                                                  **self._data_kwargs)
+        self._data = utils.load_dataset_fwbw_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
+                                                     input_dim=self._input_dim,
+                                                     mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                     **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
@@ -164,7 +164,7 @@ class FwbwLstmRegression():
         _input_bw = Flatten()(_input_bw)
         _input_bw = Dense(256, )(_input_bw)
         _input_bw = Dense(128, )(_input_bw)
-        bw_outputs = Dense(self._seq_len, name='bw_outputs')(_input_bw)
+        en_outputs_bw = Dense(self._seq_len, name='bw_outputs')(_input_bw)
 
         # Set up the decoder, using `encoder_states` as initial state.
         decoder_inputs = Input(shape=(None, 1))
@@ -180,7 +180,7 @@ class FwbwLstmRegression():
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        model = Model([encoder_inputs, decoder_inputs], [bw_outputs, decoder_outputs])
+        model = Model([encoder_inputs, decoder_inputs], [en_outputs_bw, decoder_outputs])
 
         if is_training:
             return model

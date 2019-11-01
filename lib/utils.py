@@ -656,7 +656,6 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
 def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                             pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
-
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -856,7 +855,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
                               raw_dataset_dir, day_size, data_size,
-                              batch_size, eval_batch_size=None, **kwargs):
+                              **kwargs):
     data = {}
 
     raw_data = np.load(raw_dataset_dir)
@@ -888,11 +887,11 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
         eps=train_data2d_norm.std())
     inputs_val, dec_inputs_val, enc_labels_bw_val, dec_labels_val = create_data_fwbw_lstm_ed(
         data=valid_data2d_norm,
-                                                                                             seq_len=seq_len,
-                                                                                             horizon=horizon,
-                                                                                             input_dim=input_dim,
-                                                                                             mon_ratio=mon_ratio,
-                                                                                             eps=train_data2d_norm.std())
+        seq_len=seq_len,
+        horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio,
+        eps=train_data2d_norm.std())
     inputs_eval, dec_inputs_eval, enc_labels_bw_eval, dec_labels_eval = create_data_fwbw_lstm_ed(
         data=test_data2d_norm,
         seq_len=seq_len,
@@ -906,13 +905,15 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
                                                         locals()["dec_inputs_" + cat], \
                                                         locals()["enc_labels_bw_" + cat], \
                                                         locals()["dec_labels_" + cat]
-        print(cat, "inputs: ", inputs.shape, "dec_inputs:", dec_inputs.shape, "enc_labels_bw:", enc_labels_bw.shape,
+        print(cat, "inputs: ", inputs.shape,
+              "dec_inputs:", dec_inputs.shape,
+              "enc_labels_bw:", enc_labels_bw.shape,
               "dec_labels:", dec_labels.shape)
 
         data['inputs_' + cat] = inputs
-        data['dec_inputs_' + cat + '_1'] = dec_inputs
-        data['enc_labels_bw_' + cat + '_2'] = enc_labels_bw
-        data['dec_labels_' + cat + '_2'] = dec_labels
+        data['dec_inputs_' + cat] = dec_inputs
+        data['enc_labels_bw_' + cat] = enc_labels_bw
+        data['dec_labels_' + cat] = dec_labels
 
     data['scaler'] = scaler
 
@@ -1158,5 +1159,3 @@ def load_pickle(pickle_file):
         print('Unable to load data ', pickle_file, ':', e)
         raise
     return pickle_data
-
-

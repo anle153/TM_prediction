@@ -77,7 +77,7 @@ class FwbwLstmRegression():
         # Load data
         self._data = utils.load_dataset_fwbw_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
                                                      input_dim=self._input_dim,
-                                                     mon_ratio=self._mon_ratio, test_size=self._test_size,
+                                                     mon_ratio=self._mon_ratio,
                                                      **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -459,52 +459,28 @@ class FwbwLstmRegression():
         return outputs
 
     def train(self):
-        training_fw_history = self.model.fit(x=self._data['x_train'],
-                                             y=[self._data['y_train_1'], self._data['y_train_2']],
+        training_fw_history = self.model.fit(x=[self._data['inputs_train'], self._data['dec_inputs_train']],
+                                             y=[self._data['enc_labels_bw_train'], self._data['dec_labels_train']],
                                              batch_size=self._batch_size,
                                              epochs=self._epochs,
                                              callbacks=self.callbacks_list,
-                                             validation_data=(self._data['x_val'],
-                                                              [self._data['y_val_1'], self._data['y_val_2']]),
+                                             validation_data=([self._data['inputs_val'],
+                                                               self._data['dec_inputs_val']],
+                                                              [self._data['enc_labels_bw_val'],
+                                                               self._data['dec_labels_val']]),
                                              shuffle=True,
                                              verbose=2)
         if training_fw_history is not None:
             self.plot_training_history(training_fw_history)
             self.save_model_history(training_fw_history)
             config = dict(self._kwargs)
-            config_filename = 'config_fwbw_lstm.yaml'
+            config_filename = 'config_fwbw_lstm_ed.yaml'
             config['train']['log_dir'] = self._log_dir
             with open(os.path.join(self._log_dir, config_filename), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)
 
     def evaluate(self):
-
-        scaler = self._data['scaler']
-
-        y_pred_1, y_pred_2 = self.model.predict(self._data['x_eval'])
-        y_pred_1 = scaler.inverse_transform(y_pred_1)
-        y_truth_1 = scaler.inverse_transform(self._data['y_eval_1'])
-        y_truth_2 = scaler.inverse_transform(self._data['y_eval_2'])
-
-        mse = metrics.masked_mse_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        mae = metrics.masked_mae_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        self._logger.info(
-            " Forward results: MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                mse, mae, rmse, mape
-            )
-        )
-
-        mse_2 = metrics.masked_mse_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        mae_2 = metrics.masked_mae_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        mape_2 = metrics.masked_mape_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        rmse_2 = metrics.masked_rmse_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        self._logger.info(
-            "Backward results: MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                mse_2, mae_2, rmse_2, mape_2
-            )
-        )
+        pass
 
     def test(self):
         scaler = self._data['scaler']

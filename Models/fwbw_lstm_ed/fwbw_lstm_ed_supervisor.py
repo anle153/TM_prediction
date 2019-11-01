@@ -135,7 +135,7 @@ class FwbwLstmED():
 
         # encoder fw
         encoder = LSTM(self._hidden, return_state=True)
-        encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+        encoder_outputs, state_h, state_c = encoder(encoder_inputs, name='encoder-fw')
         # We discard `encoder_outputs` and only keep the states.
         encoder_states = [state_h, state_c]
 
@@ -148,7 +148,7 @@ class FwbwLstmED():
         encoder_outputs_bw = Dropout(self._drop_out)(encoder_outputs_bw)
         encoder_outputs_bw = TimeDistributed(Dense(64, ))(encoder_outputs_bw)
         encoder_outputs_bw = Dropout(self._drop_out)(encoder_outputs_bw)
-        encoder_outputs_bw = TimeDistributed(Dense(1, ))(encoder_outputs_bw)
+        encoder_outputs_bw = TimeDistributed(Dense(1, ), name='encoder_bw')(encoder_outputs_bw)
         #
         # seq_len = encoder_inputs.get_shape()[1].value
         #
@@ -170,19 +170,19 @@ class FwbwLstmED():
                                              initial_state=encoder_states)
 
         decoder_dense = Dense(1, activation='relu')
-        decoder_outputs = decoder_dense(decoder_outputs)
+        decoder_outputs = decoder_dense(decoder_outputs, name='decoder')
 
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        model = Model([encoder_inputs, decoder_inputs], [encoder_outputs_bw, decoder_outputs])
+        model = Model([encoder_inputs, decoder_inputs], [encoder_outputs_bw, decoder_outputs], name='fwbw-lstm-ed')
 
         if is_training:
-            model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
+            model.compile(optimizer='adam', loss='mse')
             return model
         else:
             self._logger.info("|--- Load model from: {}".format(self._log_dir))
             model.load_weights(self._log_dir + 'best_model.hdf5')
-            model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])
+            model.compile(optimizer='adam', loss='mse')
 
             # Construct E_D model for predicting
             self.encoder_model = Model(encoder_inputs, encoder_states)

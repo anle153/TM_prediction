@@ -140,8 +140,8 @@ class FwbwLstmED():
         encoder_states = [state_h, state_c]
 
         # encoder bw
-        encoder_bw = LSTM(self._hidden, return_state=True)
-        encoder_outputs_bw, state_h_bw, state_c_bw = encoder_bw(encoder_inputs)
+        encoder_bw = LSTM(self._hidden, return_state=True, go_backwards=True)
+        encoder_outputs_bw = encoder_bw(encoder_inputs)
 
         bw_drop_out = Dropout(self._drop_out)(encoder_outputs_bw)
         bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)

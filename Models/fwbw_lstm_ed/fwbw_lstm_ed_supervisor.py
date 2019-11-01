@@ -224,8 +224,8 @@ class FwbwLstmED():
 
     def _prepare_input(self, data, m_indicator):
 
-        dataX = np.zeros(shape=(data.shape[1], self._seq_len, self._input_dim), dtype='float32')
-        for flow_id in range(data.shape[1]):
+        dataX = np.zeros(shape=(self._nodes, self._seq_len, self._input_dim), dtype='float32')
+        for flow_id in range(self._nodes):
             x = data[:, flow_id]
             label = m_indicator[:, flow_id]
 
@@ -234,28 +234,32 @@ class FwbwLstmED():
 
         return dataX
 
-    def _ims_tm_prediction(self, init_data, init_labels):
-        multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]),
+    def _predict(self, inputs):
+
+        states_value = self.encoder_model.predict(inputs)
+        bw_outputs = self.encoder_model_bw.predict(inputs)  # shape (nodes, seq_len, 1)
+
+        target_seq = np.zeros((self._nodes, 1, 1))
+        target_seq[:, 0, 0] = [0] * self._nodes
+
+        multi_steps_tm = np.zeros(shape=(self._horizon + 1, self._nodes),
                                   dtype='float32')
-        multi_steps_tm[0:self._seq_len] = init_data
 
-        m_indicator = np.zeros(shape=(init_labels.shape[0] + self._horizon, init_labels.shape[1]),
-                               dtype='float32')
-        m_indicator[0:self._seq_len] = init_labels
+        for ts_ahead in range(self._horizon + 1):
+            output_tokens, h, c = self.decoder_model.predict(
+                [target_seq] + states_value)
 
-        bw_outputs = None
+            output_tokens = output_tokens[:, -1, 0]
 
-        for ts_ahead in range(self._horizon):
-            rnn_input = self._prepare_input(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
-                                            m_indicator=m_indicator[ts_ahead:ts_ahead + self._seq_len])
-            predictX_1, predictX_2 = self.model.predict(rnn_input)
-            predictX_1 = predictX_1[:, -1, 0]
-            multi_steps_tm[ts_ahead + self._seq_len] = predictX_1
+            multi_steps_tm[ts_ahead] = output_tokens
 
-            if ts_ahead == 0:
-                bw_outputs = predictX_2.copy()
+            target_seq = np.zeros((self._nodes, 1, 1))
+            target_seq[:, 0, 0] = output_tokens
 
-        return multi_steps_tm[-self._horizon:], bw_outputs
+            # Update states
+            states_value = [h, c]
+
+        return multi_steps_tm[-self._horizon:], np.squeeze(bw_outputs, axis=-1)  # shape (nodes, seq_len)
 
     @staticmethod
     def _calculate_consecutive_loss(m_indicator):
@@ -401,9 +405,11 @@ class FwbwLstmED():
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
             # This block is used for iterated multi-step traffic matrices prediction
 
+            inputs = self._prepare_input(data=tm_pred[ts:ts + self._seq_len],
+                                         m_indicator=m_indicator[ts:ts + self._seq_len])
+
             # fw_outputs (horizon, num_flows); bw_outputs (num_flows, seq_len)
-            fw_outputs, bw_outputs = self._ims_tm_prediction(init_data=tm_pred[ts:ts + self._seq_len],
-                                                             init_labels=m_indicator[ts:ts + self._seq_len])
+            fw_outputs, bw_outputs = self._predict(inputs)
 
             # Get the TM prediction of next time slot
             corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],

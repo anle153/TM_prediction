@@ -885,7 +885,7 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
-                      raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
+                      raw_dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -956,7 +956,7 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
 
 def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
-                         raw_dataset_dir, dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
+                         raw_dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 

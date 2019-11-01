@@ -57,8 +57,7 @@ def print_fwbw_lstm_ed_info(mode, config):
 def build_model(config, is_training=True):
     print('|--- Build models fwbw-lstm.')
 
-    fwbw_net = FwbwLstmED(**config)
-    fwbw_net.construct_fwbw_lstm_ed(is_training=is_training)
+    fwbw_net = FwbwLstmED(is_training=is_training, **config)
     fwbw_net.plot_models()
     return fwbw_net
 

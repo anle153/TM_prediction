@@ -28,7 +28,7 @@ class TimeHistory(keras_callbacks.Callback):
 
 class FwbwLstmED():
 
-    def __init__(self, **kwargs):
+    def __init__(self, is_training=True, **kwargs):
 
         self._kwargs = kwargs
         self._data_kwargs = kwargs.get('data')
@@ -82,7 +82,7 @@ class FwbwLstmED():
                 self._logger.info((k, v.shape))
 
         # Model
-        self.model = None
+        self.model = self.construct_fwbw_lstm_ed(is_training=is_training)
 
         self.callbacks_list = []
 

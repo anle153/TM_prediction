@@ -132,6 +132,7 @@ class FwbwLstmED():
 
     def construct_fwbw_lstm_ed(self, is_training=True):
         encoder_inputs = Input(shape=(None, self._input_dim))
+        seq_len = encoder_inputs.get_shape()[1].value
 
         # encoder fw
         encoder = LSTM(self._hidden, return_state=True)
@@ -145,12 +146,12 @@ class FwbwLstmED():
 
         bw_drop_out = Dropout(self._drop_out)(encoder_outputs_bw)
         bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
-        bw_dense_1 = TimeDistributed(Dense(128, ))(bw_flat_layer)
-        bw_dense_2 = TimeDistributed(Dense(64, ))(bw_dense_1)
-        bw_dense_3 = TimeDistributed(Dense(32, ))(bw_dense_2)
-        bw_output = TimeDistributed(Dense(1, ))(bw_dense_3)
+        bw_dense = TimeDistributed(Dense(128, ))(bw_flat_layer)
+        bw_output = TimeDistributed(Dense(1, ))(bw_dense)
 
-        bw_input_tensor_flatten = Reshape((self._input_shape[0] * self._input_shape[1], 1))(encoder_inputs)
+        seq_len = encoder_inputs.get_shape()[1].value
+
+        bw_input_tensor_flatten = Reshape((-1, seq_len * self._input_dim, 1))(encoder_inputs)
         _input_bw = Concatenate(axis=1)([bw_input_tensor_flatten, bw_output])
 
         _input_bw = Flatten()(_input_bw)

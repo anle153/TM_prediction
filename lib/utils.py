@@ -786,14 +786,14 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
 
     _F = data.shape[1]
 
-    inputs = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, input_dim), dtype='float32')
-    dec_inputs = np.zeros(shape=((data.shape[0] - seq_len - horizon) * _F, horizon + 1, 1), dtype='float32')
-    dec_labels = np.zeros(shape=((data.shape[0] - seq_len - horizon) * _F, horizon + 1, 1), dtype='float32')
-    enc_labels_bw = np.zeros(shape=((data.shape[0] - seq_len - horizon) * _F, seq_len, 1), dtype='float32')
+    inputs = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * F, seq_len, input_dim), dtype='float32')
+    dec_inputs = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, horizon + 1, 1), dtype='float32')
+    dec_labels = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, horizon + 1, 1), dtype='float32')
+    enc_labels_bw = np.zeros(shape=((data.shape[0] - seq_len - horizon - 1) * _F, seq_len, 1), dtype='float32')
 
     i = 0
     for flow in range(_F):
-        for idx in range(horizon, _data.shape[0] - seq_len - horizon, 1):
+        for idx in range(1, _data.shape[0] - seq_len - horizon, 1):
             inputs[i, :, 0] = _data[idx: idx + seq_len, flow]
             inputs[i, :, 1] = _m_indicators[idx: idx + seq_len, flow]
 

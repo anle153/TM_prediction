@@ -10,6 +10,7 @@ import tensorflow as tf
 from saxpy.paa import paa
 from saxpy.znorm import znorm
 from scipy.sparse import linalg
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 
@@ -883,8 +884,8 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
     e_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')
-    d_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon, 1), dtype='float32')
-    d_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon, 1), dtype='float32')
+    d_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon + 1, 1), dtype='float32')
+    d_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], horizon + 1, 1), dtype='float32')
 
     _data = np.copy(data)
 
@@ -899,9 +900,9 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
             e_x[i, :, 0] = _x
             e_x[i, :, 1] = _label
 
-            d_x[i] = np.expand_dims(data[idx + seq_len - 1:idx + seq_len - 1 + horizon, flow], axis=1)
-
-            d_y[i] = np.expand_dims(data[idx + seq_len:idx + seq_len + horizon, flow], axis=1)
+            d_x[i, 0, 0] = 0
+            d_x[i, 1:, 0] = data[idx + seq_len - 1:idx + seq_len - 1 + horizon, flow]
+            d_y[i, :, 0] = data[idx + seq_len - 1:idx + seq_len + horizon, flow]
 
             i += 1
 
@@ -925,7 +926,8 @@ def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio, test_size,
     print('|--- Normalizing the train set.')
     data = {}
 
-    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    scaler = MinMaxScaler()
+    scaler.fit(train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)

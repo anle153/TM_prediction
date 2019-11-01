@@ -101,11 +101,14 @@ class EncoderDecoder(lstm):
 
         return dataX
 
-    def _ims_tm_prediction(self, states_value, target_seq):
-        multi_steps_tm = np.zeros(shape=(self._horizon, self._nodes),
+    def _ims_tm_prediction_ed(self, states_value):
+        target_seq = np.zeros((self._nodes, 1, 1))
+        target_seq[:, 0, 0] = [0] * self._nodes
+
+        multi_steps_tm = np.zeros(shape=(self._horizon + 1, self._nodes),
                                   dtype='float32')
 
-        for ts_ahead in range(self._horizon):
+        for ts_ahead in range(self._horizon + 1):
             output_tokens, h, c = self.decoder_model.predict(
                 [target_seq] + states_value)
 
@@ -119,7 +122,7 @@ class EncoderDecoder(lstm):
             # Update states
             states_value = [h, c]
 
-        return multi_steps_tm
+        return multi_steps_tm[-self._horizon:]
 
     def _run_tm_prediction(self):
 
@@ -148,11 +151,8 @@ class EncoderDecoder(lstm):
             states_value = self.encoder_model.predict(en_input)
 
             # Generate empty target sequence of length 1.
-            target_seq = np.zeros((self._nodes, 1, 1))
             # Populate the first character of target sequence with the start character.
-            target_seq[:, 0, 0] = tm_pred[ts + self._seq_len - 1]
-
-            predicted_tm = self._ims_tm_prediction(states_value, target_seq)
+            predicted_tm = self._ims_tm_prediction_ed(states_value)
 
             # Get the TM prediction of next time slot
 

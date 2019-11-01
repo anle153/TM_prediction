@@ -794,8 +794,8 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
     i = 0
     for flow in range(_F):
         for idx in range(horizon, _data.shape[0] - seq_len - horizon, 1):
-            inputs[i, :, :, 0] = _data[idx: idx + seq_len]
-            inputs[i, :, :, 1] = _m_indicators[idx: idx + seq_len]
+            inputs[i, :, 0] = _data[idx: idx + seq_len]
+            inputs[i, :, 1] = _m_indicators[idx: idx + seq_len]
 
             dec_inputs[i, 0, 0] = 0
             dec_inputs[i, 1:, 0] = data[idx + seq_len - 1:idx + seq_len + horizon - 1]

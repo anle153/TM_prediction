@@ -186,7 +186,7 @@ class FwbwLstmED():
 
             # Construct E_D model for predicting
             self.encoder_model = Model(encoder_inputs, encoder_states)
-            self.encoder_model_bw = Model(encoder_inputs, en_outputs_bw)
+            self.encoder_model_bw = Model(encoder_inputs, encoder_outputs_bw)
 
             decoder_state_input_h = Input(shape=(self._hidden,))
             decoder_state_input_c = Input(shape=(self._hidden,))

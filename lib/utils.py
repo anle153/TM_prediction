@@ -549,7 +549,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    scaler = MinMaxScaler()
+    scaler.fit(train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)

@@ -684,18 +684,26 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     # y(num_sample, horizon, num_node, output_dim): decoder output
     # l(num_sample, seq_len, num_node, output_dim): encoder output
     inputs_train, dec_labels_fw_train, enc_labels_bw_train = create_data_dcrnn_fwbw(
-        data=train_data_norm, seq_len=seq_len, horizon=horizon,
+        data=train_data_norm,
+        seq_len=seq_len,
+        horizon=horizon,
         input_dim=input_dim,
-        mon_ratio=mon_ratio, eps=train_data_norm.std())
+        mon_ratio=mon_ratio,
+        eps=train_data_norm.std())
     inputs_val, dec_labels_fw_val, enc_labels_bw_val = create_data_dcrnn_fwbw(
         data=valid_data_norm,
-                                                                              seq_len=seq_len, horizon=horizon,
-                                                                              input_dim=input_dim,
-                                                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
-    inputs_eval, dec_labels_fw_eval, enc_labels_bw_eval = create_data_dcrnn_fwbw(
-        data=test_data_norm, seq_len=seq_len, horizon=horizon,
+        seq_len=seq_len,
+        horizon=horizon,
         input_dim=input_dim,
-        mon_ratio=mon_ratio, eps=train_data_norm.std())
+        mon_ratio=mon_ratio,
+        eps=train_data_norm.std())
+    inputs_eval, dec_labels_fw_eval, enc_labels_bw_eval = create_data_dcrnn_fwbw(
+        data=test_data_norm,
+        seq_len=seq_len,
+        horizon=horizon,
+        input_dim=input_dim,
+        mon_ratio=mon_ratio,
+        eps=train_data_norm.std())
 
     for category in ['train', 'val', 'eval']:
         _inputs, _dec_labels_fw, _enc_labels_bw = locals()["inputs_" + category], locals()["dec_labels_fw_" + category], \

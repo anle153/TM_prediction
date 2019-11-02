@@ -668,7 +668,8 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    scaler = MinMaxScaler()
+    scaler.fit(train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
@@ -886,6 +887,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
 
     print('|--- Normalizing the train set.')
     scaler = MinMaxScaler()
+    scaler.fit(train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
@@ -1022,7 +1024,8 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
     print('|--- Normalizing the train set.')
     data = {}
 
-    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    scaler = MinMaxScaler()
+    scaler.fit(train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
@@ -1176,7 +1179,8 @@ def load_dataset_conv_lstm(seq_len, wide, high, channel, mon_ratio,
     test_data2d = test_data2d[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    scaler = StandardScaler(mean=train_data2d.mean(), std=train_data2d.std())
+    scaler = MinMaxScaler()
+    scaler.fit(train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)

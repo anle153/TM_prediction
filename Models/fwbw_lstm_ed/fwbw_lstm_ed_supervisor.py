@@ -412,12 +412,12 @@ class FwbwLstmED():
             fw_outputs, bw_outputs = self._predict(inputs)
 
             # Get the TM prediction of next time slot
-            corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                      pred_backward=bw_outputs,
-                                                      labels=m_indicator[ts: ts + self._seq_len])
-            measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
-            pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
-            tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
+            # corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
+            #                                           pred_backward=bw_outputs,
+            #                                           labels=m_indicator[ts: ts + self._seq_len])
+            # measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+            # pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+            # tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
 
             y_preds.append(np.expand_dims(fw_outputs, axis=0))
             pred = fw_outputs[0]

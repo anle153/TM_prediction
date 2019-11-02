@@ -198,12 +198,12 @@ class EncoderDecoder(lstm):
 
     def test(self):
         scaler = self._data['scaler']
-        results_summary = pd.DataFrame(index=range(self._run_times))
-        results_summary['No.'] = range(self._run_times)
+        results_summary = pd.DataFrame(index=range(self._run_times + 3))
+        results_summary['No.'] = range(self._run_times + 3)
 
         n_metrics = 4
         # Metrics: MSE, MAE, RMSE, MAPE, ER
-        metrics_summary = np.zeros(shape=(self._run_times, self._horizon * n_metrics + 1))
+        metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
             self._logger.info('|--- Running time: {}/{}'.format(i, self._run_times))
@@ -247,6 +247,14 @@ class EncoderDecoder(lstm):
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
 
             self._logger.info('ER: {}'.format(er))
+
+        avg = np.mean(metrics_summary, axis=0)
+        std = np.std(metrics_summary, axis=0)
+        conf = metrics.calculate_confident_interval(metrics_summary)
+        metrics_summary[-3, :] = avg
+        metrics_summary[-2, :] = std
+        metrics_summary[-1, :] = conf
+        self._logger.info('AVG: {}'.format(metrics_summary[-3, :]))
 
         for horizon_i in range(self._horizon):
             results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]

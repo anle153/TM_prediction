@@ -530,6 +530,65 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
     return adj_mx
 
 
+def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
+                           dataset_dir, data_size, day_size, batch_size, eval_batch_size,
+                           pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
+    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
+    raw_data[raw_data <= 0] = 0.1
+
+    raw_data = raw_data.astype("float32")
+
+    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+
+    print('|--- Splitting train-test set.')
+    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data2d = test_data2d[0:-day_size * 3]
+    data = {}
+
+    print('|--- Normalizing the train set.')
+    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
+    scaler.fit(train_data2d)
+    train_data_norm = scaler.transform(train_data2d)
+    valid_data_norm = scaler.transform(valid_data2d)
+    test_data_norm = scaler.transform(test_data2d)
+
+    data['test_data_norm'] = test_data_norm
+
+    x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                         input_dim=input_dim,
+                                         mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                     mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                       mon_ratio=mon_ratio, eps=train_data_norm.std())
+
+    for category in ['train', 'val', 'eval']:
+        _x, _y = locals()["x_" + category], locals()["y_" + category]
+        print(category, "x: ", _x.shape, "y:", _y.shape)
+        data['x_' + category] = _x
+        data['y_' + category] = _y
+    # Data format
+
+    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
+    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+    data['scaler'] = scaler
+
+    print('|--- Get Correlation Matrix')
+
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+                                pos_thres=pos_thres, neg_thres=neg_thres)
+
+    print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
+
+    adj_mx = adj_mx.astype('float32')
+
+    data['adj_mx'] = adj_mx
+
+    return data
+
+
+
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                        dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                        pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):

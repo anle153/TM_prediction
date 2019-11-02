@@ -400,6 +400,8 @@ class FwbwLstmED():
 
         y_preds = []
         y_truths = []
+        pred_bw = []
+        gt_bw = []
 
         # Predict the TM from time slot look_back
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
@@ -410,6 +412,10 @@ class FwbwLstmED():
 
             # fw_outputs (horizon, num_flows); bw_outputs (num_flows, seq_len)
             fw_outputs, bw_outputs = self._predict(inputs)
+
+            if ts > 0:
+                pred_bw.append(bw_outputs.T)
+                gt_bw.append(test_data_norm[ts - 1:ts + self._seq_len - 1])
 
             # Get the TM prediction of next time slot
             # corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
@@ -459,6 +465,11 @@ class FwbwLstmED():
             'y_preds': y_preds,
             'y_truths': y_truths
         }
+
+        pred_bw = np.stack(pred_bw, axis=0)
+        gt_bw = np.stack(gt_bw, axis=0)
+        self._logger.info('RMSE BW: {}'.format(metrics.masked_rmse_np(pred_bw.flatten(), gt_bw.flatten())))
+
         return outputs
 
     def train(self):

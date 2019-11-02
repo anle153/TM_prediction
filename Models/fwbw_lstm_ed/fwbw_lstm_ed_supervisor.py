@@ -460,16 +460,16 @@ class FwbwLstmED():
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
 
-        pred_bw = np.stack(pred_bw, axis=0)
-        gt_bw = np.stack(gt_bw, axis=0)
+        pred_bw = np.stack(pred_bw)
+        gt_bw = np.stack(gt_bw)
 
         outputs = {
             'tm_pred': tm_pred[self._seq_len:],
             'm_indicator': m_indicator[self._seq_len:],
             'y_preds': y_preds,
             'y_truths': y_truths,
-            'pred_bw': pred_bw,
-            'gt_bw': gt_bw
+            'pred_bw': pred_bw.reshape((pred_bw.shape[0] * pred_bw.shape[1], pred_bw.shape[2])),
+            'gt_bw': gt_bw.reshape((gt_bw.shape[0] * gt_bw.shape[1], gt_bw.shape[2]))
         }
         return outputs
 

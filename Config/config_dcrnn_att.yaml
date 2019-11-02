@@ -6,12 +6,12 @@ gpu: 0
 mon_ratio: 0.3
 data:
   data_name: Abilene
-  batch_size: 32
-  val_batch_size: 32
+  batch_size: 8
+  val_batch_size: 8
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/
-  adj_method: OD
+  adj_method: CORR1
   pos_thres: 0.7
   neg_thres: -0.8
   day_size: 288
@@ -25,9 +25,9 @@ model:
   l1_decay: 0
   max_diffusion_step: 3
   num_nodes: 144
-  num_rnn_layers: 1
+  num_rnn_layers: 2
   output_dim: 1
-  rnn_units: 128
+  rnn_units: 64
   seq_len: 36
   use_curriculum_learning: true
 train:

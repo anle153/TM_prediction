@@ -588,7 +588,6 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                        dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                        pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):

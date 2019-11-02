@@ -869,11 +869,11 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
 
 
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
-                           raw_dataset_dir, day_size, data_size,
+                           dataset_dir, day_size, data_size,
                            batch_size, eval_batch_size=None, **kwargs):
     data = {}
 
-    raw_data = np.load(raw_dataset_dir)
+    raw_data = np.load(dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
     raw_data = raw_data.astype("float32")

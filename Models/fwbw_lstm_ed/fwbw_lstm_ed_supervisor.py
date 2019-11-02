@@ -400,6 +400,7 @@ class FwbwLstmED():
 
         y_preds = []
         y_truths = []
+
         pred_bw = []
         gt_bw = []
 
@@ -459,17 +460,17 @@ class FwbwLstmED():
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
 
+        pred_bw = np.stack(pred_bw, axis=0)
+        gt_bw = np.stack(gt_bw, axis=0)
+
         outputs = {
             'tm_pred': tm_pred[self._seq_len:],
             'm_indicator': m_indicator[self._seq_len:],
             'y_preds': y_preds,
-            'y_truths': y_truths
+            'y_truths': y_truths,
+            'pred_bw': pred_bw,
+            'gt_bw': gt_bw
         }
-
-        pred_bw = np.stack(pred_bw, axis=0)
-        gt_bw = np.stack(gt_bw, axis=0)
-        self._logger.info('RMSE BW: {}'.format(metrics.masked_rmse_np(pred_bw.flatten(), gt_bw.flatten())))
-
         return outputs
 
     def train(self):
@@ -515,6 +516,11 @@ class FwbwLstmED():
             predictions = []
             y_truths = outputs['y_truths']
             y_truths = np.concatenate(y_truths, axis=0)
+
+            pred_bw, gt_bw = outputs['pred_bw'], outputs['gt_bw']
+            pred_bw = scaler.inverse_transform(pred_bw)
+            gt_bw = scaler.inverse_transform(gt_bw)
+            self._logger.info('RMSE BW: {}'.format(metrics.masked_rmse_np(pred_bw.flatten(), gt_bw.flatten())))
 
             for horizon_i in range(self._horizon):
                 y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])

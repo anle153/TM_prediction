@@ -113,9 +113,9 @@ class StandardScaler:
     Standard the input
     """
 
-    def __init__(self, mean, std):
-        self.mean = mean
-        self.std = std
+    def __init__(self, data):
+        self.mean = np.mean(data, axis=0)
+        self.std = np.std(data, axis=0)
 
     def transform(self, data):
         return (data - self.mean) / self.std
@@ -546,8 +546,9 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
-    scaler.fit(train_data2d)
+    # scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
+    # scaler.fit(train_data2d)
+    scaler = StandardScaler(data=train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)

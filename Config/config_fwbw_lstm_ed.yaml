@@ -8,8 +8,8 @@ mode: train
 scaler: SD
 data:
   data_name: Abilene
-  batch_size: 1024
-  val_batch_size: 1024
+  batch_size: 512
+  val_batch_size: 512
   eval_batch_size: 1
   test_batch_size: 1
   day_size: 288

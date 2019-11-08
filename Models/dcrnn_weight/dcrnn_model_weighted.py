@@ -5,8 +5,8 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
-from Models.dcrnn_cell import DCGRUCell
-from Models.dcrnn_cell_weighted import DCGRUCellWeighted
+from Models.dcrnn.dcrnn_cell import DCGRUCell
+from Models.dcrnn_weight.dcrnn_cell_weighted import DCGRUCellWeighted
 
 
 class DCRNNModelWeighted(object):

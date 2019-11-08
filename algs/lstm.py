@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from Models.lstm_supervisor import lstm
+from Models.lstm.lstm_supervisor import lstm
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True

@@ -2,7 +2,7 @@ import os
 
 import tensorflow as tf
 
-from Models.dcrnn_supervisor import DCRNNSupervisor
+from Models.dcrnn.dcrnn_supervisor import DCRNNSupervisor
 
 HOME_PATH = os.path.expanduser('~/TM_prediction')
 

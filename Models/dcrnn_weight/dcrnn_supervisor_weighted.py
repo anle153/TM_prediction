@@ -12,7 +12,7 @@ import tensorflow as tf
 import yaml
 from tqdm import tqdm
 
-from Models.dcrnn_model_weighted import DCRNNModelWeighted
+from Models.dcrnn_weight.dcrnn_model_weighted import DCRNNModelWeighted
 from common.error_utils import error_ratio
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad

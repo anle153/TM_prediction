@@ -7,7 +7,7 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
-from Models.FWBW_CONV_LSTM import FWBW_CONV_LSTM
+from Models.lstm.FWBW_CONV_LSTM import FWBW_CONV_LSTM
 from common import Config_fwbw_conv_lstm as Config
 from common.DataPreprocessing import prepare_train_valid_test_2d, create_offline_fwbw_conv_lstm_data_fix_ratio, \
     data_scalling

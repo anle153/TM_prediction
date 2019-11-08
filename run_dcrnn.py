@@ -5,7 +5,7 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.dcrnn_supervisor import DCRNNSupervisor
+from Models.dcrnn.dcrnn_supervisor import DCRNNSupervisor
 
 
 def print_dcrnn_info(mode, config):

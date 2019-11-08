@@ -10,7 +10,7 @@ from keras.models import Model
 from keras.utils import plot_model
 from tqdm import tqdm
 
-from Models.lstm_supervisor import lstm
+from Models.lstm.lstm_supervisor import lstm
 from common.error_utils import error_ratio
 from lib import metrics
 

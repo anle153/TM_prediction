@@ -5,7 +5,7 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.dcrnn_supervisor_weighted import DCRNNSupervisorWeighted
+from Models.dcrnn_weight.dcrnn_supervisor_weighted import DCRNNSupervisorWeighted
 
 
 def print_dcrnn_weighted_info(mode, config):

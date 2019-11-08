@@ -5,8 +5,8 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.encoder_decoder_supervisor import EncoderDecoder
-from Models.lstm_supervisor import lstm
+from Models.lstm.encoder_decoder_supervisor import EncoderDecoder
+from Models.lstm.lstm_supervisor import lstm
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True

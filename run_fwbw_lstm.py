@@ -5,7 +5,7 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.fwbw_lstm_supervisor import FwbwLstmRegression
+from Models.lstm.fwbw_lstm_supervisor import FwbwLstmRegression
 
 print(tf.__version__)
 if tf.__version__ != '2.0.0':

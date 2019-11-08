@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from Models.fwbw_lstm_supervisor import FwbwLstmRegression
+from Models.lstm.fwbw_lstm_supervisor import FwbwLstmRegression
 from common.error_utils import error_ratio, calculate_r2_score, calculate_rmse, calculate_mape
 
 config_gpu = tf.ConfigProto()

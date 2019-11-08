@@ -66,17 +66,20 @@ class lstm():
         self._flow_selection = self._test_kwargs.get('flow_selection')
 
         self._mon_ratio = self._kwargs.get('mon_ratio')
+        _scaler_type = self._kwargs.get('scaler')
 
         # Load data
         if self._model_type == 'lstm':
             self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
                                                  input_dim=self._input_dim,
                                                  mon_ratio=self._mon_ratio,
+                                                 scaler_type=_scaler_type,
                                                  **self._data_kwargs)
         elif self._model_type == 'ed' or self._model_type == 'encoder_decoder':
             self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
                                                     input_dim=self._input_dim,
                                                     mon_ratio=self._mon_ratio,
+                                                    scaler_type=_scaler_type,
                                                     **self._data_kwargs)
         else:
             raise RuntimeError("Model must be lstm or encoder_decoder")
@@ -116,8 +119,9 @@ class lstm():
             mon_ratio = kwargs['mon_ratio']
 
             model_type = kwargs['model'].get('model_type')
+            scaler = kwargs['scaler']
 
-            run_id = '%s_%d_%g_%d_%d/' % (model_type, rnn_units, mon_ratio, horizon, batch_size)
+            run_id = '%s_%d_%g_%d_%d_s/' % (model_type, rnn_units, mon_ratio, horizon, batch_size, scaler)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

@@ -40,6 +40,7 @@ class DCRNNSupervisor(object):
         self._logger.info(kwargs)
 
         self._mon_ratio = float(self._kwargs.get('mon_ratio'))
+        _scaler_type = self._kwargs.get('scaler')
 
         # Model's args
         self._seq_len = int(self._model_kwargs.get('seq_len'))
@@ -57,6 +58,7 @@ class DCRNNSupervisor(object):
                                                   horizon=self._model_kwargs.get('horizon'),
                                                   input_dim=self._model_kwargs.get('input_dim'),
                                                   mon_ratio=self._mon_ratio,
+                                                  scaler_type=_scaler_type,
                                                   **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -151,13 +153,12 @@ class DCRNNSupervisor(object):
                 filter_type_abbr = 'DR'
 
             mon_ratio = kwargs['mon_ratio']
+            scaler = kwargs['scaler']
 
             # ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 'SD']
             adj_method = kwargs['data'].get('adj_method')
             adj_pos_thres = kwargs['data'].get('pos_thres')
             adj_neg_thres = -kwargs['data'].get('neg_thres')
-
-            scaler = kwargs['scaler']
 
             if adj_method != 'OD':
                 run_id = 'dcrnn_att_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d_%s/' % (

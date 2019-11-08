@@ -40,6 +40,7 @@ class DCRNNSupervisorWeighted(object):
         self._logger.info(kwargs)
 
         self._mon_ratio = float(self._kwargs.get('mon_ratio'))
+        _scaler_type = self._kwargs.get('scaler')
 
         # Model's args
         self._seq_len = int(self._model_kwargs.get('seq_len'))
@@ -56,6 +57,7 @@ class DCRNNSupervisorWeighted(object):
                                                        horizon=self._model_kwargs.get('horizon'),
                                                        input_dim=self._model_kwargs.get('input_dim'),
                                                        mon_ratio=self._mon_ratio,
+                                                       scaler_type=_scaler_type,
                                                        **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -150,6 +152,8 @@ class DCRNNSupervisorWeighted(object):
                 filter_type_abbr = 'DR'
 
             mon_ratio = kwargs['mon_ratio']
+            scaler = kwargs['scaler']
+
 
             # Adj_method  [CORR1, CORR2, OD, KNN]
             adj_method = kwargs['data'].get('adj_method')
@@ -157,13 +161,13 @@ class DCRNNSupervisorWeighted(object):
             adj_neg_thres = -kwargs['data'].get('neg_thres')
 
             if adj_method != 'OD':
-                run_id = 'dcrnn_wgt_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d/' % (
+                run_id = 'dcrnn_wgt_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d_%s/' % (
                     filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, adj_pos_thres, adj_neg_thres,
-                    horizon, seq_len, structure, learning_rate, batch_size)
+                    horizon, seq_len, structure, learning_rate, batch_size, scaler)
             else:
-                run_id = 'dcrnn_wgt_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (
+                run_id = 'dcrnn_wgt_%s_%g_%d_%s_%d_%d_%s_%g_%d_%s/' % (
                     filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
-                    horizon, seq_len, structure, learning_rate, batch_size)
+                    horizon, seq_len, structure, learning_rate, batch_size, scaler)
 
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)

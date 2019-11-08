@@ -121,7 +121,7 @@ class lstm():
             model_type = kwargs['model'].get('model_type')
             scaler = kwargs['scaler']
 
-            run_id = '%s_%d_%g_%d_%d_s/' % (model_type, rnn_units, mon_ratio, horizon, batch_size, scaler)
+            run_id = '%s_%d_%g_%d_%d_%s/' % (model_type, rnn_units, mon_ratio, horizon, batch_size, scaler)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

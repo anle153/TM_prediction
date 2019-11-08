@@ -113,7 +113,11 @@ class StandardScaler:
     Standard the input
     """
 
-    def __init__(self, data):
+    def __init__(self):
+        self.mean = 0.0
+        self.std = 0.0
+
+    def fit(self, data):
         self.mean = np.mean(data, axis=0)
         self.std = np.std(data, axis=0)
 
@@ -122,6 +126,15 @@ class StandardScaler:
 
     def inverse_transform(self, data):
         return (data * self.std) + self.mean
+
+
+def get_scaler(scaler_type, data):
+    if scaler_type == 'SD':
+        scaler = StandardScaler()
+    else:
+        scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
+    scaler.fit(data)
+    return scaler
 
 
 def add_simple_summary(writer, names, values, global_step):
@@ -497,7 +510,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
     elif adj_method == ADJ_METHOD[4]:
         # Caculating the pairwise distance of DTW on raw
         dtw_mx_dist = dynamic_time_wrap(data)
-        adj_mx = dtw_mx_dist.max() - dtw_mx_dist
+        adj_mx = np.max(dtw_mx_dist) - dtw_mx_dist
         adj_mx = (adj_mx - adj_mx.min()) / (adj_mx.max() - adj_mx.min())
         adj_mx[adj_mx < pos_thres] = 0.0
     elif adj_method == ADJ_METHOD[5]:
@@ -532,7 +545,7 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
 
 def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
                            dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                           pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
+                           pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -546,9 +559,7 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    # scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
-    # scaler.fit(train_data2d)
-    scaler = StandardScaler(data=train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
@@ -591,7 +602,7 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                        dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                       pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
+                       pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -608,8 +619,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
-    scaler.fit(train_data2d)
+
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
@@ -652,7 +663,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
                                 dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                                pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
+                                pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -669,8 +680,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    scaler = MinMaxScaler()
-    scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
@@ -715,7 +725,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', **kwargs):
+                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
     raw_data = np.load(dataset_dir + 'Abilene2d.npy')
     raw_data[raw_data <= 0] = 0.1
 
@@ -732,9 +742,7 @@ def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
     data = {}
 
     print('|--- Normalizing the train set.')
-    scaler = StandardScaler(data=train_data2d)
-    # scaler = MinMaxScaler()
-    # scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data_norm = scaler.transform(train_data2d)
     valid_data_norm = scaler.transform(valid_data2d)
     test_data_norm = scaler.transform(test_data2d)
@@ -873,7 +881,7 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
 
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
                            dataset_dir, day_size, data_size,
-                           batch_size, eval_batch_size=None, **kwargs):
+                           batch_size, eval_batch_size=None, scaler_type='SD', **kwargs):
     data = {}
 
     raw_data = np.load(dataset_dir)
@@ -888,8 +896,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
     test_data2d = test_data2d[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    scaler = MinMaxScaler()
-    scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
@@ -917,7 +924,7 @@ def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
 
 
 def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
-                              dataset_dir, day_size, data_size=1.0,
+                              dataset_dir, day_size, data_size=1.0, scaler_type='SD',
                               **kwargs):
     data = {}
 
@@ -933,8 +940,7 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
     test_data2d = test_data2d[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
-    scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
@@ -1010,7 +1016,8 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
-                      raw_dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
+                      raw_dataset_dir, day_size, data_size, batch_size, eval_batch_size=None,
+                      scaler_type='SD', **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -1026,8 +1033,7 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
     print('|--- Normalizing the train set.')
     data = {}
 
-    scaler = MinMaxScaler()
-    scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
@@ -1082,7 +1088,8 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
 
 def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
-                         raw_dataset_dir, day_size, data_size, batch_size, eval_batch_size=None, **kwargs):
+                         raw_dataset_dir, day_size, data_size, batch_size,
+                         scaler_type='SD', eval_batch_size=None, **kwargs):
     raw_data = np.load(raw_dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
@@ -1098,8 +1105,7 @@ def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
     print('|--- Normalizing the train set.')
     data = {}
 
-    scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
-    scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)
@@ -1165,11 +1171,11 @@ def create_data_conv_lstm(data, seq_len, wide, high, channel, mon_ratio, eps):
 
 
 def load_dataset_conv_lstm(seq_len, wide, high, channel, mon_ratio,
-                           raw_dataset_dir, day_size, data_size,
-                           batch_size, eval_batch_size=None, **kwargs):
+                           dataset_dir, day_size, data_size,
+                           batch_size, eval_batch_size=None, scaler_type='SD', **kwargs):
     data = {}
 
-    raw_data = np.load(raw_dataset_dir)
+    raw_data = np.load(dataset_dir)
     raw_data[raw_data <= 0] = 0.1
 
     raw_data = raw_data.astype("float32")
@@ -1181,8 +1187,7 @@ def load_dataset_conv_lstm(seq_len, wide, high, channel, mon_ratio,
     test_data2d = test_data2d[0:-day_size * 3]
 
     print('|--- Normalizing the train set.')
-    scaler = MinMaxScaler()
-    scaler.fit(train_data2d)
+    scaler = get_scaler(scaler_type, train_data2d)
     train_data2d_norm = scaler.transform(train_data2d)
     valid_data2d_norm = scaler.transform(valid_data2d)
     test_data2d_norm = scaler.transform(test_data2d)

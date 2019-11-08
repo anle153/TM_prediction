@@ -157,14 +157,16 @@ class DCRNNSupervisor(object):
             adj_pos_thres = kwargs['data'].get('pos_thres')
             adj_neg_thres = -kwargs['data'].get('neg_thres')
 
+            scaler = kwargs['scaler']
+
             if adj_method != 'OD':
-                run_id = 'dcrnn_att_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d/' % (
+                run_id = 'dcrnn_att_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d_%s/' % (
                     filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, adj_pos_thres, adj_neg_thres,
-                    horizon, seq_len, structure, learning_rate, batch_size)
+                    horizon, seq_len, structure, learning_rate, batch_size, scaler)
             else:
-                run_id = 'dcrnn_att_%s_%g_%d_%s_%d_%d_%s_%g_%d/' % (
+                run_id = 'dcrnn_att_%s_%g_%d_%s_%d_%d_%s_%g_%d_%s/' % (
                     filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
-                    horizon, seq_len, structure, learning_rate, batch_size)
+                    horizon, seq_len, structure, learning_rate, batch_size, scaler)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

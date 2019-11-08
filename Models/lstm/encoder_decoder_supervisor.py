@@ -101,7 +101,9 @@ class EncoderDecoder(lstm):
 
         return dataX
 
-    def _ims_tm_prediction_ed(self, states_value):
+    def _ims_tm_prediction_ed(self, input):
+        states_value = self.encoder_model.predict(input)
+
         target_seq = np.zeros((self._nodes, 1, 1))
         target_seq[:, 0, 0] = [0] * self._nodes
 
@@ -145,14 +147,12 @@ class EncoderDecoder(lstm):
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
             # This block is used for iterated multi-step traffic matrices prediction
 
-            en_input = self._prepare_input(data=tm_pred[ts:ts + self._seq_len],
-                                           m_indicator=m_indicator[ts:ts + self._seq_len])
-
-            states_value = self.encoder_model.predict(en_input)
+            input = self._prepare_input(data=tm_pred[ts:ts + self._seq_len],
+                                        m_indicator=m_indicator[ts:ts + self._seq_len])
 
             # Generate empty target sequence of length 1.
             # Populate the first character of target sequence with the start character.
-            predicted_tm = self._ims_tm_prediction_ed(states_value)
+            predicted_tm = self._ims_tm_prediction_ed(input)
 
             # Get the TM prediction of next time slot
 
@@ -174,7 +174,7 @@ class EncoderDecoder(lstm):
             inv_sampling = 1.0 - sampling
             pred_input = pred * inv_sampling
 
-            ground_true = test_data_norm[ts + self._seq_len]
+            ground_true = test_data_norm[ts + self._seq_len].copy()
             y_truths.append(
                 np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon], axis=0))
 

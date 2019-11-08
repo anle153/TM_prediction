@@ -23,6 +23,7 @@ def print_fwbw_lstm_ed_info(mode, config):
     print('|--- GPU:\t{}'.format(config['gpu']))
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
     print('|--- BASE_DIR:\t{}'.format(config['base_dir']))
+    print('|--- SCALER:\t{}'.format(config['scaler']))
 
     print('----------------------- MODEL -----------------------')
 

@@ -19,6 +19,7 @@ def print_dcrnn_info(mode, config):
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
     print('|--- BASED_DIR:\t{}'.format(config['base_dir']))
+    print('|--- SCALER:\t{}'.format(config['scaler']))
 
     print('|--- ADJ_METHOD:\t{}'.format(config['data']['adj_method']))
     print('|--- ADJ_POS_THRES:\t{}'.format(config['data']['pos_thres']))

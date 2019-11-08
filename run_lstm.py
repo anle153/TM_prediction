@@ -22,6 +22,7 @@ def print_lstm_info(mode, config):
     print('|--- GPU:\t{}'.format(config['gpu']))
 
     print('|--- MON_RATIO:\t{}'.format(config['mon_ratio']))
+    print('|--- SCALER:\t{}'.format(config['scaler']))
 
     print('----------------------- MODEL -----------------------')
 

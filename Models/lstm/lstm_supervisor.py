@@ -6,9 +6,8 @@ import numpy as np
 import pandas as pd
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.layers import LSTM, Dense, Dropout, Bidirectional, TimeDistributed, Input, Concatenate, Flatten, Reshape, \
-    Add
-from keras.models import Sequential, Model
+from keras.layers import LSTM, Dense, Dropout, Flatten
+from keras.models import Sequential
 from keras.utils import plot_model
 from tqdm import tqdm
 
@@ -127,12 +126,6 @@ class lstm():
             os.makedirs(log_dir)
         return log_dir
 
-    def normal_model_contruction(self):
-        self.model = Sequential()
-        self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape))
-        self.model.add(Dropout(self._drop_out))
-        self.model.add(Dense(1))
-
     def seq2seq_model_construction(self):
         self.model = Sequential()
         self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
@@ -144,110 +137,6 @@ class lstm():
         self.model.add(Dense(1))
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
-    def encoder_decoder_tf(self):
-
-        encoder_inputs = Input(shape=self._input_shape)
-        encoder = LSTM(self._rnn_units, return_state=True)
-        encoder_outputs, state_h, state_c = encoder(encoder_inputs)
-        # We discard `encoder_outputs` and only keep the states.
-        encoder_states = [state_h, state_c]
-
-        # Set up the decoder, using `encoder_states` as initial state.
-        decoder_inputs = Input(shape=(None, self._horizon))
-        # We set up our decoder to return full output sequences,
-        # and to return internal states as well. We don't use the
-        # return states in the training model, but we will use them in inference.
-        decoder_lstm = LSTM(self._rnn_units, return_sequences=True, return_state=True)
-        decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
-                                             initial_state=encoder_states)
-        decoder_dense = Dense(self._horizon, activation='relu')
-        decoder_outputs = decoder_dense(decoder_outputs)
-
-        # Define the model that will turn
-        # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-
-    def res_lstm_construction(self):
-
-        input_tensor = Input(shape=self._input_shape, name='input')
-
-        # res lstm network
-        lstm_layer = LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True)(input_tensor)
-        drop_out = Dropout(self._drop_out)(lstm_layer)
-        flat_layer = TimeDistributed(Flatten())(drop_out)
-        dense_1 = TimeDistributed(Dense(64, ))(flat_layer)
-        dense_2 = TimeDistributed(Dense(32, ))(dense_1)
-        output = TimeDistributed(Dense(1, ))(dense_2)
-
-        input_tensor_flatten = Reshape((self._input_shape[0] * self._input_shape[1], 1))(input_tensor)
-        _input = Concatenate(axis=1)([input_tensor_flatten, output])
-
-        _input = Flatten()(_input)
-        _input = Dense(64, )(_input)
-        _input = Dense(32, )(_input)
-        outputs = Dense(1, name='outputs')(_input)
-
-        self.model = Model(inputs=input_tensor, outputs=outputs, name='res-lstm')
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
-    def res_lstm_2_construction(self):
-
-        input_tensor = Input(shape=self._input_shape, name='input')
-        input_tensor_2 = Input(shape=(self._seq_len, 1), name='input_2')
-        # res lstm network
-        lstm_layer = LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True)(input_tensor)
-        drop_out = Dropout(self._drop_out)(lstm_layer)
-        flat_layer = TimeDistributed(Flatten())(drop_out)
-        dense_1 = TimeDistributed(Dense(64, ))(flat_layer)
-        dense_2 = TimeDistributed(Dense(32, ))(dense_1)
-        output = TimeDistributed(Dense(1, ))(dense_2)
-
-        # input_tensor_flatten = Reshape((self.input_shape[0] * self.input_shape[1], 1))(input_tensor)
-        _input = Add()([input_tensor_2, output])
-
-        _input = Flatten()(_input)
-        _input = Dense(64, )(_input)
-        _input = Dense(32, )(_input)
-        outputs = Dense(1, name='outputs')(_input)
-
-        self.model = Model(inputs=[input_tensor, input_tensor_2], outputs=outputs, name='res-lstm')
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
-    def seq2seq_deep_model_construction(self, n_layers):
-        self.model = Sequential()
-        for layer in range(n_layers):
-
-            if layer != (n_layers - 1):
-                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
-            else:
-                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
-                self.model.add(TimeDistributed(Dense(64)))
-                self.model.add(TimeDistributed(Dense(32)))
-                self.model.add(TimeDistributed(Dense(1)))
-            if layer != 0:
-                self.model.add(Dropout(self._drop_out))
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
-    def deep_rnn_io_model_construction(self, n_layers=3):
-        self.model = Sequential()
-        for layer in range(n_layers):
-
-            if layer != (n_layers - 1):
-                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True))
-            else:
-                self.model.add(LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=False))
-                self.model.add(Dense(1))
-
-            if layer != 0:
-                self.model.add(Dropout(self._drop_out))
-
-    def bidirectional_model_construction(self, input_shape, drop_out=0.3):
-        self.model = Sequential()
-        self.model.add(
-            Bidirectional(LSTM(self._rnn_units, return_sequences=True), input_shape=input_shape))
-        self.model.add(Dropout(drop_out))
-        self.model.add(TimeDistributed(Dense(1)))
 
     def plot_models(self):
         plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)

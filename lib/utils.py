@@ -990,7 +990,7 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
+def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
     data_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')

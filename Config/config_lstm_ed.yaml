@@ -4,7 +4,7 @@ base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
 mon_ratio: 0.3
-scaler: SD
+scaler: MM
 data:
   batch_size: 512
   raw_dataset_dir: Dataset/Abilene2d.npy

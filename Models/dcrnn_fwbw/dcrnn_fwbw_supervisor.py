@@ -80,7 +80,6 @@ class DCRNNSupervisor(object):
         self._logger.info(kwargs)
 
         self._mon_ratio = float(self._kwargs.get('mon_ratio'))
-        _scaler_type = self._kwargs.get('scaler')
 
         # Model's args
         self._seq_len = int(self._model_kwargs.get('seq_len'))
@@ -104,7 +103,7 @@ class DCRNNSupervisor(object):
                                                   horizon=self._model_kwargs.get('horizon'),
                                                   input_dim=self._model_kwargs.get('input_dim'),
                                                   mon_ratio=self._mon_ratio,
-                                                  scaler_type=_scaler_type,
+                                                  scaler_type=self._kwargs.get('scaler'),
                                                   **self._data_kwargs)
         for k, v in self.data.items():
             if hasattr(v, 'shape'):

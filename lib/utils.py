@@ -133,6 +133,7 @@ def get_scaler(scaler_type, data):
         scaler = StandardScaler()
     else:
         scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
+
     scaler.fit(data)
     return scaler
 

@@ -43,6 +43,8 @@ class lstm():
         self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
         self._logger.info(kwargs)
 
+        self._mon_ratio = self._kwargs.get('mon_ratio')
+
         # Data's args
         self._day_size = self._data_kwargs.get('day_size')
 
@@ -65,21 +67,18 @@ class lstm():
         self._run_times = self._test_kwargs.get('run_times')
         self._flow_selection = self._test_kwargs.get('flow_selection')
 
-        self._mon_ratio = self._kwargs.get('mon_ratio')
-        _scaler_type = self._kwargs.get('scaler')
-
         # Load data
         if self._model_type == 'lstm':
             self._data = utils.load_dataset_lstm(seq_len=self._seq_len, horizon=self._horizon,
                                                  input_dim=self._input_dim,
                                                  mon_ratio=self._mon_ratio,
-                                                 scaler_type=_scaler_type,
+                                                 scaler_type=self._kwargs.get('scaler'),
                                                  **self._data_kwargs)
         elif self._model_type == 'ed' or self._model_type == 'encoder_decoder':
             self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
                                                     input_dim=self._input_dim,
                                                     mon_ratio=self._mon_ratio,
-                                                    scaler_type=_scaler_type,
+                                                    scaler_type=self._kwargs.get('scaler'),
                                                     **self._data_kwargs)
         else:
             raise RuntimeError("Model must be lstm or encoder_decoder")

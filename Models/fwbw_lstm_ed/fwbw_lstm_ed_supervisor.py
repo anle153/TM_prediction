@@ -45,7 +45,6 @@ class FwbwLstmED():
         self._logger.info(kwargs)
 
         self._mon_ratio = self._kwargs.get('mon_ratio')
-        _scaler_type = self._kwargs.get('scaler')
 
         # Data's args
         self._day_size = self._data_kwargs.get('day_size')
@@ -78,7 +77,7 @@ class FwbwLstmED():
         self._data = utils.load_dataset_fwbw_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
                                                      input_dim=self._input_dim,
                                                      mon_ratio=self._mon_ratio,
-                                                     scaler_type=_scaler_type,
+                                                     scaler_type=self._kwargs.get('scaler'),
                                                      **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):

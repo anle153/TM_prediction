@@ -413,7 +413,7 @@ class lstm():
         metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
 
         for i in range(self._run_times):
-            print('|--- Running time: {}/{}'.format(i, self._run_times))
+            self._logger.info('|--- Running time: {}/{}'.format(i, self._run_times))
 
             outputs = self._run_tm_prediction()
 
@@ -454,7 +454,7 @@ class lstm():
 
             self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
 
-            print('ER: {}'.format(er))
+            self._logger.info('ER: {}'.format(er))
         avg = np.mean(metrics_summary, axis=0)
         std = np.std(metrics_summary, axis=0)
         conf = metrics.calculate_confident_interval(metrics_summary)

@@ -13,7 +13,6 @@ data:
   test_batch_size: 1
   data_name: Abilene
   day_size: 288
-  generate_data: True
   data_size: 1.0
 model:
   model_type: lstm
@@ -25,11 +24,9 @@ model:
   seq_len: 36
 train:
   dropout: 0
-  epoch: 64
   epochs: 50000
   optimizer: adam
-  patience: 30
+  patience: 50
 test:
   run_times: 50
   flow_selection: Random
-  test_size: 2

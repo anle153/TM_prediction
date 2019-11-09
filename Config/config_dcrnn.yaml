@@ -4,7 +4,7 @@ base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
 mon_ratio: 0.3
-scaler: SD
+scaler: MM
 data:
   data_name: Abilene
   batch_size: 64
@@ -12,7 +12,7 @@ data:
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/
-  adj_method: CORR3
+  adj_method: OD
   pos_thres: 0.1
   neg_thres: -0.1
   day_size: 288

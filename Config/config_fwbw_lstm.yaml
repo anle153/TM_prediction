@@ -5,7 +5,7 @@ log_level: INFO
 gpu: 0
 mon_ratio: 0.3
 mode: train
-scaler: SD
+scaler: MM
 data:
   data_name: Abilene
   batch_size: 512

@@ -77,6 +77,7 @@ class FwbwLstmRegression():
         self._data = utils.load_dataset_fwbw_lstm(seq_len=self._seq_len, horizon=self._horizon,
                                                   input_dim=self._input_dim,
                                                   mon_ratio=self._mon_ratio,
+                                                  scaler_type=self._kwargs.get('scaler'),
                                                   **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
@@ -124,8 +125,9 @@ class FwbwLstmRegression():
             rnn_units = kwargs['model'].get('rnn_units')
             horizon = kwargs['model'].get('horizon')
             mon_r = kwargs['mon_ratio']
-            run_id = 'fwbw_lstm_%d_%g_%d_%d/' % (
-                rnn_units, mon_r, horizon, batch_size)
+            scaler = kwargs['scaler']
+            run_id = 'fwbw_lstm_%d_%g_%d_%d_%s/' % (
+                rnn_units, mon_r, horizon, batch_size, scaler)
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):

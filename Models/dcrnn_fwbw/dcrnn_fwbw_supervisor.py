@@ -648,9 +648,9 @@ class DCRNNSupervisor(object):
             # pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             # tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
 
-            _corr_data = encoder_outputs_bw[1:] * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
-            _measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
-            tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
+            _corr_data = encoder_outputs_bw * (1.0 - m_indicator[ts:ts + self._seq_len])
+            _measured_data = tm_pred[ts:ts + self._seq_len] * m_indicator[ts:ts + self._seq_len]
+            tm_pred[ts:ts + self._seq_len] = _measured_data + _corr_data
 
             y_preds.append(decoder_outputs_fw)
             y_truths.append(

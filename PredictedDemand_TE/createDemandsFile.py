@@ -39,8 +39,8 @@ with open(os.path.join(DATA_PATH, pred_demand_file_list), 'w') as pd_list:
                             prefix = 'demand_{}'.format(d)
                             src = NODE_MAP.get(str(int(j / NUM_NODE)))
                             dst = NODE_MAP.get(str(j % NUM_NODE))
-                            pred_bw = int(pred_data[i, j] / 20)
-                            gt_bw = int(gt_data[i, j] / 20)
+                            pred_bw = int(pred_data[i, j] / 12)
+                            gt_bw = int(gt_data[i, j] / 12)
 
                             if pred_bw < 0:
                                 pred_bw = 0

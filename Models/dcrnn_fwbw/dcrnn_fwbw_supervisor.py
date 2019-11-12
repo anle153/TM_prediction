@@ -289,8 +289,7 @@ class DCRNNSupervisor(object):
 
             start_time = time.time()
             train_results = self.run_epoch_generator(sess, self.train_model,
-                                                     self.data[
-                                                         'train_loader'].get_iterator(),
+                                                     self.data['train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
             train_loss, train_enc_loss_bw = train_results['loss'], train_results['enc_loss_bw']

@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from keras.layers import Dense, Dropout, TimeDistributed
 from tensorflow.contrib import legacy_seq2seq
 
 from Models.dcrnn.dcrnn_cell import DCGRUCell
@@ -33,7 +34,6 @@ class DCRNNModel(object):
 
         # Input (batch_size, timesteps, num_sensor, input_dim)
         self._inputs = tf.placeholder(tf.float32, shape=(batch_size, seq_len, num_nodes, input_dim), name='inputs')
-
 
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels_fw = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels_fw')
@@ -100,6 +100,20 @@ class DCRNNModel(object):
             enc_outputs_bw, enc_state_bw = tf.contrib.rnn.static_rnn(encoding_cells_bw, inputs_bw, dtype=tf.float32)
 
         enc_outputs_bw = tf.stack(enc_outputs_bw, axis=1)
+
+        enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim))
+
+        enc_outputs_bw = tf.concat([enc_outputs_bw, self._inputs], axis=3)
+        enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes * (output_dim + input_dim)))
+
+        enc_outputs_bw = Dropout(0.5,
+                                 batch_input_shape=(batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
+            enc_outputs_bw)
+        enc_outputs_bw = TimeDistributed(Dense(512),
+                                         batch_input_shape=(batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
+            enc_outputs_bw)
+        enc_outputs_bw = Dropout(0.5, batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
+        enc_outputs_bw = TimeDistributed(Dense(num_nodes), batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
         self._enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim),
                                           name='enc_outputs_bw')
 

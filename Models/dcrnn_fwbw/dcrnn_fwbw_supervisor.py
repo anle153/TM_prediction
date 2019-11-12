@@ -631,13 +631,15 @@ class DCRNNSupervisor(object):
             vals = sess.run(fetches, feed_dict=feed_dict)
 
             # encoder_outputs_bw (1, seq_len, num_node, 1), decoder_outputs_fw (1, horizon, num_node, 1)
+            # decoder_outputs_fw (ts + seq_len, ts + seq_len + h)
             encoder_outputs_bw, decoder_outputs_fw = vals['enc_outputs_bw'], vals['outputs_fw']
 
             decoder_outputs_fw = np.squeeze(decoder_outputs_fw, axis=-1)
 
             encoder_outputs_bw = np.squeeze(encoder_outputs_bw, axis=0)
-            encoder_outputs_bw = np.squeeze(encoder_outputs_bw, axis=-1)
-            encoder_outputs_bw = encoder_outputs_bw.T
+            encoder_outputs_bw = np.squeeze(encoder_outputs_bw,
+                                            axis=-1)  # encoder_outputs_bw (ts - 1, ts + seq_len - 1)
+            # encoder_outputs_bw = encoder_outputs_bw.T
 
             # corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
             #                                           pred_backward=encoder_outputs_bw,
@@ -645,6 +647,10 @@ class DCRNNSupervisor(object):
             # measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
             # pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             # tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data
+
+            _corr_data = encoder_outputs_bw[1:] * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+            _measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+            tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
 
             y_preds.append(decoder_outputs_fw)
             y_truths.append(

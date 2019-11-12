@@ -16,7 +16,7 @@ gt_demand_file_list = 'Abilene.gt.dm.list'
 with open(os.path.join(DATA_PATH, pred_demand_file_list), 'w') as pd_list:
     with open(os.path.join(DATA_PATH, gt_demand_file_list), 'w') as gt_list:
 
-        for i in range(pred_data.shape[0]):
+        for i in range(10):
             pred_demand_file_name = 'Abilene.{}.pd.dm'.format(i)
             gt_demand_file_name = 'Abilene.{}.gt.dm'.format(i)
 
@@ -39,8 +39,8 @@ with open(os.path.join(DATA_PATH, pred_demand_file_list), 'w') as pd_list:
                             prefix = 'demand_{}'.format(d)
                             src = NODE_MAP.get(str(int(j / NUM_NODE)))
                             dst = NODE_MAP.get(str(j % NUM_NODE))
-                            pred_bw = int(pred_data[i, j])
-                            gt_bw = int(gt_data[i, j])
+                            pred_bw = int(pred_data[i, j] / 20)
+                            gt_bw = int(gt_data[i, j] / 20)
 
                             if pred_bw < 0:
                                 pred_bw = 0

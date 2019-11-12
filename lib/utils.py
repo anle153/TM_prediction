@@ -369,7 +369,7 @@ def create_data_dcrnn_fwbw(data, seq_len, horizon, input_dim, mon_ratio, eps):
         _dec_labels_fw = data[idx + seq_len:idx + seq_len + horizon]
         dec_labels_fw[idx] = np.expand_dims(_dec_labels_fw, axis=2)
 
-        _enc_labels_bw = data[idx:idx + seq_len]
+        _enc_labels_bw = data[idx - 1:idx + seq_len - 1]
         enc_labels_bw[idx] = np.expand_dims(_enc_labels_bw, axis=2)
 
     # return inputs, dec_labels_fw, enc_labels_bw

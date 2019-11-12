@@ -383,15 +383,16 @@ class FwbwLstmRegression():
             _corr_data = bw_outputs[1:]
             _measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
             _corr_data = _corr_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+            tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
 
-            _err = metrics.error_ratio(y_true=_measured_data,
-                                       y_pred=(bw_outputs[1:] * m_indicator[ts:ts + self._seq_len - 1]),
-                                       measured_matrix=np.ones(shape=_measured_data.shape))
-            if _err < _last_err:
-                tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
-
-            if ts % int(self._seq_len / 2) == 0:
-                _last_err = _err
+            # _err = metrics.error_ratio(y_true=_measured_data,
+            #                            y_pred=(bw_outputs[1:] * m_indicator[ts:ts + self._seq_len - 1]),
+            #                            measured_matrix=np.ones(shape=_measured_data.shape))
+            # if _err < _last_err:
+            #     tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
+            #
+            # if ts % int(self._seq_len / 2) == 0:
+            #     _last_err = _err
 
             y_preds.append(np.expand_dims(fw_outputs, axis=0))
             pred = fw_outputs[0]

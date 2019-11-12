@@ -108,9 +108,9 @@ class DCRNNModel(object):
         enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim))
         # enc_outputs_fw = tf.reshape(enc_outputs_fw, (batch_size, seq_len, num_nodes, output_dim))
 
-        # enc_outputs_bw = tf.concat([enc_outputs_bw, self._inputs], axis=3)
-        # enc_outputs_bw = tf.reshape(enc_outputs_bw,
-        #                             (batch_size, seq_len, num_nodes * (output_dim + input_dim)))
+        enc_outputs_bw = tf.concat([enc_outputs_bw, self._inputs], axis=3)
+        enc_outputs_bw = tf.reshape(enc_outputs_bw,
+                                    (batch_size, seq_len, num_nodes * (output_dim + input_dim)))
         #
         # enc_outputs_bw = Dropout(0.5,
         #                          batch_input_shape=(

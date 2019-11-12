@@ -97,13 +97,13 @@ class DCRNNModel(object):
 
         with tf.variable_scope('DCRNN_SEQ_BW'):
             inputs_bw = tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim))
-            inputs_bw = tf.reverse(inputs_bw, axis=1)
+            inputs_bw = tf.reverse(inputs_bw, axis=[1])
             inputs_bw = tf.unstack(inputs_bw, axis=1)
 
             enc_outputs_bw, enc_state_bw = tf.contrib.rnn.static_rnn(encoding_cells_bw, inputs_bw, dtype=tf.float32)
 
         enc_outputs_bw = tf.stack(enc_outputs_bw, axis=1)
-        enc_outputs_bw = tf.reverse(enc_outputs_bw, axis=1)
+        enc_outputs_bw = tf.reverse(enc_outputs_bw, axis=[1])
         enc_outputs_fw = tf.stack(enc_outputs_fw, axis=1)
 
         enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim))

@@ -2,7 +2,6 @@ import os
 
 from keras.layers import *
 from keras.models import Model
-from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -101,29 +100,3 @@ class FWBW_CONV_LSTM(AbstractModel):
 
         self.model = Model(inputs=input, outputs=[fw_outputs, bw_outputs], name='Model')
         self.model.compile(loss='mse', optimizer='adam')
-
-    def plot_models(self):
-        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)
-
-    def plot_training_history(self, model_history):
-        import matplotlib.pyplot as plt
-        plt.plot(model_history.history['loss'], label='loss')
-        plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self.saving_path + '[loss]{}-{}.png'.format(self.alg_name, self.tag))
-        plt.legend()
-        plt.close()
-
-        plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self.saving_path + '[val_loss]{}-{}.png'.format(self.alg_name, self.tag))
-        plt.legend()
-        plt.close()
-
-        plt.plot(model_history.history['val_fw_outputs_loss'], label='val_fw_outputs_loss')
-        plt.legend()
-        plt.savefig(self.saving_path + '[val_fw_outputs_los]{}-{}.png'.format(self.alg_name, self.tag))
-        plt.close()
-
-        plt.plot(model_history.history['val_bw_outputs_loss'], label='val_bw_outputs_loss')
-        plt.savefig(self.saving_path + '[val_bw_outputs_loss]{}-{}.png'.format(self.alg_name, self.tag))
-        plt.legend()
-        plt.close()

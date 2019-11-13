@@ -98,11 +98,6 @@ class EncoderDecoder(AbstractModel):
 
             return model
 
-    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
-        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
-        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
-
     def _prepare_input(self, data, m_indicator):
 
         dataX = np.zeros(shape=(data.shape[1], self._seq_len, 2), dtype='float32')

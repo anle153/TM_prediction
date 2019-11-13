@@ -2,7 +2,6 @@ import os
 
 from keras.layers import LSTM, Dense, TimeDistributed, BatchNormalization, Conv2D, Flatten, Dropout
 from keras.models import Sequential
-from keras.utils import plot_model
 
 from Models.AbstractModel import AbstractModel
 
@@ -68,6 +67,3 @@ class CnnLSTM(AbstractModel):
         self.model.add(TimeDistributed(Dense(self.wide * self.high, )))
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
-    def plot_models(self):
-        plot_model(model=self.model, to_file=self.saving_path + '/model.png', show_shapes=True)

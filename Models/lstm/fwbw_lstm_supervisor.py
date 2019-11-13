@@ -37,6 +37,7 @@ class FwbwLstmRegression():
         self._model_kwargs = kwargs.get('model')
 
         self._alg_name = self._kwargs.get('alg')
+        self._base_dir = kwargs.get('base_dir')
 
         # logging.
         self._log_dir = self._get_log_dir(kwargs)
@@ -345,18 +346,20 @@ class FwbwLstmRegression():
 
         return corrected_data.T
 
-    def _run_tm_prediction(self):
+    def _run_tm_prediction(self, runId):
         test_data_norm = self._data['test_data_norm']
-
-        tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+        if self._flow_selection == 'Random':
+            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
+            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
+        else:
+            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
                                dtype='float32')
+            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
                            dtype='float32')
 
         tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
-        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         y_preds = []
         y_truths = []
@@ -385,15 +388,6 @@ class FwbwLstmRegression():
             _corr_data = _corr_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
 
-            # _err = metrics.error_ratio(y_true=_measured_data,
-            #                            y_pred=(bw_outputs[1:] * m_indicator[ts:ts + self._seq_len - 1]),
-            #                            measured_matrix=np.ones(shape=_measured_data.shape))
-            # if _err < _last_err:
-            #     tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
-            #
-            # if ts % int(self._seq_len / 2) == 0:
-            #     _last_err = _err
-
             y_preds.append(np.expand_dims(fw_outputs, axis=0))
             pred = fw_outputs[0]
 
@@ -402,16 +396,16 @@ class FwbwLstmRegression():
 
             # boolean array(1 x n_flows):for choosing value from predicted data
             if self._flow_selection == 'Random':
-                sampling = np.random.choice(tf_a, size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+                sampling = m_indicator[ts + self._seq_len]
             elif self._flow_selection == 'Fairness':
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+                m_indicator[ts + self._seq_len] = sampling
             else:
                 sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
                                                    pred_forward=fw_outputs,
                                                    m_indicator=m_indicator[ts: ts + self._seq_len].T)
+                m_indicator[ts + self._seq_len] = sampling
 
-            m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
             pred_input = pred * (1.0 - sampling)
 
@@ -495,7 +489,7 @@ class FwbwLstmRegression():
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            outputs = self._run_tm_prediction()
+            outputs = self._run_tm_prediction(runId=i)
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 
@@ -556,7 +550,8 @@ class FwbwLstmRegression():
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
+        if self._flow_selection != 'Random':
+            np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def load(self):
         self.model.load_weights(self._log_dir + 'best_model.hdf5')

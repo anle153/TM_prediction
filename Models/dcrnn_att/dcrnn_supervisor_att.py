@@ -31,6 +31,7 @@ class DCRNNSupervisor(object):
         self._model_kwargs = kwargs.get('model')
         self._train_kwargs = kwargs.get('train')
         self._test_kwargs = kwargs.get('test')
+        self._base_dir = kwargs.get('base_dir')
 
         # logging.
         self._log_dir = self._get_log_dir(kwargs)
@@ -280,7 +281,7 @@ class DCRNNSupervisor(object):
 
         return sampling
 
-    def _run_tm_prediction(self, sess, model, writer=None):
+    def _run_tm_prediction(self, sess, model, runId, writer=None):
 
         test_data_norm = self._data['test_data_norm']
 
@@ -289,8 +290,13 @@ class DCRNNSupervisor(object):
         tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
         # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+        if self._flow_selection == 'Random':
+            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
+            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
+        else:
+            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                                   dtype='float32')
+            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         losses = []
         mses = []
@@ -337,12 +343,11 @@ class DCRNNSupervisor(object):
             pred = vals['outputs'][0, 0, :, 0]
 
             if self._flow_selection == 'Random':
-                sampling = np.random.choice([1.0, 0.0], size=self._nodes,
-                                            p=[self._mon_ratio, 1.0 - self._mon_ratio])
+                sampling = m_indicator[ts + self._seq_len]
             else:
                 sampling = self.set_measured_flow_fairness(labels=m_indicator[ts: ts + self._seq_len])
+                m_indicator[ts + self._seq_len] = sampling
 
-            m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
 
             ground_true = test_data_norm[ts + self._seq_len]
@@ -478,7 +483,7 @@ class DCRNNSupervisor(object):
             self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
-            test_results = self._run_tm_prediction(sess, model=self._test_model)
+            test_results = self._run_tm_prediction(sess, model=self._test_model, runId=i)
 
             # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
             test_loss, y_preds = test_results['loss'], test_results['y_preds']
@@ -605,7 +610,8 @@ class DCRNNSupervisor(object):
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
+        if self._flow_selection != 'Random':
+            np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def save(self, sess, val_loss):
         config = dict(self._kwargs)

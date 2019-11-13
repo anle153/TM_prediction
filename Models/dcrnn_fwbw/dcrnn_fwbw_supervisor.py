@@ -72,6 +72,8 @@ class DCRNNSupervisor(object):
         self._model_kwargs = kwargs.get('model')
         self._train_kwargs = kwargs.get('train')
         self._test_kwargs = kwargs.get('test')
+        self._base_dir = kwargs.get('base_dir')
+
         # logging.
         self._log_dir = _get_log_dir(kwargs)
         log_level = self._kwargs.get('log_level', 'INFO')
@@ -401,7 +403,7 @@ class DCRNNSupervisor(object):
 
         for i in range(self._run_times):
             # y_test = self._prepare_test_set()
-            outputs = self._run_tm_prediction(sess)
+            outputs = self._run_tm_prediction(sess, runId=i)
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 
@@ -592,7 +594,7 @@ class DCRNNSupervisor(object):
 
         return corrected_data.T
 
-    def _run_tm_prediction(self, sess):
+    def _run_tm_prediction(self, sess, runId):
 
         test_data_norm = self.data['test_data_norm']
 
@@ -601,8 +603,13 @@ class DCRNNSupervisor(object):
         tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
 
         # Initialize measurement matrix
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+        if self._flow_selection == 'Random':
+            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
+            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
+        else:
+            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                                   dtype='float32')
+            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         y_truths = []
         y_preds = []
@@ -663,16 +670,16 @@ class DCRNNSupervisor(object):
 
             # boolean array(1 x n_flows):for choosing value from predicted data
             if self._flow_selection == 'Random':
-                sampling = np.random.choice(tf_a, size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+                sampling = m_indicator[ts + self._seq_len]
             elif self._flow_selection == 'Fairness':
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+                m_indicator[ts + self._seq_len] = sampling
             else:
                 sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
                                                    pred_forward=decoder_outputs_fw,
                                                    m_indicator=m_indicator[ts: ts + self._seq_len].T)
+                m_indicator[ts + self._seq_len] = sampling
 
-            m_indicator[ts + self._seq_len] = sampling
             ground_truth = test_data_norm[ts + self._seq_len].copy()
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = pred * (1.0 - sampling) + ground_truth * sampling
@@ -688,7 +695,8 @@ class DCRNNSupervisor(object):
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
+        if self._flow_selection != 'Random':
+            np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
 
     def load(self, sess, model_filename):

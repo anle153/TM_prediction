@@ -35,7 +35,7 @@ class lstm():
         self._model_kwargs = kwargs.get('model')
 
         self._alg_name = self._kwargs.get('alg')
-
+        self._base_dir = kwargs.get('base_dir')
         # logging.
         self._log_dir = self._get_log_dir(kwargs)
         log_level = self._kwargs.get('log_level', 'INFO')
@@ -221,13 +221,19 @@ class lstm():
 
         return multi_steps_tm[-self._horizon:]
 
-    def _run_tm_prediction(self):
+    def _run_tm_prediction(self, runId):
 
         test_data_norm = self._data['test_data_norm']
 
         tf_a = np.array([1.0, 0.0])
-        m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+
+        if self._flow_selection == 'Random':
+            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
+            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
+        else:
+            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
                                dtype='float32')
+            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
 
         tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
                            dtype='float32')
@@ -255,12 +261,12 @@ class lstm():
 
             # boolean array(1 x n_flows):for choosing value from predicted data
             if self._flow_selection == 'Random':
-                sampling = np.random.choice(tf_a, size=self._nodes,
-                                            p=[self._mon_ratio, 1 - self._mon_ratio])
+                sampling = m_indicator[ts + self._seq_len]
+
             else:
                 sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
+                m_indicator[ts + self._seq_len] = sampling
 
-            m_indicator[ts + self._seq_len] = sampling
             # invert of sampling: for choosing value from the original data
             inv_sampling = 1.0 - sampling
             pred_input = pred * inv_sampling
@@ -290,7 +296,8 @@ class lstm():
     def _save_results(self, g_truth, pred_tm, m_indicator, tag):
         np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
+        if self._flow_selection != 'Random':
+            np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
     def _test(self):
         scaler = self._data['scaler']
@@ -304,7 +311,7 @@ class lstm():
         for i in range(self._run_times):
             self._logger.info('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            outputs = self._run_tm_prediction()
+            outputs = self._run_tm_prediction(runId=i)
 
             tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
 

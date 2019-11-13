@@ -99,7 +99,7 @@ class FwbwLstmRegression(AbstractModel):
 
         self.model = Model(inputs=input_tensor, outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
 
-        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
+        self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'], loss_weights=[1, 0.5])
 
     def _ims_tm_prediction(self, init_data, init_labels):
         multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]),

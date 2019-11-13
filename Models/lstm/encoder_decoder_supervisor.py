@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-import pandas as pd
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Input
@@ -10,7 +9,6 @@ from keras.utils import plot_model
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel, TimeHistory
-from common.error_utils import error_ratio
 from lib import metrics
 from lib import utils
 
@@ -213,10 +211,6 @@ class EncoderDecoder(AbstractModel):
         return outputs
 
     def test(self):
-        scaler = self._data['scaler']
-        results_summary = pd.DataFrame(index=range(self._run_times + 3))
-        results_summary['No.'] = range(self._run_times + 3)
-
         n_metrics = 4
         # Metrics: MSE, MAE, RMSE, MAPE, ER
         metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
@@ -224,62 +218,13 @@ class EncoderDecoder(AbstractModel):
         for i in range(self._run_times):
             self._logger.info('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            outputs = self._run_tm_prediction()
+            test_results = self._run_tm_prediction()
 
-            tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
+            metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
+                                                      scaler=self._data['scaler'],
+                                                      runId=i, data_norm=self._data['test_data_norm'])
 
-            y_preds = np.concatenate(y_preds, axis=0)
-            predictions = []
-            y_truths = outputs['y_truths']
-            y_truths = np.concatenate(y_truths, axis=0)
-
-            for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
-
-                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
-                predictions.append(y_pred)
-
-                mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-                mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-                rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-                self._logger.info(
-                    "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                        horizon_i + 1, mse, mae, rmse, mape
-                    )
-                )
-                metrics_summary[i, horizon_i * n_metrics + 0] = mse
-                metrics_summary[i, horizon_i * n_metrics + 1] = mae
-                metrics_summary[i, horizon_i * n_metrics + 2] = rmse
-                metrics_summary[i, horizon_i * n_metrics + 3] = mape
-
-            tm_pred = scaler.inverse_transform(tm_pred)
-            g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
-            er = error_ratio(y_pred=tm_pred,
-                             y_true=g_truth,
-                             measured_matrix=m_indicator)
-            metrics_summary[i, -1] = er
-
-            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
-
-            self._logger.info('ER: {}'.format(er))
-
-        avg = np.mean(metrics_summary, axis=0)
-        std = np.std(metrics_summary, axis=0)
-        conf = metrics.calculate_confident_interval(metrics_summary)
-        metrics_summary[-3, :] = avg
-        metrics_summary[-2, :] = std
-        metrics_summary[-1, :] = conf
-        self._logger.info('AVG: {}'.format(metrics_summary[-3, :]))
-
-        for horizon_i in range(self._horizon):
-            results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
-            results_summary['mae_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 1]
-            results_summary['rmse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 2]
-            results_summary['mape_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 3]
-
-        results_summary['er'] = metrics_summary[:, -1]
-        results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
+        self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 
     def train(self):
         self.model.compile(optimizer='adam', loss='mse', metrics=['mse', 'mae'])

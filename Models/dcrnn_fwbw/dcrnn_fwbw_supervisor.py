@@ -331,9 +331,9 @@ class DCRNNSupervisor(AbstractModel):
             # y_test = self._prepare_test_set()
             test_results = self._run_tm_prediction(sess, runId=i)
 
-            self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
-                                    scaler=self._data['scaler'],
-                                    runId=i, data_norm=self._data['test_data_norm'])
+            metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
+                                                      scaler=self._data['scaler'],
+                                                      runId=i, data_norm=self._data['test_data_norm'])
 
         self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 

@@ -179,7 +179,7 @@ class AbstractModel(object):
         metrics_summary[runId, -1] = er
         self._logger.info('ER: {}'.format(er))
         self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(runId))
-        return
+        return metrics_summary
 
     def _summarize_results(self, metrics_summary, n_metrics):
         results_summary = pd.DataFrame(index=range(self._run_times + 3))

@@ -198,7 +198,7 @@ class DCRNNSupervisor(AbstractModel):
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
-            y_preds.append(vals['outputs'])
+            y_preds.append(np.squeeze(vals['outputs'], axis=-1))
 
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])

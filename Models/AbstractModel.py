@@ -226,7 +226,8 @@ class AbstractModel(object):
 
         # Initialize measurement matrix
         if self._flow_selection == 'Random':
-            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
+            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator_{}/m_indicator{}.npy'.format(
+                self._mon_ratio, runId)))
             m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
         else:
             m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),

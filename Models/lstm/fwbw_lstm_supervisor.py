@@ -1,78 +1,39 @@
 import os
-import time
 
-import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape
 from keras.models import Model
-from keras.utils import plot_model
 from tqdm import tqdm
 
+from Models.AbstractModel import AbstractModel, TimeHistory
 from lib import metrics
 from lib import utils
 
 
-class TimeHistory(keras_callbacks.Callback):
-    def on_train_begin(self, logs={}):
-        self.times = []
-
-    def on_epoch_begin(self, batch, logs={}):
-        self.epoch_time_start = time.time()
-
-    def on_epoch_end(self, batch, logs={}):
-        self.times.append(time.time() - self.epoch_time_start)
-
-
-class FwbwLstmRegression():
+class FwbwLstmRegression(AbstractModel):
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-        self._kwargs = kwargs
-        self._data_kwargs = kwargs.get('data')
-        self._train_kwargs = kwargs.get('train')
-        self._test_kwargs = kwargs.get('test')
-        self._model_kwargs = kwargs.get('model')
-
-        self._alg_name = self._kwargs.get('alg')
         self._base_dir = kwargs.get('base_dir')
 
-        # logging.
-        self._log_dir = self._get_log_dir(kwargs)
-        log_level = self._kwargs.get('log_level', 'INFO')
-        self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
-        self._logger.info(kwargs)
-
-        # Data's args
-        self._day_size = self._data_kwargs.get('day_size')
-
         # Model's Args
-        self._hidden = self._model_kwargs.get('rnn_units')
-        self._seq_len = self._model_kwargs.get('seq_len')
-        self._horizon = self._model_kwargs.get('horizon')
-        self._input_dim = self._model_kwargs.get('input_dim')
         self._input_shape = (self._seq_len, self._input_dim)
         self._output_dim = self._model_kwargs.get('output_dim')
-        self._nodes = self._model_kwargs.get('num_nodes')
         self._r = self._model_kwargs.get('r')
 
         # Train's args
         self._drop_out = self._train_kwargs.get('dropout')
-        self._epochs = self._train_kwargs.get('epochs')
         self._batch_size = self._data_kwargs.get('batch_size')
 
         # Test's args
-        self._run_times = self._test_kwargs.get('run_times')
-        self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._results_path = self._test_kwargs.get('results_path')
         self._lamda = []
         self._lamda.append(self._test_kwargs.get('lamda_0'))
         self._lamda.append(self._test_kwargs.get('lamda_1'))
         self._lamda.append(self._test_kwargs.get('lamda_2'))
-
-        self._mon_ratio = self._kwargs.get('mon_ratio')
 
         # Load data
         self._data = utils.load_dataset_fwbw_lstm(seq_len=self._seq_len, horizon=self._horizon,
@@ -118,29 +79,12 @@ class FwbwLstmRegression():
 
         dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 
-    @staticmethod
-    def _get_log_dir(kwargs):
-        log_dir = kwargs['train'].get('log_dir')
-        if log_dir is None:
-            batch_size = kwargs['data'].get('batch_size')
-            rnn_units = kwargs['model'].get('rnn_units')
-            horizon = kwargs['model'].get('horizon')
-            mon_r = kwargs['mon_ratio']
-            scaler = kwargs['scaler']
-            run_id = 'fwbw_lstm_%d_%g_%d_%d_%s/' % (
-                rnn_units, mon_r, horizon, batch_size, scaler)
-            base_dir = kwargs.get('base_dir')
-            log_dir = os.path.join(base_dir, run_id)
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        return log_dir
-
     def construct_fwbw_lstm(self):
         # Input
         input_tensor = Input(shape=self._input_shape, name='input')
 
         # Forward Network
-        fw_lstm_layer = LSTM(self._hidden, input_shape=self._input_shape, return_sequences=True)(input_tensor)
+        fw_lstm_layer = LSTM(self._rnn_units, input_shape=self._input_shape, return_sequences=True)(input_tensor)
         fw_drop_out = Dropout(self._drop_out)(fw_lstm_layer)
         fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
         fw_dense_1 = TimeDistributed(Dense(128, ))(fw_flat_layer)
@@ -149,7 +93,7 @@ class FwbwLstmRegression():
         fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_3)
 
         # Backward Network
-        bw_lstm_layer = LSTM(self._hidden, input_shape=self._input_shape,
+        bw_lstm_layer = LSTM(self._rnn_units, input_shape=self._input_shape,
                              return_sequences=True, go_backwards=True)(input_tensor)
         bw_drop_out = Dropout(self._drop_out)(bw_lstm_layer)
         bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
@@ -169,23 +113,6 @@ class FwbwLstmRegression():
         self.model = Model(inputs=input_tensor, outputs=[fw_outputs, bw_outputs], name='fwbw-lstm')
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
-
-    def plot_models(self):
-        plot_model(model=self.model, to_file=self._log_dir + '/model.png', show_shapes=True)
-
-    def plot_training_history(self, model_history):
-        import matplotlib.pyplot as plt
-
-        plt.plot(model_history.history['loss'], label='loss')
-        plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self._log_dir + '[loss]{}.png'.format(self._alg_name))
-        plt.legend()
-        plt.close()
-
-        plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self._log_dir + '[val_loss]{}.png'.format(self._alg_name))
-        plt.legend()
-        plt.close()
 
     def _prepare_input(self, data, m_indicator):
 
@@ -450,108 +377,22 @@ class FwbwLstmRegression():
                 yaml.dump(config, f, default_flow_style=False)
 
     def evaluate(self):
-
-        scaler = self._data['scaler']
-
-        y_pred_1, y_pred_2 = self.model.predict(self._data['x_eval'])
-        y_pred_1 = scaler.inverse_transform(y_pred_1)
-        y_truth_1 = scaler.inverse_transform(self._data['y_eval_1'])
-        y_truth_2 = scaler.inverse_transform(self._data['y_eval_2'])
-
-        mse = metrics.masked_mse_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        mae = metrics.masked_mae_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        mape = metrics.masked_mape_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        rmse = metrics.masked_rmse_np(preds=y_pred_1, labels=y_truth_1, null_val=0)
-        self._logger.info(
-            " Forward results: MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                mse, mae, rmse, mape
-            )
-        )
-
-        mse_2 = metrics.masked_mse_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        mae_2 = metrics.masked_mae_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        mape_2 = metrics.masked_mape_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        rmse_2 = metrics.masked_rmse_np(preds=y_pred_2, labels=y_truth_2, null_val=0)
-        self._logger.info(
-            "Backward results: MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                mse_2, mae_2, rmse_2, mape_2
-            )
-        )
+        pass
 
     def test(self):
-        scaler = self._data['scaler']
-        results_summary = pd.DataFrame(index=range(self._run_times + 3))
-        results_summary['No.'] = range(self._run_times + 3)
-
         n_metrics = 4
         # Metrics: MSE, MAE, RMSE, MAPE, ER
         metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
         for i in range(self._run_times):
             print('|--- Running time: {}/{}'.format(i, self._run_times))
 
-            outputs = self._run_tm_prediction(runId=i)
+            test_results = self._run_tm_prediction(runId=i)
 
-            tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
+            self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
+                                    scaler=self._data['scaler'],
+                                    runId=i, data_norm=self._data['test_data_norm'])
 
-            y_preds = np.concatenate(y_preds, axis=0)
-            predictions = []
-            y_truths = outputs['y_truths']
-            y_truths = np.concatenate(y_truths, axis=0)
-
-            for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
-
-                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
-                predictions.append(y_pred)
-
-                mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-                mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-                rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-                self._logger.info(
-                    "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                        horizon_i + 1, mse, mae, rmse, mape
-                    )
-                )
-
-                metrics_summary[i, horizon_i * n_metrics + 0] = mse
-                metrics_summary[i, horizon_i * n_metrics + 1] = mae
-                metrics_summary[i, horizon_i * n_metrics + 2] = rmse
-                metrics_summary[i, horizon_i * n_metrics + 3] = mape
-
-            tm_pred = scaler.inverse_transform(tm_pred)
-            g_truth = scaler.inverse_transform(self._data['test_data_norm'][self._seq_len:-self._horizon])
-
-            er = metrics.error_ratio(y_pred=tm_pred,
-                                     y_true=g_truth,
-                                     measured_matrix=m_indicator)
-            metrics_summary[i, -1] = er
-
-            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
-            print('ER: {}'.format(er))
-
-        avg = np.mean(metrics_summary, axis=0)
-        std = np.std(metrics_summary, axis=0)
-        conf = metrics.calculate_confident_interval(metrics_summary)
-        metrics_summary[-3, :] = avg
-        metrics_summary[-2, :] = std
-        metrics_summary[-1, :] = conf
-        self._logger.info('AVG: {}'.format(metrics_summary[-3, :]))
-
-        for horizon_i in range(self._horizon):
-            results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
-            results_summary['mae_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 1]
-            results_summary['rmse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 2]
-            results_summary['mape_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 3]
-
-        results_summary['er'] = metrics_summary[:, -1]
-        results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
-
-    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
-        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
-        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        if self._flow_selection != 'Random':
-            np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
+        self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 
     def load(self):
         self.model.load_weights(self._log_dir + 'best_model.hdf5')

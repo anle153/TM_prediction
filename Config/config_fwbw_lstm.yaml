@@ -1,5 +1,5 @@
 ---
-alg: FWBW-LSTM
+alg: fwbw_lstm
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0

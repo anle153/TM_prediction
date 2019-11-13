@@ -61,8 +61,6 @@ def build_model(config):
     # fwbw-lstm model
     fwbw_net = FwbwLstmRegression(**config)
     fwbw_net.construct_fwbw_lstm()
-    # print(fwbw_net.model.summary())
-    fwbw_net.plot_models()
     return fwbw_net
 
 

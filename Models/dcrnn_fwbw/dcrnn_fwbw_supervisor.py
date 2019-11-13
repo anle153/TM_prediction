@@ -12,88 +12,22 @@ import tensorflow as tf
 import yaml
 from tqdm import tqdm
 
+from Models.AbstractModel import AbstractModel
 from Models.dcrnn_fwbw.dcrnn_fwbw_model import DCRNNModel
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
 
 
-def _get_log_dir(kwargs):
-    log_dir = kwargs['train'].get('log_dir')
-    if log_dir is None:
-        batch_size = kwargs['data'].get('batch_size')
-        learning_rate = kwargs['train'].get('base_lr')
-        max_diffusion_step = kwargs['model'].get('max_diffusion_step')
-        num_rnn_layers = kwargs['model'].get('num_rnn_layers')
-        rnn_units = kwargs['model'].get('rnn_units')
-        structure = '-'.join(
-            ['%d' % rnn_units for _ in range(num_rnn_layers)])
-        horizon = kwargs['model'].get('horizon')
-        seq_len = kwargs['model'].get('seq_len')
-
-        adj_method = kwargs['data'].get('adj_method')
-        adj_pos_thres = kwargs['data'].get('pos_thres')
-        adj_neg_thres = -kwargs['data'].get('neg_thres')
-
-        filter_type = kwargs['model'].get('filter_type')
-        filter_type_abbr = 'L'
-        if filter_type == 'random_walk':
-            filter_type_abbr = 'R'
-        elif filter_type == 'dual_random_walk':
-            filter_type_abbr = 'DR'
-
-        mon_ratio = kwargs['mon_ratio']
-        scaler = kwargs['scaler']
-
-        if adj_method != 'OD':
-            run_id = 'dcrnn_fwbw_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d_%s/' % (
-                filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, adj_pos_thres, adj_neg_thres,
-                horizon, seq_len, structure, learning_rate, batch_size, scaler)
-        else:
-            run_id = 'dcrnn_fwbw_%s_%g_%d_%s_%d_%d_%s_%g_%d_%s/' % (
-                filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
-                horizon, seq_len, structure, learning_rate, batch_size, scaler)
-        base_dir = kwargs.get('base_dir')
-        log_dir = os.path.join(base_dir, run_id)
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    return log_dir
-
-
-class DCRNNSupervisor(object):
+class DCRNNSupervisor(AbstractModel):
     """
     Do experiments using Graph Random Walk RNN model.
     """
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-        self._kwargs = kwargs
-        self._data_kwargs = kwargs.get('data')
-        self._model_kwargs = kwargs.get('model')
-        self._train_kwargs = kwargs.get('train')
-        self._test_kwargs = kwargs.get('test')
-        self._base_dir = kwargs.get('base_dir')
-
-        # logging.
-        self._log_dir = _get_log_dir(kwargs)
-        log_level = self._kwargs.get('log_level', 'INFO')
-        self._logger = utils.get_logger(self._log_dir, __name__, 'info.log', level=log_level)
-        self._writer = tf.summary.FileWriter(self._log_dir)
-        self._logger.info(kwargs)
-
-        self._mon_ratio = float(self._kwargs.get('mon_ratio'))
-
-        # Model's args
-        self._seq_len = int(self._model_kwargs.get('seq_len'))
-        self._horizon = int(self._model_kwargs.get('horizon'))
-        self._input_dim = int(self._model_kwargs.get('input_dim'))
-        self._nodes = int(self._model_kwargs.get('num_nodes'))
         self._r = int(self._model_kwargs.get('r'))
-
-        # Test's args
-        self._flow_selection = self._test_kwargs.get('flow_selection')
-        self._run_times = self._test_kwargs.get('run_times')
-
         self._lamda = []
         self._lamda.append(self._test_kwargs.get('lamda_0'))
         self._lamda.append(self._test_kwargs.get('lamda_1'))
@@ -101,41 +35,41 @@ class DCRNNSupervisor(object):
 
         # Data preparation
         self._day_size = self._data_kwargs.get('day_size')
-        self.data = utils.load_dataset_dcrnn_fwbw(seq_len=self._model_kwargs.get('seq_len'),
-                                                  horizon=self._model_kwargs.get('horizon'),
-                                                  input_dim=self._model_kwargs.get('input_dim'),
-                                                  mon_ratio=self._mon_ratio,
-                                                  scaler_type=self._kwargs.get('scaler'),
-                                                  **self._data_kwargs)
-        for k, v in self.data.items():
+        self._data = utils.load_dataset_dcrnn_fwbw(seq_len=self._model_kwargs.get('seq_len'),
+                                                   horizon=self._model_kwargs.get('horizon'),
+                                                   input_dim=self._model_kwargs.get('input_dim'),
+                                                   mon_ratio=self._mon_ratio,
+                                                   scaler_type=self._kwargs.get('scaler'),
+                                                   **self._data_kwargs)
+        for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
 
         # Build models.
-        scaler = self.data['scaler']
+        scaler = self._data['scaler']
         with tf.name_scope('Train'):
             with tf.variable_scope('DCRNN', reuse=False):
                 self.train_model = DCRNNModel(is_training=True, scaler=scaler,
                                               batch_size=self._data_kwargs['batch_size'],
-                                              adj_mx=self.data['adj_mx'], **self._model_kwargs)
+                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Val'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self.val_model = DCRNNModel(is_training=False, scaler=scaler,
                                             batch_size=self._data_kwargs['val_batch_size'],
-                                            adj_mx=self.data['adj_mx'], **self._model_kwargs)
+                                            adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Eval'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self.eval_model = DCRNNModel(is_training=False, scaler=scaler,
                                              batch_size=self._data_kwargs['eval_batch_size'],
-                                             adj_mx=self.data['adj_mx'], **self._model_kwargs)
+                                             adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Test'):
             with tf.variable_scope('DCRNN', reuse=True):
                 self.test_model = DCRNNModel(is_training=False, scaler=scaler,
                                              batch_size=self._data_kwargs['test_batch_size'],
-                                             adj_mx=self.data['adj_mx'], **self._model_kwargs)
+                                             adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -199,14 +133,6 @@ class DCRNNSupervisor(object):
         preds_fw = model.outputs_fw
         labels_fw = model.labels_fw[..., :output_dim]
         loss = self._loss_fn(preds=preds_fw, labels=labels_fw)
-
-        # preds_bw = model.outputs_bw
-        # labels_bw = model.labels_bw[..., :output_dim]
-        # loss_bw = self._loss_fn(preds=preds_bw, labels=labels_bw)
-
-        # enc_preds_fw = model.enc_outputs_fw
-        # enc_labels_fw = model.enc_labels_fw[..., :output_dim]
-        # enc_loss = self._loss_fn(preds=enc_preds_fw, labels=enc_labels_fw)
 
         enc_preds_bw = model.enc_outputs_bw
         enc_labels_bw = model.enc_labels_bw[..., :output_dim]
@@ -291,7 +217,7 @@ class DCRNNSupervisor(object):
 
             start_time = time.time()
             train_results = self.run_epoch_generator(sess, self.train_model,
-                                                     self.data['train_loader'].get_iterator(),
+                                                     self._data['train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
             train_loss, train_enc_loss_bw = train_results['loss'], train_results['enc_loss_bw']
@@ -303,7 +229,7 @@ class DCRNNSupervisor(object):
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
             val_results = self.run_epoch_generator(sess, self.val_model,
-                                                   self.data['val_loader'].get_iterator(),
+                                                   self._data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_enc_loss_bw = val_results['loss'].item(), val_results['enc_loss_bw'].item()
             val_dec_loss_fw = val_results['dec_loss_fw'].item()
@@ -352,7 +278,7 @@ class DCRNNSupervisor(object):
     def evaluate(self, sess, **kwargs):
         global_step = sess.run(tf.train.get_or_create_global_step())
         test_results = self.run_epoch_generator(sess, self.eval_model,
-                                                self.data['eval_loader'].get_iterator(),
+                                                self._data['eval_loader'].get_iterator(),
                                                 return_output=True,
                                                 training=False)
 
@@ -361,11 +287,11 @@ class DCRNNSupervisor(object):
         utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
 
         y_preds = np.concatenate(y_preds, axis=0)
-        scaler = self.data['scaler']
+        scaler = self._data['scaler']
         predictions = []
         y_truths = []
-        for horizon_i in range(self.data['dec_labels_fw_eval'].shape[1]):
-            y_truth = scaler.inverse_transform(self.data['dec_labels_fw_eval'][:, horizon_i, :, 0])
+        for horizon_i in range(self._data['dec_labels_fw_eval'].shape[1]):
+            y_truth = scaler.inverse_transform(self._data['dec_labels_fw_eval'][:, horizon_i, :, 0])
             y_truths.append(y_truth)
 
             y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
@@ -392,7 +318,7 @@ class DCRNNSupervisor(object):
         return outputs
 
     def test(self, sess):
-        scaler = self.data['scaler']
+        scaler = self._data['scaler']
 
         results_summary = pd.DataFrame(index=range(self._run_times + 3))
         results_summary['No.'] = range(self._run_times + 3)
@@ -403,63 +329,13 @@ class DCRNNSupervisor(object):
 
         for i in range(self._run_times):
             # y_test = self._prepare_test_set()
-            outputs = self._run_tm_prediction(sess, runId=i)
+            test_results = self._run_tm_prediction(sess, runId=i)
 
-            tm_pred, m_indicator, y_preds = outputs['tm_pred'], outputs['m_indicator'], outputs['y_preds']
+            self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
+                                    scaler=self._data['scaler'],
+                                    runId=i, data_norm=self._data['test_data_norm'])
 
-            y_preds = np.concatenate(y_preds, axis=0)
-            predictions = []
-            y_truths = outputs['y_truths']
-            y_truths = np.concatenate(y_truths, axis=0)
-
-            for horizon_i in range(self._horizon):
-                y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
-
-                y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
-                predictions.append(y_pred)
-
-                mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-                mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-                mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-                rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-                print(
-                    "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                        horizon_i + 1, mse, mae, rmse, mape
-                    )
-                )
-
-                metrics_summary[i, horizon_i * n_metrics + 0] = mse
-                metrics_summary[i, horizon_i * n_metrics + 1] = mae
-                metrics_summary[i, horizon_i * n_metrics + 2] = rmse
-                metrics_summary[i, horizon_i * n_metrics + 3] = mape
-
-            tm_pred = scaler.inverse_transform(tm_pred)
-            g_truth = scaler.inverse_transform(self.data['test_data_norm'][self._seq_len:-self._horizon])
-
-            er = metrics.error_ratio(y_pred=tm_pred,
-                                     y_true=g_truth,
-                                     measured_matrix=m_indicator)
-            metrics_summary[i, -1] = er
-
-            self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(i))
-            print('ER: {}'.format(er))
-
-        avg = np.mean(metrics_summary, axis=0)
-        std = np.std(metrics_summary, axis=0)
-        conf = metrics.calculate_confident_interval(metrics_summary)
-        metrics_summary[-3, :] = avg
-        metrics_summary[-2, :] = std
-        metrics_summary[-1, :] = conf
-        self._logger.info('AVG: {}'.format(metrics_summary[-3, :]))
-
-        for horizon_i in range(self._horizon):
-            results_summary['mse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 0]
-            results_summary['mae_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 1]
-            results_summary['rmse_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 2]
-            results_summary['mape_{}'.format(horizon_i)] = metrics_summary[:, horizon_i * n_metrics + 3]
-
-        results_summary['er'] = metrics_summary[:, -1]
-        results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
+        self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 
     def _prepare_input(self, data, m_indicator):
 
@@ -596,7 +472,7 @@ class DCRNNSupervisor(object):
 
     def _run_tm_prediction(self, sess, runId):
 
-        test_data_norm = self.data['test_data_norm']
+        test_data_norm = self._data['test_data_norm']
 
         # Initialize traffic matrix data
         tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
@@ -613,8 +489,6 @@ class DCRNNSupervisor(object):
 
         y_truths = []
         y_preds = []
-        tf_a = np.array([1.0, 0.0])
-
         fetches = {
             'global_step': tf.train.get_or_create_global_step()
         }
@@ -691,13 +565,6 @@ class DCRNNSupervisor(object):
             'y_truths': y_truths
         }
         return outputs
-
-    def _save_results(self, g_truth, pred_tm, m_indicator, tag):
-        np.save(self._log_dir + '/g_truth{}'.format(tag), g_truth)
-        np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
-        if self._flow_selection != 'Random':
-            np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
-
 
     def load(self, sess, model_filename):
         """

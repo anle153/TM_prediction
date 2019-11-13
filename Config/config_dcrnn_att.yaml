@@ -1,5 +1,5 @@
 ---
-alg: DCRNN_ATT
+alg: dcrnn_att
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0

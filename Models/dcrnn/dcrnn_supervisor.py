@@ -25,7 +25,7 @@ class DCRNNSupervisor(AbstractModel):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(DCRNNSupervisor, self).__init__(**kwargs)
 
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
                                               horizon=self._model_kwargs.get('horizon'),

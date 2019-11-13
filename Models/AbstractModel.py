@@ -177,7 +177,7 @@ class AbstractModel(object):
                                  y_true=g_truth,
                                  measured_matrix=m_indicator)
         metrics_summary[runId, -1] = er
-
+        self._logger.info('ER: {}'.format(er))
         self._save_results(g_truth=g_truth, pred_tm=tm_pred, m_indicator=m_indicator, tag=str(runId))
         return
 
@@ -338,6 +338,41 @@ class AbstractModel(object):
             m_indicator[time_slot + self._seq_len] = sampling
 
         return sampling
+
+    def _data_correction_v3(self, rnn_input, pred_backward, labels, r):
+        # Shape = (#n_flows, #time-steps)
+        _rnn_input = np.copy(rnn_input.T)
+        _labels = np.copy(labels.T)
+
+        beta = np.zeros(_rnn_input.shape)
+
+        corrected_range = int(self._seq_len / r)
+
+        for i in range(_rnn_input.shape[1] - corrected_range):
+            mu = np.sum(_labels[:, i + 1:i + corrected_range + 1], axis=1) / corrected_range
+
+            h = np.arange(1, corrected_range + 1)
+
+            rho = (1 / (np.log(corrected_range) + 1)) * np.sum(
+                _labels[:, i + 1:i + corrected_range + 1] / h, axis=1)
+
+            beta[:, i] = mu * rho
+
+        considered_backward = pred_backward[:, 1:]
+        considered_rnn_input = _rnn_input[:, 0:-1]
+
+        beta[beta > 0.5] = 0.5
+
+        alpha = 1.0 - beta
+
+        alpha = alpha[:, 0:-1]
+        beta = beta[:, 0:-1]
+        # gamma = gamma[:, 1:-1]
+
+        # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
+        corrected_data = considered_rnn_input * alpha + considered_backward * beta
+
+        return corrected_data.T
 
     def save_model_history(self, times, model_history):
         loss = np.array(model_history.history['loss'])

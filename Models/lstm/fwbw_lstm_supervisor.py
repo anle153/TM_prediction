@@ -120,41 +120,6 @@ class FwbwLstmRegression(AbstractModel):
 
         return multi_steps_tm[-self._horizon:], bw_outputs
 
-    def _data_correction_v3(self, rnn_input, pred_backward, labels):
-        # Shape = (#n_flows, #time-steps)
-        _rnn_input = np.copy(rnn_input.T)
-        _labels = np.copy(labels.T)
-
-        beta = np.zeros(_rnn_input.shape)
-
-        corrected_range = int(self._seq_len / self._r)
-
-        for i in range(_rnn_input.shape[1] - corrected_range):
-            mu = np.sum(_labels[:, i + 1:i + corrected_range + 1], axis=1) / corrected_range
-
-            h = np.arange(1, corrected_range + 1)
-
-            rho = (1 / (np.log(corrected_range) + 1)) * np.sum(
-                _labels[:, i + 1:i + corrected_range + 1] / h, axis=1)
-
-            beta[:, i] = mu * rho
-
-        considered_backward = pred_backward[:, 1:]
-        considered_rnn_input = _rnn_input[:, 0:-1]
-
-        beta[beta > 0.5] = 0.5
-
-        alpha = 1.0 - beta
-
-        alpha = alpha[:, 0:-1]
-        beta = beta[:, 0:-1]
-        # gamma = gamma[:, 1:-1]
-
-        # corrected_data = considered_rnn_input * alpha + considered_rnn_input * beta + considered_backward * gamma
-        corrected_data = considered_rnn_input * alpha + considered_backward * beta
-
-        return corrected_data.T
-
     def _run_tm_prediction(self, runId):
         test_data_norm = self._data['test_data_norm']
         if self._flow_selection == 'Random':
@@ -185,7 +150,7 @@ class FwbwLstmRegression(AbstractModel):
             # Get the TM prediction of next time slot
             # corrected_data = self._data_correction_v3(rnn_input=tm_pred[ts: ts + self._seq_len],
             #                                           pred_backward=bw_outputs,
-            #                                           labels=m_indicator[ts: ts + self._seq_len])
+            #                                           labels=m_indicator[ts: ts + self._seq_len], r=self._r)
             # measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
             # pred_data = corrected_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
             # tm_pred[ts:ts + self._seq_len - 1] = measured_data + pred_data

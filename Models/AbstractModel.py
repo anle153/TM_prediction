@@ -82,6 +82,8 @@ class AbstractModel(object):
         self._model_kwargs = kwargs.get('model')
         self._base_dir = kwargs.get('base_dir')
 
+        self._epochs = self._train_kwargs.get('epochs')
+
         # logging.
         self._log_dir = self._get_log_dir(kwargs)
         log_level = self._kwargs.get('log_level', 'INFO')
@@ -141,8 +143,6 @@ class AbstractModel(object):
 
     def _calculate_metrics(self, prediction_results, metrics_summary, scaler, runId, data_norm, n_metrics=4):
         # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-        test_loss, y_preds = prediction_results['loss'], prediction_results['y_preds']
-
         y_preds = prediction_results['y_preds']
         y_preds = np.concatenate(y_preds, axis=0)
 
@@ -151,9 +151,9 @@ class AbstractModel(object):
         predictions = []
 
         for horizon_i in range(self._horizon):
-            y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :, 0])
+            y_truth = scaler.inverse_transform(y_truths[:, horizon_i, :])
 
-            y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
+            y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :])
             predictions.append(y_pred)
 
             mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
@@ -202,6 +202,157 @@ class AbstractModel(object):
         results_summary['er'] = metrics_summary[:, -1]
         results_summary.to_csv(self._log_dir + 'results_summary.csv', index=False)
 
+    def _prepare_input_dcrnn(self, data, m_indicator):
+        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
+        x[:, :, 0] = data
+        x[:, :, 1] = m_indicator
+        return np.expand_dims(x, axis=0)
+
+    def _prepare_input_lstm(self, data, m_indicator):
+
+        dataX = np.zeros(shape=(data.shape[1], self._seq_len, self._input_dim), dtype='float32')
+        for flow_id in range(data.shape[1]):
+            x = data[:, flow_id]
+            label = m_indicator[:, flow_id]
+
+            dataX[flow_id, :, 0] = x
+            dataX[flow_id, :, 1] = label
+
+        return dataX
+
+    def _init_data_test(self, test_data_norm, runId):
+        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
+        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
+
+        # Initialize measurement matrix
+        if self._flow_selection == 'Random':
+            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
+            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
+        else:
+            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
+                                   dtype='float32')
+            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+
+        return tm_pred, m_indicator
+
+    @staticmethod
+    def _calculate_consecutive_loss(m_indicator):
+
+        consecutive_losses = []
+        for flow_id in range(m_indicator.shape[1]):
+            flows_labels = m_indicator[:, flow_id]
+            if flows_labels[-1] == 1:
+                consecutive_losses.append(1)
+            else:
+                measured_idx = np.argwhere(flows_labels == 1)
+                if measured_idx.size == 0:
+                    consecutive_losses.append(m_indicator.shape[0])
+                else:
+                    consecutive_losses.append(m_indicator.shape[0] - measured_idx[-1][0])
+
+        consecutive_losses = np.asarray(consecutive_losses)
+        return consecutive_losses
+
+    def _set_measured_flow_fairness(self, m_indicator):
+        """
+
+        :param m_indicator: shape(#seq_len, #nflows)
+        :return:
+        """
+
+        cl = self._calculate_consecutive_loss(m_indicator).astype(float)
+
+        w = 1 / cl
+
+        sampling = np.zeros(shape=self._nodes, dtype='float32')
+        m = int(self._mon_ratio * self._nodes)
+
+        w = w.flatten()
+        sorted_idx_w = np.argsort(w)
+        sampling[sorted_idx_w[:m]] = 1
+
+        return sampling
+
+    def _calculate_flows_weights(self, fw_losses, m_indicator, lamda):
+        """
+
+        :param fw_losses: shape(#n_flows)
+        :param m_indicator: shape(#seq_len, #nflows)
+        :return: w: flow_weight shape(#n_flows)
+        """
+
+        cl = self._calculate_consecutive_loss(m_indicator)
+
+        w = 1 / (fw_losses * lamda[0] +
+                 cl * lamda[1])
+
+        return w
+
+    def _set_measured_flow(self, rnn_input, pred_forward, m_indicator, lamda):
+        """
+
+        :param rnn_input: shape(#seq_len, #nflows)
+        :param pred_forward: shape(#seq_len, #nflows)
+        :param m_indicator: shape(#seq_len, #nflows)
+        :return:
+        """
+
+        n_flows = rnn_input.shape[0]
+
+        fw_losses = []
+        for flow_id in range(m_indicator.shape[1]):
+            idx_fw = m_indicator[1:, flow_id]
+
+            # fw_losses.append(error_ratio(y_true=rnn_input[1:, flow_id][idx_fw == 1.0],
+            #                              y_pred=pred_forward[:-1, flow_id][idx_fw == 1.0],
+            #                              measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
+            fw_losses.append(metrics.masked_mae_np(preds=pred_forward[:-1, flow_id][idx_fw == 1.0],
+                                                   labels=rnn_input[1:, flow_id][idx_fw == 1.0]))
+
+        fw_losses = np.array(fw_losses)
+        fw_losses[fw_losses == 0.] = np.max(fw_losses)
+
+        w = self._calculate_flows_weights(fw_losses=fw_losses,
+                                          m_indicator=m_indicator, lamda=lamda)
+
+        sampling = np.zeros(shape=n_flows)
+        m = int(self._mon_ratio * n_flows)
+
+        w = w.flatten()
+        sorted_idx_w = np.argsort(w)
+        sampling[sorted_idx_w[:m]] = 1
+
+        return sampling
+
+    def _monitored_flows_slection(self, time_slot, m_indicator, tm_pred=None, fw_outputs=None, lamda=None):
+        if self._flow_selection == 'Random':
+            sampling = m_indicator[time_slot + self._seq_len]
+        elif self._flow_selection == 'Fairness':
+            sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[time_slot: time_slot + self._seq_len])
+            m_indicator[time_slot + self._seq_len] = sampling
+        else:
+            sampling = self._set_measured_flow(rnn_input=tm_pred[time_slot: time_slot + self._seq_len],
+                                               pred_forward=fw_outputs,
+                                               m_indicator=m_indicator[time_slot: time_slot + self._seq_len].T,
+                                               lamda=lamda)
+            m_indicator[time_slot + self._seq_len] = sampling
+
+        return sampling
+
+    def save_model_history(self, times, model_history):
+        loss = np.array(model_history.history['loss'])
+        val_loss = np.array(model_history.history['val_loss'])
+        dump_model_history = pd.DataFrame(index=range(loss.size),
+                                          columns=['epoch', 'loss', 'val_loss', 'train_time'])
+
+        dump_model_history['epoch'] = range(loss.size)
+        dump_model_history['loss'] = loss
+        dump_model_history['val_loss'] = val_loss
+
+        if times is not None:
+            dump_model_history['train_time'] = times
+
+        dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 
 class TimeHistory(keras_callbacks.Callback):
     def on_train_begin(self, logs={}):

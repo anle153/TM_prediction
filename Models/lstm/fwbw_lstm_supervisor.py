@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-import pandas as pd
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape
@@ -9,14 +8,13 @@ from keras.models import Model
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel, TimeHistory
-from lib import metrics
 from lib import utils
 
 
 class FwbwLstmRegression(AbstractModel):
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(FwbwLstmRegression, self).__init__(**kwargs)
 
         self._base_dir = kwargs.get('base_dir')
 
@@ -64,21 +62,6 @@ class FwbwLstmRegression(AbstractModel):
         self._time_callback = TimeHistory()
         self.callbacks_list.append(self._time_callback)
 
-    def save_model_history(self, model_history):
-        loss = np.array(model_history.history['loss'])
-        val_loss = np.array(model_history.history['val_loss'])
-        dump_model_history = pd.DataFrame(index=range(loss.size),
-                                          columns=['epoch', 'loss', 'val_loss', 'train_time'])
-
-        dump_model_history['epoch'] = range(loss.size)
-        dump_model_history['loss'] = loss
-        dump_model_history['val_loss'] = val_loss
-
-        if self._time_callback.times is not None:
-            dump_model_history['train_time'] = self._time_callback.times
-
-        dump_model_history.to_csv(self._log_dir + 'training_history.csv', index=False)
-
     def construct_fwbw_lstm(self):
         # Input
         input_tensor = Input(shape=self._input_shape, name='input')
@@ -114,18 +97,6 @@ class FwbwLstmRegression(AbstractModel):
 
         self.model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae'])
 
-    def _prepare_input(self, data, m_indicator):
-
-        dataX = np.zeros(shape=(data.shape[1], self._seq_len, self._input_dim), dtype='float32')
-        for flow_id in range(data.shape[1]):
-            x = data[:, flow_id]
-            label = m_indicator[:, flow_id]
-
-            dataX[flow_id, :, 0] = x
-            dataX[flow_id, :, 1] = label
-
-        return dataX
-
     def _ims_tm_prediction(self, init_data, init_labels):
         multi_steps_tm = np.zeros(shape=(init_data.shape[0] + self._horizon, init_data.shape[1]),
                                   dtype='float32')
@@ -138,8 +109,8 @@ class FwbwLstmRegression(AbstractModel):
         bw_outputs = None
 
         for ts_ahead in range(self._horizon):
-            rnn_input = self._prepare_input(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
-                                            m_indicator=m_indicator[ts_ahead:ts_ahead + self._seq_len])
+            rnn_input = self._prepare_input_lstm(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
+                                                 m_indicator=m_indicator[ts_ahead:ts_ahead + self._seq_len])
             predictX_1, predictX_2 = self.model.predict(rnn_input)
             predictX_1 = predictX_1[:, -1, 0]
             multi_steps_tm[ts_ahead + self._seq_len] = predictX_1
@@ -148,95 +119,6 @@ class FwbwLstmRegression(AbstractModel):
                 bw_outputs = predictX_2.copy()
 
         return multi_steps_tm[-self._horizon:], bw_outputs
-
-    @staticmethod
-    def _calculate_consecutive_loss(m_indicator):
-
-        consecutive_losses = []
-        for flow_id in range(m_indicator.shape[1]):
-            flows_labels = m_indicator[:, flow_id]
-            if flows_labels[-1] == 1:
-                consecutive_losses.append(1)
-            else:
-                measured_idx = np.argwhere(flows_labels == 1)
-                if measured_idx.size == 0:
-                    consecutive_losses.append(m_indicator.shape[0])
-                else:
-                    consecutive_losses.append(m_indicator.shape[0] - measured_idx[-1][0])
-
-        consecutive_losses = np.asarray(consecutive_losses)
-        return consecutive_losses
-
-    def _set_measured_flow_fairness(self, m_indicator):
-        """
-
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return:
-        """
-
-        cl = self._calculate_consecutive_loss(m_indicator).astype(float)
-
-        w = 1 / cl
-
-        sampling = np.zeros(shape=self._nodes, dtype='float32')
-        m = int(self._mon_ratio * self._nodes)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
-
-    def _calculate_flows_weights(self, fw_losses, m_indicator):
-        """
-
-        :param fw_losses: shape(#n_flows)
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return: w: flow_weight shape(#n_flows)
-        """
-
-        cl = self._calculate_consecutive_loss(m_indicator)
-
-        w = 1 / (fw_losses * self._lamda[0] +
-                 cl * self._lamda[1])
-
-        return w
-
-    def _set_measured_flow(self, rnn_input, pred_forward, m_indicator):
-        """
-
-        :param rnn_input: shape(#seq_len, #nflows)
-        :param pred_forward: shape(#seq_len, #nflows)
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return:
-        """
-
-        n_flows = rnn_input.shape[0]
-
-        fw_losses = []
-        for flow_id in range(m_indicator.shape[1]):
-            idx_fw = m_indicator[1:, flow_id]
-
-            # fw_losses.append(error_ratio(y_true=rnn_input[1:, flow_id][idx_fw == 1.0],
-            #                              y_pred=pred_forward[:-1, flow_id][idx_fw == 1.0],
-            #                              measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
-            fw_losses.append(metrics.masked_mae_np(preds=pred_forward[:-1, flow_id][idx_fw == 1.0],
-                                                   labels=rnn_input[1:, flow_id][idx_fw == 1.0]))
-
-        fw_losses = np.array(fw_losses)
-        fw_losses[fw_losses == 0.] = np.max(fw_losses)
-
-        w = self._calculate_flows_weights(fw_losses=fw_losses,
-                                          m_indicator=m_indicator)
-
-        sampling = np.zeros(shape=n_flows)
-        m = int(self._mon_ratio * n_flows)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
 
     def _data_correction_v3(self, rnn_input, pred_backward, labels):
         # Shape = (#n_flows, #time-steps)
@@ -322,16 +204,8 @@ class FwbwLstmRegression(AbstractModel):
             # Randomly choose the flows which is measured (using the correct data from test_set)
 
             # boolean array(1 x n_flows):for choosing value from predicted data
-            if self._flow_selection == 'Random':
-                sampling = m_indicator[ts + self._seq_len]
-            elif self._flow_selection == 'Fairness':
-                sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
-                m_indicator[ts + self._seq_len] = sampling
-            else:
-                sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                   pred_forward=fw_outputs,
-                                                   m_indicator=m_indicator[ts: ts + self._seq_len].T)
-                m_indicator[ts + self._seq_len] = sampling
+            sampling = self._monitored_flows_slection(time_slot=ts, tm_pred=tm_pred, m_indicator=m_indicator,
+                                                      fw_outputs=fw_outputs, lamda=self._lamda)
 
             # invert of sampling: for choosing value from the original data
             pred_input = pred * (1.0 - sampling)
@@ -369,7 +243,7 @@ class FwbwLstmRegression(AbstractModel):
                                              verbose=2)
         if training_fw_history is not None:
             self.plot_training_history(training_fw_history)
-            self.save_model_history(training_fw_history)
+            self.save_model_history(times=self._time_callback.times, model_history=training_fw_history)
             config = dict(self._kwargs)
             config_filename = 'config_fwbw_lstm.yaml'
             config['train']['log_dir'] = self._log_dir

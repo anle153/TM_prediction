@@ -1,36 +1,52 @@
 import os
-import time
 
-import keras.callbacks as keras_callbacks
 import numpy as np
 import pandas as pd
 import yaml
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Input
 from keras.models import Model
 from keras.utils import plot_model
 from tqdm import tqdm
 
-from Models.lstm.lstm_supervisor import lstm
+from Models.AbstractModel import AbstractModel, TimeHistory
 from common.error_utils import error_ratio
 from lib import metrics
+from lib import utils
 
 
-class TimeHistory(keras_callbacks.Callback):
-    def on_train_begin(self, logs={}):
-        self.times = []
-
-    def on_epoch_begin(self, batch, logs={}):
-        self.epoch_time_start = time.time()
-
-    def on_epoch_end(self, batch, logs={}):
-        self.times.append(time.time() - self.epoch_time_start)
-
-
-class EncoderDecoder(lstm):
+class EncoderDecoder(AbstractModel):
 
     def __init__(self, is_training=True, **kwargs):
         super(EncoderDecoder, self).__init__(**kwargs)
-        self._kwargs = kwargs
+
+        self._batch_size = self._data_kwargs.get('batch_size')
+
+        self._data = utils.load_dataset_lstm_ed(seq_len=self._seq_len, horizon=self._horizon,
+                                                input_dim=self._input_dim,
+                                                mon_ratio=self._mon_ratio,
+                                                scaler_type=self._kwargs.get('scaler'),
+                                                **self._data_kwargs)
+        for k, v in self._data.items():
+            if hasattr(v, 'shape'):
+                self._logger.info((k, v.shape))
+
+        # Model
+        self.callbacks_list = []
+
+        self._checkpoints = ModelCheckpoint(
+            self._log_dir + "best_model.hdf5",
+            monitor='val_loss', verbose=1,
+            save_best_only=True,
+            mode='auto', period=1)
+        self.callbacks_list = [self._checkpoints]
+
+        self._earlystop = EarlyStopping(monitor='val_loss', patience=self._train_kwargs.get('patience'),
+                                        verbose=1, mode='auto')
+        self.callbacks_list.append(self._earlystop)
+
+        self._time_callback = TimeHistory()
+        self.callbacks_list.append(self._time_callback)
 
         self.model = self._model_construction(is_training=is_training)
 
@@ -279,8 +295,8 @@ class EncoderDecoder(lstm):
                                           shuffle=True,
                                           verbose=2)
         if training_history is not None:
-            self._plot_training_history(training_history)
-            self._save_model_history(training_history)
+            self.plot_training_history(training_history)
+            self.save_model_history(times=self._time_callback.times, model_history=training_history)
             config = dict(self._kwargs)
             config_filename = 'config_lstm.yaml'
             config['train']['log_dir'] = self._log_dir

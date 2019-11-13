@@ -168,71 +168,15 @@ class DCRNNSupervisor(AbstractModel):
 
         return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
 
-    @staticmethod
-    def calculate_consecutive_loss(labels):
-        """
-
-        :param labels: shape(#time-steps, #n_flows)
-        :return: consecutive_losses: shape(#n_flows)
-        """
-
-        consecutive_losses = []
-        for flow_id in range(labels.shape[1]):
-            flows_labels = labels[:, flow_id]
-            if flows_labels[-1] == 1:
-                consecutive_losses.append(1)
-            else:
-                measured_idx = np.argwhere(flows_labels == 1)
-                if measured_idx.size == 0:
-                    consecutive_losses.append(labels.shape[0])
-                else:
-                    consecutive_losses.append(labels.shape[0] - measured_idx[-1][0])
-
-        consecutive_losses = np.asarray(consecutive_losses)
-        return consecutive_losses
-
-    def set_measured_flow_fairness(self, labels):
-
-        cl = self.calculate_consecutive_loss(labels).astype(float)
-
-        w = 1 / cl
-
-        sampling = np.zeros(shape=self._nodes, dtype='float32')
-        m = int(self._mon_ratio * self._nodes)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
-
     def _run_tm_prediction(self, sess, model, runId, writer=None):
 
         test_data_norm = self._data['test_data_norm']
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
+        tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
 
-        # Initialize measurement matrix
-        if self._flow_selection == 'Random':
-            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
-            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
-        else:
-            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
-                                   dtype='float32')
-            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
-
-        losses = []
-        mses = []
         y_preds = []
-        output_dim = self._model_kwargs.get('output_dim')
-        preds = model.outputs
-        labels = model.labels[..., :output_dim]
-        loss = self._loss_fn(preds=preds, labels=labels)
         fetches = {
-            'loss': loss,
-            'mse': loss,
             'global_step': tf.train.get_or_create_global_step()
         }
 
@@ -244,34 +188,27 @@ class DCRNNSupervisor(AbstractModel):
 
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
-            x, y = self._prepare_input(
-                ground_truth=test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon],
+            x = self._prepare_input_dcrnn(
                 data=tm_pred[ts:ts + self._seq_len],
                 m_indicator=m_indicator[ts:ts + self._seq_len]
             )
 
-            y_truths.append(y)
+            y_truths.append(
+                np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon].copy(), axis=0))
 
             feed_dict = {
                 model.inputs: x,
-                model.labels: y,
             }
 
             vals = sess.run(fetches, feed_dict=feed_dict)
             y_preds.append(vals['outputs'])
 
-            losses.append(vals['loss'])
-            mses.append(vals['mse'])
             if writer is not None and 'merged' in vals:
                 writer.add_summary(vals['merged'], global_step=vals['global_step'])
 
             pred = vals['outputs'][0, 0, :, 0]
 
-            if self._flow_selection == 'Random':
-                sampling = m_indicator[ts + self._seq_len]
-            else:
-                sampling = self.set_measured_flow_fairness(labels=m_indicator[ts: ts + self._seq_len])
-                m_indicator[ts + self._seq_len] = sampling
+            sampling = self._monitored_flows_slection(time_slot=ts, m_indicator=m_indicator)
 
             # invert of sampling: for choosing value from the original data
 
@@ -283,9 +220,7 @@ class DCRNNSupervisor(AbstractModel):
             # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
 
-        results = {'loss': np.mean(losses),
-                   'mse': np.mean(mses),
-                   'y_preds': y_preds,
+        results = {'y_preds': y_preds,
                    'tm_pred': tm_pred[self._seq_len:],
                    'm_indicator': m_indicator[self._seq_len:],
                    'y_truths': y_truths
@@ -379,19 +314,6 @@ class DCRNNSupervisor(AbstractModel):
         training_history.to_csv(self._log_dir + 'training_history.csv', index=False)
 
         return np.min(history)
-
-    def _prepare_test_set(self):
-
-        y_test = np.zeros(shape=(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1,
-                                 self._horizon,
-                                 self._nodes,
-                                 1), dtype='float32')
-        for t in range(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1):
-            y_test[t] = np.expand_dims(self._data['test_data_norm']
-                                       [t + self._seq_len:t + self._seq_len + self._horizon],
-                                       axis=2)
-
-        return y_test
 
     def test(self, sess):
 

@@ -337,104 +337,6 @@ class DCRNNSupervisor(AbstractModel):
 
         self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 
-    def _prepare_input(self, data, m_indicator):
-
-        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
-
-        x[:, :, 0] = data
-        x[:, :, 1] = m_indicator
-
-        return np.expand_dims(x, axis=0)
-
-    @staticmethod
-    def _calculate_consecutive_loss(m_indicator):
-
-        consecutive_losses = []
-        for flow_id in range(m_indicator.shape[1]):
-            flows_labels = m_indicator[:, flow_id]
-            if flows_labels[-1] == 1:
-                consecutive_losses.append(1)
-            else:
-                measured_idx = np.argwhere(flows_labels == 1)
-                if measured_idx.size == 0:
-                    consecutive_losses.append(m_indicator.shape[0])
-                else:
-                    consecutive_losses.append(m_indicator.shape[0] - measured_idx[-1][0])
-
-        consecutive_losses = np.asarray(consecutive_losses)
-        return consecutive_losses
-
-    def _set_measured_flow_fairness(self, m_indicator):
-        """
-
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return:
-        """
-
-        cl = self._calculate_consecutive_loss(m_indicator).astype(float)
-
-        w = 1 / cl
-
-        sampling = np.zeros(shape=self._nodes, dtype='float32')
-        m = int(self._mon_ratio * self._nodes)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
-
-    def _calculate_flows_weights(self, fw_losses, m_indicator):
-        """
-
-        :param fw_losses: shape(#n_flows)
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return: w: flow_weight shape(#n_flows)
-        """
-
-        cl = self._calculate_consecutive_loss(m_indicator)
-
-        w = 1 / (fw_losses * self._lamda[0] +
-                 cl * self._lamda[1])
-
-        return w
-
-    def _set_measured_flow(self, rnn_input, pred_forward, m_indicator):
-        """
-
-        :param rnn_input: shape(#seq_len, #nflows)
-        :param pred_forward: shape(#seq_len, #nflows)
-        :param m_indicator: shape(#seq_len, #nflows)
-        :return:
-        """
-
-        n_flows = rnn_input.shape[0]
-
-        fw_losses = []
-        for flow_id in range(m_indicator.shape[1]):
-            idx_fw = m_indicator[1:, flow_id]
-
-            # fw_losses.append(error_ratio(y_true=rnn_input[1:, flow_id][idx_fw == 1.0],
-            #                              y_pred=pred_forward[:-1, flow_id][idx_fw == 1.0],
-            #                              measured_matrix=np.zeros(idx_fw[idx_fw == 1.0].shape)))
-            fw_losses.append(metrics.masked_mae_np(preds=pred_forward[:-1, flow_id][idx_fw == 1.0],
-                                                   labels=rnn_input[1:, flow_id][idx_fw == 1.0]))
-
-        fw_losses = np.array(fw_losses)
-        fw_losses[fw_losses == 0.] = np.max(fw_losses)
-
-        w = self._calculate_flows_weights(fw_losses=fw_losses,
-                                          m_indicator=m_indicator)
-
-        sampling = np.zeros(shape=n_flows)
-        m = int(self._mon_ratio * n_flows)
-
-        w = w.flatten()
-        sorted_idx_w = np.argsort(w)
-        sampling[sorted_idx_w[:m]] = 1
-
-        return sampling
-
     def _data_correction_v3(self, rnn_input, pred_backward, labels):
         # Shape = (#n_flows, #time-steps)
         _rnn_input = np.copy(rnn_input.T)
@@ -473,19 +375,7 @@ class DCRNNSupervisor(AbstractModel):
     def _run_tm_prediction(self, sess, runId):
 
         test_data_norm = self._data['test_data_norm']
-
-        # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
-
-        # Initialize measurement matrix
-        if self._flow_selection == 'Random':
-            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
-            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
-        else:
-            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
-                                   dtype='float32')
-            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+        tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
 
         y_truths = []
         y_preds = []
@@ -500,7 +390,7 @@ class DCRNNSupervisor(AbstractModel):
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
             # inputs, dec_labels, enc_labels, dec_labels_bw, enc_labels_bw
-            x = self._prepare_input(
+            x = self._prepare_input_dcrnn(
                 data=tm_pred[ts:ts + self._seq_len],
                 m_indicator=m_indicator[ts:ts + self._seq_len]
             )
@@ -543,16 +433,8 @@ class DCRNNSupervisor(AbstractModel):
             # Randomly choose the flows which is measured (using the correct data from test_set)
 
             # boolean array(1 x n_flows):for choosing value from predicted data
-            if self._flow_selection == 'Random':
-                sampling = m_indicator[ts + self._seq_len]
-            elif self._flow_selection == 'Fairness':
-                sampling = self._set_measured_flow_fairness(m_indicator=m_indicator[ts: ts + self._seq_len])
-                m_indicator[ts + self._seq_len] = sampling
-            else:
-                sampling = self._set_measured_flow(rnn_input=tm_pred[ts: ts + self._seq_len],
-                                                   pred_forward=decoder_outputs_fw,
-                                                   m_indicator=m_indicator[ts: ts + self._seq_len].T)
-                m_indicator[ts + self._seq_len] = sampling
+            sampling = self._monitored_flows_slection(time_slot=ts, tm_pred=tm_pred, m_indicator=m_indicator,
+                                                      fw_outputs=decoder_outputs_fw, lamda=self._lamda)
 
             ground_truth = test_data_norm[ts + self._seq_len].copy()
             # Concatenating new_input into current rnn_input

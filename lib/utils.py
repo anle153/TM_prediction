@@ -485,6 +485,10 @@ ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 
 
 
 def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_thres=-0.8):
+    adj_dir = adj_dir.split('/')[:-1]
+    adj_dir = '/'.join(adj_dir)
+    print('|--- Dataset dir: {}'.format(adj_dir))
+
     adj_file_name = '{}-{}'.format(adj_method, pos_thres)
     if adj_method == ADJ_METHOD[1]:
         adj_file_name = adj_file_name + '-{}'.format(neg_thres)

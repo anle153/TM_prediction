@@ -544,52 +544,63 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
     return adj_mx
 
 
-def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
-                           dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                           pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
-    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
-    raw_data[raw_data <= 0] = 0.1
+def prepare_data(dataset_dir, day_size, data_size, scaler_type='SD'):
+    raw_data = np.load(dataset_dir)
+    raw_data[raw_data <= 0] = 0.0
+
+    raw_data = raw_data / 1e6
 
     raw_data = raw_data.astype("float32")
 
     raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
 
     print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
+    train_data, valid_data, test_data = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+    test_data = test_data[0:-day_size * 3]
+
+    scaler = get_scaler(scaler_type, train_data)
+    train_data_norm = scaler.transform(train_data)
+    valid_data_norm = scaler.transform(valid_data)
+    test_data_norm = scaler.transform(test_data)
+
+    return train_data, train_data_norm, valid_data_norm, test_data_norm, scaler
+
+
+def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
+                           dataset_dir, data_size, day_size, batch_size, eval_batch_size,
+                           pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD',
+                           is_training=False, **kwargs):
     data = {}
 
-    print('|--- Normalizing the train set.')
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data_norm = scaler.transform(train_data2d)
-    valid_data_norm = scaler.transform(valid_data2d)
-    test_data_norm = scaler.transform(test_data2d)
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
 
     data['test_data_norm'] = test_data_norm
 
-    x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
-                                         input_dim=input_dim,
+    if is_training:
+        x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                             input_dim=input_dim,
+                                             mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                          mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                     mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                       mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                           mon_ratio=mon_ratio, eps=train_data_norm.std())
 
-    for category in ['train', 'val', 'eval']:
-        _x, _y = locals()["x_" + category], locals()["y_" + category]
-        print(category, "x: ", _x.shape, "y:", _y.shape)
-        data['x_' + category] = _x
-        data['y_' + category] = _y
-    # Data format
+        for category in ['train', 'val', 'eval']:
+            _x, _y = locals()["x_" + category], locals()["y_" + category]
+            print(category, "x: ", _x.shape, "y:", _y.shape)
+            data['x_' + category] = _x
+            data['y_' + category] = _y
+        # Data format
 
-    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
-    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+        data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+        data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
+        data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
     data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
@@ -603,54 +614,37 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                        dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                       pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
-    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
-    raw_data[raw_data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    # raw_data = raw_data / 1000000
-
-    raw_data = raw_data.astype("float32")
-
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
+                       pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD',
+                       is_training=False, **kwargs):
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
     data = {}
-
-    print('|--- Normalizing the train set.')
-
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data_norm = scaler.transform(train_data2d)
-    valid_data_norm = scaler.transform(valid_data2d)
-    test_data_norm = scaler.transform(test_data2d)
-
     data['test_data_norm'] = test_data_norm
-
-    x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
-                                         input_dim=input_dim,
+    if is_training:
+        x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
+                                             input_dim=input_dim,
+                                             mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                          mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                     mon_ratio=mon_ratio, eps=train_data_norm.std())
-    x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                       mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
+                                           mon_ratio=mon_ratio, eps=train_data_norm.std())
 
-    for category in ['train', 'val', 'eval']:
-        _x, _y = locals()["x_" + category], locals()["y_" + category]
-        print(category, "x: ", _x.shape, "y:", _y.shape)
-        data['x_' + category] = _x
-        data['y_' + category] = _y
-    # Data format
+        for category in ['train', 'val', 'eval']:
+            _x, _y = locals()["x_" + category], locals()["y_" + category]
+            print(category, "x: ", _x.shape, "y:", _y.shape)
+            data['x_' + category] = _x
+            data['y_' + category] = _y
+        # Data format
 
-    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
-    data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+        data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+        data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
+        data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+
     data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
@@ -665,27 +659,9 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
 def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
                                 dataset_dir, data_size, day_size, batch_size, eval_batch_size,
                                 pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
-    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
-    raw_data[raw_data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    # raw_data = raw_data / 1000000
-
-    raw_data = raw_data.astype("float32")
-
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
     data = {}
-
-    print('|--- Normalizing the train set.')
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data_norm = scaler.transform(train_data2d)
-    valid_data_norm = scaler.transform(valid_data2d)
-    test_data_norm = scaler.transform(test_data2d)
-
     data['test_data_norm'] = test_data_norm
 
     x_train, y_train = create_data_dcrnn_weighted(data=train_data_norm, seq_len=seq_len, horizon=horizon,
@@ -712,7 +688,7 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
@@ -726,84 +702,70 @@ def load_dataset_dcrnn_weighted(seq_len, horizon, input_dim, mon_ratio,
 
 def load_dataset_dcrnn_fwbw(seq_len, horizon, input_dim, mon_ratio,
                             dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD', **kwargs):
-    raw_data = np.load(dataset_dir + 'Abilene2d.npy')
-    raw_data[raw_data <= 0] = 0.1
-
-    raw_data = raw_data.astype("float32")
-
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    # Remove last 3 days
-    if data_size == 1.0:
-        raw_data = raw_data[:-day_size * 3]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
+                            pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD',
+                            is_training=False, **kwargs):
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
     data = {}
-
-    print('|--- Normalizing the train set.')
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data_norm = scaler.transform(train_data2d)
-    valid_data_norm = scaler.transform(valid_data2d)
-    test_data_norm = scaler.transform(test_data2d)
 
     data['test_data_norm'] = test_data_norm
 
     # x(num_sample, seq_len, num_node, input_dim): encoder input
     # y(num_sample, horizon, num_node, output_dim): decoder output
     # l(num_sample, seq_len, num_node, output_dim): encoder output
-    inputs_train, dec_labels_fw_train, enc_labels_bw_train = create_data_dcrnn_fwbw(
-        data=train_data_norm,
-        seq_len=seq_len,
-        horizon=horizon,
-        input_dim=input_dim,
-        mon_ratio=mon_ratio,
-        eps=train_data_norm.std())
-    inputs_val, dec_labels_fw_val, enc_labels_bw_val = create_data_dcrnn_fwbw(
-        data=valid_data_norm,
-        seq_len=seq_len,
-        horizon=horizon,
-        input_dim=input_dim,
-        mon_ratio=mon_ratio,
-        eps=train_data_norm.std())
-    inputs_eval, dec_labels_fw_eval, enc_labels_bw_eval = create_data_dcrnn_fwbw(
-        data=test_data_norm,
-        seq_len=seq_len,
-        horizon=horizon,
-        input_dim=input_dim,
-        mon_ratio=mon_ratio,
-        eps=train_data_norm.std())
+    if is_training:
+        inputs_train, dec_labels_fw_train, enc_labels_bw_train = create_data_dcrnn_fwbw(
+            data=train_data_norm,
+            seq_len=seq_len,
+            horizon=horizon,
+            input_dim=input_dim,
+            mon_ratio=mon_ratio,
+            eps=train_data_norm.std())
+        inputs_val, dec_labels_fw_val, enc_labels_bw_val = create_data_dcrnn_fwbw(
+            data=valid_data_norm,
+            seq_len=seq_len,
+            horizon=horizon,
+            input_dim=input_dim,
+            mon_ratio=mon_ratio,
+            eps=train_data_norm.std())
+        inputs_eval, dec_labels_fw_eval, enc_labels_bw_eval = create_data_dcrnn_fwbw(
+            data=test_data_norm,
+            seq_len=seq_len,
+            horizon=horizon,
+            input_dim=input_dim,
+            mon_ratio=mon_ratio,
+            eps=train_data_norm.std())
 
-    for category in ['train', 'val', 'eval']:
-        _inputs, _dec_labels_fw, _enc_labels_bw = locals()["inputs_" + category], locals()["dec_labels_fw_" + category], \
-                                                  locals()["enc_labels_bw_" + category]
+        for category in ['train', 'val', 'eval']:
+            _inputs, _dec_labels_fw, _enc_labels_bw = locals()["inputs_" + category], locals()[
+                "dec_labels_fw_" + category], \
+                                                      locals()["enc_labels_bw_" + category]
 
-        print(category, "inputs_: ", _inputs.shape, "dec_labels_fw_", _dec_labels_fw.shape, "enc_labels_bw_:",
-              _enc_labels_bw.shape)
-        data['inputs_' + category] = _inputs
-        data['dec_labels_fw_' + category] = _dec_labels_fw
-        data['enc_labels_bw_' + category] = _enc_labels_bw
+            print(category, "inputs_: ", _inputs.shape, "dec_labels_fw_", _dec_labels_fw.shape, "enc_labels_bw_:",
+                  _enc_labels_bw.shape)
+            data['inputs_' + category] = _inputs
+            data['dec_labels_fw_' + category] = _dec_labels_fw
+            data['enc_labels_bw_' + category] = _enc_labels_bw
 
-    # Data format
-    data['train_loader'] = DataLoader_dcrnn_fwbw(data['inputs_train'],
-                                                 data['dec_labels_fw_train'],
-                                                 data['enc_labels_bw_train'],
-                                                 batch_size, shuffle=True)
-    data['val_loader'] = DataLoader_dcrnn_fwbw(data['inputs_val'],
-                                               data['dec_labels_fw_val'],
-                                               data['enc_labels_bw_val'],
-                                               val_batch_size, shuffle=True)
-    data['eval_loader'] = DataLoader_dcrnn_fwbw(data['inputs_eval'],
-                                                data['dec_labels_fw_eval'],
-                                                data['enc_labels_bw_eval'],
-                                                eval_batch_size, shuffle=True)
+        # Data format
+        data['train_loader'] = DataLoader_dcrnn_fwbw(data['inputs_train'],
+                                                     data['dec_labels_fw_train'],
+                                                     data['enc_labels_bw_train'],
+                                                     batch_size, shuffle=True)
+        data['val_loader'] = DataLoader_dcrnn_fwbw(data['inputs_val'],
+                                                   data['dec_labels_fw_val'],
+                                                   data['enc_labels_bw_val'],
+                                                   val_batch_size, shuffle=True)
+        data['eval_loader'] = DataLoader_dcrnn_fwbw(data['inputs_eval'],
+                                                    data['dec_labels_fw_eval'],
+                                                    data['enc_labels_bw_eval'],
+                                                    eval_batch_size, shuffle=True)
 
     data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')
 
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data2d, seq_len=seq_len, adj_dir=dataset_dir,
+    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)
 
     print('Number of edges: {}'.format(np.sum(adj_mx)))
@@ -882,42 +844,29 @@ def create_data_fwbw_lstm_ed(data, seq_len, horizon, input_dim, mon_ratio, eps):
 
 def load_dataset_fwbw_lstm(seq_len, horizon, input_dim, mon_ratio,
                            dataset_dir, day_size, data_size,
-                           batch_size, eval_batch_size=None, scaler_type='SD', **kwargs):
+                           batch_size, eval_batch_size=None, scaler_type='SD', is_training=False, **kwargs):
     data = {}
 
-    raw_data = np.load(dataset_dir)
-    raw_data[raw_data <= 0] = 0.1
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
 
-    raw_data = raw_data.astype("float32")
+    data['test_data_norm'] = test_data_norm
 
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
+    if is_training:
+        x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_eval, y_eval_1, y_eval_2 = create_data_fwbw_lstm(test_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                                           mon_ratio=mon_ratio, eps=train_data_norm.std())
 
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
+        for cat in ["train", "val", "eval"]:
+            _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
+            print(cat, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2:", _y_2.shape)
 
-    print('|--- Normalizing the train set.')
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
-
-    data['test_data_norm'] = test_data2d_norm
-
-    x_train, y_train_1, y_train_2 = create_data_fwbw_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                                          mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val_1, y_val_2 = create_data_fwbw_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval_1, y_eval_2 = create_data_fwbw_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                                       mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-
-    for cat in ["train", "val", "eval"]:
-        _x, _y_1, _y_2 = locals()["x_" + cat], locals()["y_" + cat + '_1'], locals()["y_" + cat + '_2']
-        print(cat, "x: ", _x.shape, "y_1:", _y_1.shape, "y_2:", _y_2.shape)
-
-        data['x_' + cat] = _x
-        data['y_' + cat + '_1'] = _y_1
-        data['y_' + cat + '_2'] = _y_2
+            data['x_' + cat] = _x
+            data['y_' + cat + '_1'] = _y_1
+            data['y_' + cat + '_2'] = _y_2
 
     data['scaler'] = scaler
 
@@ -929,46 +878,32 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
                               **kwargs):
     data = {}
 
-    raw_data = np.load(dataset_dir)
-    raw_data[raw_data <= 0] = 0.1
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
 
-    raw_data = raw_data.astype("float32")
-
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
-
-    print('|--- Normalizing the train set.')
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
-
-    data['test_data_norm'] = test_data2d_norm
+    data['test_data_norm'] = test_data_norm
 
     inputs_train, dec_inputs_train, enc_labels_bw_train, dec_labels_train = create_data_fwbw_lstm_ed(
-        data=train_data2d_norm,
+        data=train_data_norm,
         seq_len=seq_len,
         horizon=horizon,
         input_dim=input_dim,
         mon_ratio=mon_ratio,
-        eps=train_data2d_norm.std())
+        eps=train_data_norm.std())
     inputs_val, dec_inputs_val, enc_labels_bw_val, dec_labels_val = create_data_fwbw_lstm_ed(
-        data=valid_data2d_norm,
+        data=valid_data_norm,
         seq_len=seq_len,
         horizon=horizon,
         input_dim=input_dim,
         mon_ratio=mon_ratio,
-        eps=train_data2d_norm.std())
+        eps=train_data_norm.std())
     inputs_eval, dec_inputs_eval, enc_labels_bw_eval, dec_labels_eval = create_data_fwbw_lstm_ed(
-        data=test_data2d_norm,
+        data=test_data_norm,
         seq_len=seq_len,
         horizon=horizon,
         input_dim=input_dim,
         mon_ratio=mon_ratio,
-        eps=train_data2d_norm.std())
+        eps=train_data_norm.std())
 
     for cat in ["train", "val", "eval"]:
         inputs, dec_inputs, enc_labels_bw, dec_labels = locals()["inputs_" + cat], \
@@ -1018,42 +953,27 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
                       dataset_dir, day_size, data_size, batch_size, eval_batch_size=None,
-                      scaler_type='SD', **kwargs):
-    raw_data = np.load(dataset_dir)
-    raw_data[raw_data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    raw_data = raw_data.astype("float32")
-
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
-
-    print('|--- Normalizing the train set.')
+                      scaler_type='SD', is_training=False, **kwargs):
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
     data = {}
+    data['test_data_norm'] = test_data_norm
 
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
+    if is_training:
+        x_train, y_train = create_data_lstm(train_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                            mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_val, y_val = create_data_lstm(valid_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
+        x_eval, y_eval = create_data_lstm(test_data_norm, seq_len=seq_len, input_dim=input_dim,
+                                          mon_ratio=mon_ratio, eps=train_data_norm.std())
 
-    data['test_data_norm'] = test_data2d_norm
+        for cat in ["train", "val", "eval"]:
+            _x, _y = locals()["x_" + cat], locals()["y_" + cat]
+            print(cat, "x: ", _x.shape, "y:", _y.shape)
 
-    x_train, y_train = create_data_lstm(train_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                        mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val = create_data_lstm(valid_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                    mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval = create_data_lstm(test_data2d_norm, seq_len=seq_len, input_dim=input_dim,
-                                      mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+            data['x_' + cat] = _x
+            data['y_' + cat] = _y
 
-    for cat in ["train", "val", "eval"]:
-        _x, _y = locals()["x_" + cat], locals()["y_" + cat]
-        print(cat, "x: ", _x.shape, "y:", _y.shape)
-
-        data['x_' + cat] = _x
-        data['y_' + cat] = _y
     data['scaler'] = scaler
 
     return data
@@ -1089,46 +1009,29 @@ def create_data_lstm_ed(data, seq_len, input_dim, mon_ratio, eps, horizon=0):
 
 
 def load_dataset_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
-                         raw_dataset_dir, day_size, data_size, batch_size,
+                         dataset_dir, day_size, data_size, batch_size,
                          scaler_type='SD', eval_batch_size=None, **kwargs):
-    raw_data = np.load(raw_dataset_dir)
-    raw_data[raw_data <= 0] = 0.1
-
-    # Convert traffic volume from byte to mega-byte
-    raw_data = raw_data.astype("float32")
-
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
-
-    print('|--- Normalizing the train set.')
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
     data = {}
+    data['test_data_norm'] = test_data_norm
 
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
-
-    data['test_data_norm'] = test_data2d_norm
-
-    encoder_input_train, decoder_input_train, decoder_target_train = create_data_lstm_ed(train_data2d_norm,
+    encoder_input_train, decoder_input_train, decoder_target_train = create_data_lstm_ed(train_data_norm,
                                                                                          seq_len=seq_len,
                                                                                          input_dim=input_dim,
                                                                                          mon_ratio=mon_ratio,
                                                                                          horizon=horizon,
-                                                                                         eps=train_data2d_norm.std())
-    encoder_input_val, decoder_input_val, decoder_target_val = create_data_lstm_ed(valid_data2d_norm, seq_len=seq_len,
+                                                                                         eps=train_data_norm.std())
+    encoder_input_val, decoder_input_val, decoder_target_val = create_data_lstm_ed(valid_data_norm, seq_len=seq_len,
                                                                                    input_dim=input_dim,
                                                                                    mon_ratio=mon_ratio,
                                                                                    horizon=horizon,
-                                                                                   eps=train_data2d_norm.std())
-    encoder_input_eval, decoder_input_eval, decoder_target_eval = create_data_lstm_ed(test_data2d_norm, seq_len=seq_len,
+                                                                                   eps=train_data_norm.std())
+    encoder_input_eval, decoder_input_eval, decoder_target_eval = create_data_lstm_ed(test_data_norm, seq_len=seq_len,
                                                                                       input_dim=input_dim,
                                                                                       mon_ratio=mon_ratio,
                                                                                       horizon=horizon,
-                                                                                      eps=train_data2d_norm.std())
+                                                                                      eps=train_data_norm.std())
 
     for cat in ["train", "val", "eval"]:
         e_x, d_x, d_y = locals()["encoder_input_" + cat], locals()["decoder_input_" + cat], locals()[
@@ -1176,31 +1079,17 @@ def load_dataset_conv_lstm(seq_len, wide, high, channel, mon_ratio,
                            batch_size, eval_batch_size=None, scaler_type='SD', **kwargs):
     data = {}
 
-    raw_data = np.load(dataset_dir)
-    raw_data[raw_data <= 0] = 0.1
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
 
-    raw_data = raw_data.astype("float32")
+    data['test_data_norm'] = test_data_norm
 
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
-    train_data2d, valid_data2d, test_data2d = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
-    test_data2d = test_data2d[0:-day_size * 3]
-
-    print('|--- Normalizing the train set.')
-    scaler = get_scaler(scaler_type, train_data2d)
-    train_data2d_norm = scaler.transform(train_data2d)
-    valid_data2d_norm = scaler.transform(valid_data2d)
-    test_data2d_norm = scaler.transform(test_data2d)
-
-    data['test_data_norm'] = test_data2d_norm
-
-    x_train, y_train = create_data_conv_lstm(train_data2d_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
-                                             mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_val, y_val = create_data_conv_lstm(valid_data2d_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
-                                         mon_ratio=mon_ratio, eps=train_data2d_norm.std())
-    x_eval, y_eval = create_data_conv_lstm(test_data2d_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
-                                           mon_ratio=mon_ratio, eps=train_data2d_norm.std())
+    x_train, y_train = create_data_conv_lstm(train_data_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
+                                             mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_val, y_val = create_data_conv_lstm(valid_data_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
+                                         mon_ratio=mon_ratio, eps=train_data_norm.std())
+    x_eval, y_eval = create_data_conv_lstm(test_data_norm, seq_len=seq_len, wide=wide, high=high, channel=channel,
+                                           mon_ratio=mon_ratio, eps=train_data_norm.std())
 
     for cat in ["train", "val", "eval"]:
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]

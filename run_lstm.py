@@ -51,10 +51,10 @@ def print_lstm_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-def build_model(config):
+def build_model(config, is_training=False):
     print('|--- Build models.')
 
-    net = lstm(**config)
+    net = lstm(is_training=is_training, **config)
 
     net.seq2seq_model_construction()
     return net
@@ -64,7 +64,7 @@ def train_lstm(config):
     print('|-- Run model training.')
 
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        lstm_net = build_model(config)
+        lstm_net = build_model(config, is_training=True)
 
     lstm_net.train()
 

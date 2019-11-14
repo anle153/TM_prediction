@@ -13,7 +13,7 @@ from lib import utils
 
 class lstm(AbstractModel):
 
-    def __init__(self, **kwargs):
+    def __init__(self, is_training=False, **kwargs):
         super(lstm, self).__init__(**kwargs)
 
         self._rnn_units = self._model_kwargs.get('rnn_units')
@@ -30,6 +30,7 @@ class lstm(AbstractModel):
                                              input_dim=self._input_dim,
                                              mon_ratio=self._mon_ratio,
                                              scaler_type=self._kwargs.get('scaler'),
+                                             is_training=is_training,
                                              **self._data_kwargs)
 
         for k, v in self._data.items():

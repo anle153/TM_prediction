@@ -62,7 +62,7 @@ def train_dcrnn_att(config):
     tf_config.gpu_options.allow_growth = True
 
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(**config)
+        model = DCRNNSupervisor(is_training=True, **config)
         try:
             if config['train']['continue_train']:
                 model.load(sess, config['train']['model_filename'])
@@ -77,7 +77,7 @@ def test_dcrnn_att(config):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(**config)
+        model = DCRNNSupervisor(is_training=False, **config)
         model.load(sess, config['train']['model_filename'])
         model.test(sess)
         # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
@@ -91,7 +91,7 @@ def evaluate_dcrnn_att(config):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(**config)
+        model = DCRNNSupervisor(is_training=False, **config)
         model.load(sess, config['train']['model_filename'])
         outputs = model.evaluate(sess)
 

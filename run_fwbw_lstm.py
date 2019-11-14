@@ -55,11 +55,11 @@ def print_fwbw_lstm_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-def build_model(config):
+def build_model(config, is_training=False):
     print('|--- Build models fwbw-lstm.')
 
     # fwbw-lstm model
-    fwbw_net = FwbwLstmRegression(**config)
+    fwbw_net = FwbwLstmRegression(is_training=is_training, **config)
     fwbw_net.construct_fwbw_lstm()
     return fwbw_net
 
@@ -71,7 +71,7 @@ def train_fwbw_lstm(config):
     else:
         device = config['gpu']
         with tf.device('/device:GPU:{}'.format(device)):
-            fwbw_net = build_model(config)
+            fwbw_net = build_model(config, is_training=True)
 
     fwbw_net.train()
 

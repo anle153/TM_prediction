@@ -13,7 +13,7 @@ from lib import utils
 
 class FwbwLstmRegression(AbstractModel):
 
-    def __init__(self, **kwargs):
+    def __init__(self, is_training=False, **kwargs):
         super(FwbwLstmRegression, self).__init__(**kwargs)
 
         self._base_dir = kwargs.get('base_dir')
@@ -33,7 +33,7 @@ class FwbwLstmRegression(AbstractModel):
         self._lamda.append(self._test_kwargs.get('lamda_2'))
 
         # Load data
-        self._data = utils.load_dataset_fwbw_lstm(seq_len=self._seq_len, horizon=self._horizon,
+        self._data = utils.load_dataset_fwbw_lstm(is_training=is_training, seq_len=self._seq_len, horizon=self._horizon,
                                                   input_dim=self._input_dim,
                                                   mon_ratio=self._mon_ratio,
                                                   scaler_type=self._kwargs.get('scaler'),
@@ -150,9 +150,15 @@ class FwbwLstmRegression(AbstractModel):
             # test bw correction
             bw_outputs = bw_outputs.T
             _corr_data = bw_outputs[1:]
-            _measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
-            _corr_data = _corr_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
-            tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
+
+            _pred_err = self._calculate_pred_err(pred=_corr_data.copy(), tm=tm_pred[ts:ts + self._seq_len - 1].copy(),
+                                                 m_indicator=m_indicator[ts:ts + self._seq_len - 1].copy())
+            if _pred_err < _last_err:
+                _measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+                _corr_data = _corr_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+                tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
+
+            _last_err = _pred_err
 
             y_preds.append(np.expand_dims(fw_outputs, axis=0))
             pred = fw_outputs[0]

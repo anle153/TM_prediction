@@ -375,6 +375,20 @@ class AbstractModel(object):
 
         return corrected_data.T
 
+    def _calculate_pred_err(self, pred, tm, m_indicator, beta=0.1):
+        """
+
+        :param pred: shape (ts: ts + seq_len - 1, nflow)
+        :param tm: shape (ts: ts + seq_len - 1, nflow)
+        :param m_indicator: shape (ts: ts + seq_len - 1, nflow)
+        :return:
+        """
+
+        _m = 1.0 - m_indicator
+        er = metrics.error_ratio(y_true=tm, y_pred=pred, measured_matrix=_m)
+
+        return er + beta * np.sqrt(1 / np.sum(m_indicator))
+
     def save_model_history(self, times, model_history):
         loss = np.array(model_history.history['loss'])
         val_loss = np.array(model_history.history['val_loss'])

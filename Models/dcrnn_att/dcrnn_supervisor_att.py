@@ -24,7 +24,7 @@ class DCRNNSupervisor(AbstractModel):
     Do experiments using Graph Random Walk RNN model.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, is_training=False, **kwargs):
         super(DCRNNSupervisor, self).__init__(**kwargs)
 
         self._data = utils.load_dataset_dcrnn_att(seq_len=self._model_kwargs.get('seq_len'),
@@ -32,6 +32,7 @@ class DCRNNSupervisor(AbstractModel):
                                                   input_dim=self._model_kwargs.get('input_dim'),
                                                   mon_ratio=self._mon_ratio,
                                                   scaler_type=self._kwargs.get('scaler'),
+                                                  is_training=is_training,
                                                   **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):

@@ -1,5 +1,5 @@
 ---
-alg: DCRNN_WEIGHTED
+alg: dcrnn_weighted
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0

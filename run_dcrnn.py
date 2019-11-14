@@ -63,8 +63,11 @@ def train_dcrnn(config):
 
     with tf.Session(config=tf_config) as sess:
         model = DCRNNSupervisor(**config)
-        if config['train']['continue_train']:
-            model.load(sess, config['train']['model_filename'])
+        try:
+            if config['train']['continue_train']:
+                model.load(sess, config['train']['model_filename'])
+        except KeyError:
+            print('No saved model found!')
         model.train(sess)
 
 

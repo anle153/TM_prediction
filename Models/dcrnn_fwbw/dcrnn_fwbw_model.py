@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from keras.layers import Dense, TimeDistributed
 from tensorflow.contrib import legacy_seq2seq
 
 from Models.dcrnn.dcrnn_cell import DCGRUCell
@@ -50,7 +51,7 @@ class DCRNNModel(object):
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                          num_proj=output_dim, filter_type=filter_type)
 
-        encoding_cells_fw = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
+        encoding_cells_fw = [cell] * num_rnn_layers
         decoding_cells_fw = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells_fw = tf.contrib.rnn.MultiRNNCell(encoding_cells_fw, state_is_tuple=True)
         decoding_cells_fw = tf.contrib.rnn.MultiRNNCell(decoding_cells_fw, state_is_tuple=True)
@@ -78,7 +79,7 @@ class DCRNNModel(object):
                 return result_fw
 
             # enc_outputs_fw, enc_state_fw = tf.contrib.rnn.static_rnn(encoding_cells_fw, inputs_fw, dtype=tf.float32)
-            enc_outputs_fw, enc_state_fw = tf.contrib.rnn.static_rnn(encoding_cells_fw, inputs_fw, dtype=tf.float32)
+            _, enc_state_fw = tf.contrib.rnn.static_rnn(encoding_cells_fw, inputs_fw, dtype=tf.float32)
 
             # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
             # _, enc_state = encoder_layers(inputs)
@@ -116,12 +117,12 @@ class DCRNNModel(object):
         #                          batch_input_shape=(
         #                              batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
         #     enc_outputs_bw)
-        # enc_outputs_bw = TimeDistributed(Dense(512),
-        #                                  batch_input_shape=(
-        #                                      batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
-        #     enc_outputs_bw)
+        enc_outputs_bw = TimeDistributed(Dense(512),
+                                         batch_input_shape=(
+                                             batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
+            enc_outputs_bw)
         # enc_outputs_bw = Dropout(0.5, batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
-        # enc_outputs_bw = TimeDistributed(Dense(num_nodes), batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
+        enc_outputs_bw = TimeDistributed(Dense(num_nodes), batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
         self._enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim),
                                           name='enc_outputs_bw')
 

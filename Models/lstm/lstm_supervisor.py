@@ -88,9 +88,6 @@ class lstm(AbstractModel):
 
         tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
 
-        tm_pred[0:self._seq_len] = test_data_norm[0:self._seq_len]
-        m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
-
         y_preds = []
         y_truths = []
 

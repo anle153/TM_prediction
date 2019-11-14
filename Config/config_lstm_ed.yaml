@@ -30,6 +30,7 @@ train:
   epsilon: 0.001
   optimizer: adam
   patience: 30
+  continue_train: True
 test:
   run_times: 50
   flow_selection: Random

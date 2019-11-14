@@ -52,7 +52,7 @@ train:
   test_every_n_epochs: 10
   results_path: results/
   results_name: Abilene-dgc-att-ng
-  continue_train: False
+  continue_train: True
 test:
   run_times: 50
   flow_selection: Random

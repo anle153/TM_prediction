@@ -27,6 +27,7 @@ train:
   epochs: 50000
   optimizer: adam
   patience: 50
+  continue_train: True
 test:
   run_times: 50
   flow_selection: Random

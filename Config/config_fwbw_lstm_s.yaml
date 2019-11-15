@@ -1,0 +1,37 @@
+---
+alg: fwbw_lstm_s
+base_dir: logs/pretrained/Abilene
+log_level: INFO
+gpu: 1
+mon_ratio: 0.3
+mode: train
+scaler: MM
+data:
+  data_name: Abilene
+  batch_size: 512
+  val_batch_size: 1
+  eval_batch_size: 1
+  test_batch_size: 1
+  dataset_dir: Dataset/Abilene2d.npy
+  day_size: 288
+  data_size: 1.0
+model:
+  horizon: 1
+  input_dim: 2
+  num_nodes: 144
+  output_dim: 1
+  rnn_units: 64
+  seq_len: 36
+  r: 2
+train:
+  dropout: 0
+  epochs: 50000
+  optimizer: adam
+  patience: 50
+  continue_train: True
+test:
+  run_times: 10
+  flow_selection: Random
+  lamda_0: 2.6
+  lamda_1: 1.0
+  lamda_2: 1.0

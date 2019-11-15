@@ -118,17 +118,27 @@ class AbstractModel(object):
         else:
             return log_dir
 
-    def plot_training_history(self, model_history):
+    def plot_training_history(self, model_history, tag=None):
         import matplotlib.pyplot as plt
 
         plt.plot(model_history.history['loss'], label='loss')
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self._log_dir + '[loss]{}.png'.format(self._alg))
+        if tag is not None:
+            saved_loss = '[loss_{}]{}.png'.format(tag, self._alg)
+        else:
+            saved_loss = '[loss]{}.png'.format(self._alg)
+
+        plt.savefig(self._log_dir + saved_loss)
         plt.legend()
         plt.close()
 
+        if tag is not None:
+            saved_val_loss = '[val_loss_{}]{}.png'.format(tag, self._alg)
+        else:
+            saved_val_loss = '[val_loss]{}.png'.format(self._alg)
+
         plt.plot(model_history.history['val_loss'], label='val_loss')
-        plt.savefig(self._log_dir + '[val_loss]{}.png'.format(self._alg))
+        plt.savefig(self._log_dir + saved_val_loss)
         plt.legend()
         plt.close()
 
@@ -138,8 +148,12 @@ class AbstractModel(object):
         if self._flow_selection != 'Random':
             np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
 
-    def plot_models(self, model):
-        plot_model(model=model, to_file=self._log_dir + '/model.png', show_shapes=True)
+    def plot_models(self, model, tag=None):
+        if tag is None:
+            model_name = '/model.png'
+        else:
+            model_name = '/{}_model.png'.format(tag)
+        plot_model(model=model, to_file=self._log_dir + model_name, show_shapes=True)
 
     def _calculate_metrics(self, prediction_results, metrics_summary, scaler, runId, data_norm, n_metrics=4):
         # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)

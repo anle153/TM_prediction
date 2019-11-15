@@ -72,6 +72,11 @@ def train_fwbw_lstm(config):
         device = config['gpu']
         with tf.device('/device:GPU:{}'.format(device)):
             fwbw_net = build_model(config, is_training=True)
+    try:
+        if config['train']['continue_train']:
+            fwbw_net.load()
+    except:
+        print('No saved model found!')
 
     fwbw_net.train()
 

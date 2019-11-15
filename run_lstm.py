@@ -65,6 +65,11 @@ def train_lstm(config):
 
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config, is_training=True)
+    try:
+        if config['train']['continue_train']:
+            lstm_net.load()
+    except:
+        print('No saved model found!')
 
     lstm_net.train()
 
@@ -75,7 +80,6 @@ def train_lstm_ed(config):
     print('|-- Run model training dgc_lstm.')
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         model = EncoderDecoder(is_training=True, **config)
-        model.plot_models()
         model.train()
 
 

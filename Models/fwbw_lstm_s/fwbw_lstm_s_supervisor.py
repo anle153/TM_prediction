@@ -132,8 +132,7 @@ class FwbwLstmSRegression(AbstractModel):
             rnn_input = self._prepare_input_lstm(data=multi_steps_tm[ts_ahead:ts_ahead + self._seq_len],
                                                  m_indicator=m_indicator[ts_ahead:ts_ahead + self._seq_len])
             pred = self.fw_model.predict(rnn_input)
-            pred = pred[:, -1, 0]
-            multi_steps_tm[ts_ahead + self._seq_len] = pred
+            multi_steps_tm[ts_ahead + self._seq_len] = np.squeeze(pred, axis=1)
 
             if ts_ahead == 0:
                 bw_outputs = self.bw_model.predict(rnn_input)

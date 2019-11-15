@@ -118,11 +118,10 @@ class DCRNNModel(object):
         #                              batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
         #     enc_outputs_bw)
         enc_outputs_bw = TimeDistributed(Dense(512),
-                                         batch_input_shape=(
-                                             batch_size, seq_len, num_nodes * (output_dim + input_dim)))(
+                                         input_shape=(seq_len, num_nodes * (output_dim + input_dim)))(
             enc_outputs_bw)
         # enc_outputs_bw = Dropout(0.5, batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
-        enc_outputs_bw = TimeDistributed(Dense(num_nodes), batch_input_shape=(batch_size, seq_len, 512))(enc_outputs_bw)
+        enc_outputs_bw = TimeDistributed(Dense(num_nodes), input_shape=(seq_len, 512))(enc_outputs_bw)
         self._enc_outputs_bw = tf.reshape(enc_outputs_bw, (batch_size, seq_len, num_nodes, output_dim),
                                           name='enc_outputs_bw')
 

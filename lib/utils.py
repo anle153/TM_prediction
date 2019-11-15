@@ -787,7 +787,7 @@ def create_data_fwbw_lstm(data, seq_len, input_dim, mon_ratio, eps):
                                size=data.shape,
                                p=(mon_ratio, 1 - mon_ratio))
     data_x = np.zeros(shape=((data.shape[0] - seq_len - 1) * data.shape[1], seq_len, input_dim), dtype='float32')
-    data_y_1 = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], 1), dtype='float32')
+    data_y_1 = np.zeros(shape=((data.shape[0] - seq_len - 1) * data.shape[1], 1), dtype='float32')
     data_y_2 = np.zeros(shape=((data.shape[0] - seq_len - 1) * data.shape[1], seq_len), dtype='float32')
 
     _data = np.copy(data)

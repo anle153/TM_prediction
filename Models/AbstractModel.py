@@ -228,7 +228,7 @@ class AbstractModel(object):
         if self._flow_selection == 'Random':
             save_m_indicator = os.path.join(self._base_dir + '/random_m_indicator_{}_{}_{}/'.format(
                 self._seq_len, self._horizon, self._mon_ratio))
-            if not os.path.isdir(save_m_indicator):
+            if not os.path.isfile(os.path.join(save_m_indicator + '/m_indicator{}.npy'.format(runId))):
                 m_indicator = np.random.choice([1.0, 0.0],
                                                size=(test_data_norm.shape[0] - self._horizon -
                                                      self._seq_len, test_data_norm.shape[1]),

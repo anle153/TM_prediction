@@ -233,6 +233,7 @@ class AbstractModel(object):
                                                size=(test_data_norm.shape[0] - self._horizon -
                                                      self._seq_len, test_data_norm.shape[1]),
                                                p=(self._mon_ratio, 1.0 - self._mon_ratio))
+                os.makedirs(save_m_indicator)
                 np.save(save_m_indicator + '/m_indicator{}.npy'.format(runId), m_indicator)
             else:
                 m_indicator = np.load(os.path.join(save_m_indicator + '/m_indicator{}.npy'.format(runId)))

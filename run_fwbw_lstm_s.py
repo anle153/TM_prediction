@@ -122,8 +122,8 @@ if __name__ == '__main__':
     print_fwbw_lstm_s_info(args.mode, config)
 
     if args.mode == 'train':
-        train_fwbw_lstm(config)
+        train_fwbw_lstm_s(config)
     elif args.mode == 'evaluate':
-        evaluate_fwbw_lstm(config)
+        evaluate_fwbw_lstm_s(config)
     else:
-        test_fwbw_lstm(config)
+        test_fwbw_lstm_s(config)

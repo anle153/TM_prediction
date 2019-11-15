@@ -4,7 +4,7 @@ import numpy as np
 import yaml
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import LSTM, Dense, Dropout, TimeDistributed, Flatten, Input, Concatenate, Reshape
-from keras.models import Model
+from keras.models import Model, Sequential
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel, TimeHistory
@@ -78,16 +78,15 @@ class FwbwLstmSRegression(AbstractModel):
         input_tensor = Input(shape=(self._seq_len, self._input_dim), name='input')
 
         # Forward Network
-        fw_lstm_layer = LSTM(self._rnn_units, input_shape=(self._seq_len, self._input_dim), return_sequences=True)(
-            input_tensor)
-        fw_drop_out = Dropout(self._drop_out)(fw_lstm_layer)
-        fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
-        fw_dense_1 = TimeDistributed(Dense(128, ))(fw_flat_layer)
-        fw_dense_2 = TimeDistributed(Dense(64, ))(fw_dense_1)
-        fw_dense_3 = TimeDistributed(Dense(32, ))(fw_dense_2)
-        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_3)
+        self.fw_model = Sequential()
+        self.fw_model.add(LSTM(self._rnn_units, input_shape=(self._seq_len, self._input_dim), return_sequences=True))
+        self.fw_model.add(Dropout(self._drop_out))
+        self.fw_model.add(Flatten())
+        self.fw_model.add(Dense(128))
+        self.fw_model.add(Dense(64))
+        self.fw_model.add(Dense(32))
+        self.fw_model.add(Dense(1))
 
-        self.fw_model = Model(inputs=input_tensor, outputs=fw_outputs, name='fw-lstm')
         self.fw_model.compile(loss='mse', optimizer='adam')
         self.plot_models(self.fw_model, tag='fw')
 

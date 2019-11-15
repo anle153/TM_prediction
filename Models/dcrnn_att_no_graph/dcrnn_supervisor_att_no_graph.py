@@ -161,17 +161,7 @@ class DCRNNSupervisor(AbstractModel):
         test_data_norm = self._data['test_data_norm']
 
         # Initialize traffic matrix data
-        tm_pred = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes), dtype='float32')
-        tm_pred[0:self._seq_len] = test_data_norm[:self._seq_len]
-
-        # Initialize measurement matrix
-        if self._flow_selection == 'Random':
-            m_indicator = np.load(os.path.join(self._base_dir + '/random_m_indicator/m_indicator{}.npy'.format(runId)))
-            m_indicator = np.concatenate([np.ones(shape=(self._seq_len, self._nodes)), m_indicator], axis=0)
-        else:
-            m_indicator = np.zeros(shape=(test_data_norm.shape[0] - self._horizon, self._nodes),
-                                   dtype='float32')
-            m_indicator[0:self._seq_len] = np.ones(shape=(self._seq_len, self._nodes))
+        tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
 
         y_preds = []
         fetches = {

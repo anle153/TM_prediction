@@ -137,12 +137,6 @@ class AbstractModel(object):
         np.save(self._log_dir + '/pred_tm_{}'.format(tag), pred_tm)
         if self._flow_selection != 'Random':
             np.save(self._log_dir + '/m_indicator{}'.format(tag), m_indicator)
-        else:
-            save_path = os.path.join(self._base_dir + '/random_m_indicator_{}_{}_{}/'.format(
-                self._seq_len, self._horizon, self._mon_ratio))
-            if not os.path.isdir(save_path):
-                os.makedirs(save_path)
-                np.save(save_path + '/m_indicator{}'.format(tag), m_indicator)
 
     def plot_models(self, model):
         plot_model(model=model, to_file=self._log_dir + '/model.png', show_shapes=True)
@@ -239,6 +233,7 @@ class AbstractModel(object):
                                                size=(test_data_norm.shape[0] - self._horizon -
                                                      self._seq_len, test_data_norm.shape[1]),
                                                p=(self._mon_ratio, 1.0 - self._mon_ratio))
+                np.save(save_m_indicator + '/m_indicator{}.npy'.format(runId), m_indicator)
             else:
                 m_indicator = np.load(os.path.join(save_m_indicator + '/m_indicator{}.npy'.format(runId)))
 

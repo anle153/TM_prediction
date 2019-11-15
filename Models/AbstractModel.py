@@ -199,9 +199,9 @@ class AbstractModel(object):
         results_summary = pd.DataFrame(index=range(self._run_times + 3))
         results_summary['No.'] = range(self._run_times + 3)
 
-        avg = np.mean(metrics_summary, axis=0)
-        std = np.std(metrics_summary, axis=0)
-        conf = metrics.calculate_confident_interval(metrics_summary)
+        avg = np.mean(metrics_summary[:self._run_times], axis=0)
+        std = np.std(metrics_summary[:self._run_times], axis=0)
+        conf = metrics.calculate_confident_interval(metrics_summary[:self._run_times])
         metrics_summary[-3, :] = avg
         metrics_summary[-2, :] = std
         metrics_summary[-1, :] = conf

@@ -3,7 +3,7 @@ alg: dcrnn_att_ng
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
-mon_ratio: 0.3
+mon_ratio: 0.6
 scaler: MM
 data:
   data_name: Abilene

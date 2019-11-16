@@ -68,12 +68,12 @@ class FwbwLstmRegression(AbstractModel):
         # Forward Network
         fw_lstm_layer = LSTM(self._rnn_units, input_shape=(self._seq_len, self._input_dim), return_sequences=True)(
             input_tensor)
-        fw_drop_out = Dropout(self._drop_out)(fw_lstm_layer)
-        fw_flat_layer = TimeDistributed(Flatten())(fw_drop_out)
-        fw_dense_1 = TimeDistributed(Dense(128, ))(fw_flat_layer)
-        fw_dense_2 = TimeDistributed(Dense(64, ))(fw_dense_1)
-        fw_dense_3 = TimeDistributed(Dense(32, ))(fw_dense_2)
-        fw_outputs = TimeDistributed(Dense(1, ), name='fw_outputs')(fw_dense_3)
+        fw_outputs = Dropout(self._drop_out)(fw_lstm_layer)
+        fw_outputs = Flatten()(fw_outputs)
+        fw_outputs = Dense(128, )(fw_outputs)
+        fw_outputs = Dense(64, )(fw_outputs)
+        fw_outputs = Dense(32, )(fw_outputs)
+        fw_outputs = Dense(1, name='fw_outputs')(fw_outputs)
 
         # Backward Network
         bw_lstm_layer = LSTM(self._rnn_units, input_shape=(self._seq_len, self._input_dim),

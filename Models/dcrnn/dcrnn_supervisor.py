@@ -284,7 +284,7 @@ class DCRNNSupervisor(AbstractModel):
                                      ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
                                      [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f} lr:{:.6f} {:.1f}s'.format(
+            message = 'Epoch [{}/{}] ({}) train_mse: {:f}, val_mse: {:f} lr:{:f} {:.1f}s'.format(
                 self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
             self._logger.info(message)
             if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
@@ -294,7 +294,7 @@ class DCRNNSupervisor(AbstractModel):
                 if save_model > 0:
                     model_filename = self.save(sess, val_loss)
                 self._logger.info(
-                    'Val loss decrease from %.4f to %.4f, saving to %s' % (min_val_loss, val_loss, model_filename))
+                    'Val loss decrease from %f to %f, saving to %s' % (min_val_loss, val_loss, model_filename))
                 min_val_loss = val_loss
             else:
                 wait += 1

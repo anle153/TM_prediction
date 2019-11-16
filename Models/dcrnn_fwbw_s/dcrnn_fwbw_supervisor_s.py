@@ -263,7 +263,7 @@ class DCRNNSSupervisor(AbstractModel):
                                      ['loss/train_loss', 'loss/val_loss'],
                                      [train_loss, val_loss], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] train_loss: {:.4f}, val_loss: {:.4f} || train_dec_fw: {:.4f}, val_dec_fw: {:.4f}, train_enc_bw: {:.4f}, val_enc_bw: {:.4f} - lr:{:.6f} {:.1f}s'.format(
+            message = 'Epoch [{}/{}] train_loss: {:.6f}, val_loss: {:.6f} || train_dec_fw: {:.6f}, val_dec_fw: {:.6f}, train_enc_bw: {:.6f}, val_enc_bw: {:.6f} - lr:{:.6f} {:.1f}s'.format(
                 self._epoch, epochs, train_loss, val_loss, train_dec_loss_fw, val_dec_loss_fw, train_enc_loss_bw,
                 val_enc_loss_bw, new_lr, (end_time - start_time))
             self._logger.info(message)
@@ -275,7 +275,7 @@ class DCRNNSSupervisor(AbstractModel):
                 if save_model > 0:
                     model_filename = self.save(sess, val_loss)
                 self._logger.info(
-                    'Val loss decrease from %.4f to %.4f, saving to %s' % (min_val_loss, val_loss, model_filename))
+                    'Val loss decrease from %.8f to %.8f, saving to %s' % (min_val_loss, val_loss, model_filename))
                 min_val_loss = val_loss
             else:
                 wait += 1

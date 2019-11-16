@@ -1,5 +1,5 @@
 ---
-alg: dclstm
+alg: dcrnn_lstm
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0

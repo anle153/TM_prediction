@@ -3,7 +3,7 @@ alg: fwbw_lstm
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 1
-mon_ratio: 0.3
+mon_ratio: 0.6
 mode: train
 scaler: MM
 data:

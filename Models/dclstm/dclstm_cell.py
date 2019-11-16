@@ -92,6 +92,7 @@ class DCLSTMCell(RNNCell):
                     fn = self._fc
 
                 h, c = tf.split(value=state, num_or_size_splits=2, axis=-1)
+
                 value = tf.nn.sigmoid(fn(inputs, h, output_size, bias_start=1.0))
                 value = tf.reshape(value, (-1, self._num_nodes, output_size))
                 f_t, i_t = tf.split(value=value, num_or_size_splits=2, axis=-1)
@@ -99,6 +100,7 @@ class DCLSTMCell(RNNCell):
                 i_t = tf.reshape(i_t, (-1, self._num_nodes * self._num_units))
             with tf.variable_scope("state"):
                 _c = self._gconv(inputs, state, self._num_units)
+                _c = tf.reshape(_c, (-1, self._num_nodes * self._num_units))
                 if self._activation is not None:
                     _c = self._activation(_c)
                 c = f_t * c + i_t * _c

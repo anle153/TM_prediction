@@ -30,7 +30,7 @@ train:
   patience: 50
   continue_train: True
 test:
-  run_times: 10
+  run_times: 50
   flow_selection: Random
   lamda_0: 2.6
   lamda_1: 1.0

@@ -41,25 +41,25 @@ class DCLSTMSupervisor(AbstractModel):
         # Build models.
         scaler = self._data['scaler']
         with tf.name_scope('Train'):
-            with tf.variable_scope('DCRNN', reuse=False):
+            with tf.variable_scope('DCLSTM', reuse=False):
                 self._train_model = DCLSTMModel(is_training=True, scaler=scaler,
                                                 batch_size=self._data_kwargs['batch_size'],
                                                 adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Val'):
-            with tf.variable_scope('DCRNN', reuse=True):
+            with tf.variable_scope('DCLSTM', reuse=True):
                 self._val_model = DCLSTMModel(is_training=False, scaler=scaler,
                                               batch_size=self._data_kwargs['val_batch_size'],
                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Eval'):
-            with tf.variable_scope('DCRNN', reuse=True):
+            with tf.variable_scope('DCLSTM', reuse=True):
                 self._eval_model = DCLSTMModel(is_training=False, scaler=scaler,
                                                batch_size=self._data_kwargs['eval_batch_size'],
                                                adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         with tf.name_scope('Test'):
-            with tf.variable_scope('DCRNN', reuse=True):
+            with tf.variable_scope('DCLSTM', reuse=True):
                 self._test_model = DCLSTMModel(is_training=False, scaler=scaler,
                                                batch_size=self._data_kwargs['test_batch_size'],
                                                adj_mx=self._data['adj_mx'], **self._model_kwargs)

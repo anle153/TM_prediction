@@ -10,7 +10,7 @@ from lib import utils
 
 
 class DCLSTMCell(RNNCell):
-    """Graph Convolution Gated Recurrent Unit cell.
+    """G    raph Convolution Gated Recurrent Unit cell.
     """
 
     def call(self, inputs, **kwargs):

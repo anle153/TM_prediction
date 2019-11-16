@@ -49,7 +49,7 @@ class DCLSTMModel(object):
 
         global_step = tf.train.get_or_create_global_step()
         # Outputs: (batch_size, timesteps, num_nodes, output_dim)
-        with tf.variable_scope('DCRNN_SEQ'):
+        with tf.variable_scope('DCLSTM_SEQ'):
             inputs = tf.unstack(tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
             # inputs = tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim))
             labels = tf.unstack(

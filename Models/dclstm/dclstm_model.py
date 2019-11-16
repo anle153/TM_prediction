@@ -5,6 +5,8 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import legacy_seq2seq
 
+from Models.dclstm.dclstm_cell import DCLSTMCell
+
 
 class DCLSTMModel(object):
     def __init__(self, is_training, batch_size, scaler, adj_mx, **model_kwargs):

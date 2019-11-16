@@ -111,7 +111,7 @@ class AbstractModel(object):
         log_dir = kwargs['train'].get('log_dir')
         if log_dir is None:
             alg = kwargs.get('alg')
-            if 'dcrnn' in alg:
+            if 'dcrnn' in alg or 'dclstm' in alg:
                 return _get_log_dir_dcrnn_based(kwargs)
             elif 'lstm' in alg:
                 return _get_log_dir_lstm_based(kwargs)

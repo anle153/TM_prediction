@@ -3,7 +3,7 @@ alg: lstm
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
-mon_ratio: 0.8
+mon_ratio: 0.1
 scaler: MM
 data:
   batch_size: 512

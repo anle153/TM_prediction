@@ -3,7 +3,7 @@ alg: dcrnn
 base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
-mon_ratio: 0.3
+mon_ratio: 0.6
 scaler: MM
 data:
   data_name: Abilene
@@ -12,7 +12,7 @@ data:
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/Abilene2d.npy
-  adj_method: SAX
+  adj_method: OD
   pos_thres: 0.7
   neg_thres: -0.7
   day_size: 288

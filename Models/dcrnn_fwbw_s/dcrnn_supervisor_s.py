@@ -228,6 +228,8 @@ class DCRNNSSupervisor(AbstractModel):
                 data=tm_pred[ts:ts + self._seq_len],
                 m_indicator=m_indicator[ts:ts + self._seq_len]
             )
+            x_bw = self._prepare_input_lstm(data=tm_pred[ts:ts + self._seq_len],
+                                            m_indicator=m_indicator[ts:ts + self._seq_len])
 
             y_truths.append(
                 np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon].copy(), axis=0))
@@ -244,8 +246,7 @@ class DCRNNSSupervisor(AbstractModel):
 
             pred = vals['outputs'][0, 0, :, 0]
 
-            bw_outputs = self._bw_model.predict(x)
-
+            bw_outputs = self._bw_model.predict(x_bw)
             bw_outputs = bw_outputs.T
             _corr_data = bw_outputs[1:]
 

@@ -22,7 +22,6 @@ class lstm(AbstractModel):
         self._nodes = self._model_kwargs.get('num_nodes')
 
         # Train's args
-        self._drop_out = self._train_kwargs.get('dropout')
         self._batch_size = self._data_kwargs.get('batch_size')
 
         # Load data

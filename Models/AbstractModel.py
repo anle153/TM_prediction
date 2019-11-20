@@ -99,6 +99,7 @@ class AbstractModel(object):
         self._input_dim = int(self._model_kwargs.get('input_dim'))
         self._nodes = int(self._model_kwargs.get('num_nodes'))
         self._rnn_units = int(self._model_kwargs.get('rnn_units'))
+        self._drop_out = float(self._train_kwargs.get('dropout'))
 
         # Test's args
         self._flow_selection = self._test_kwargs.get('flow_selection')

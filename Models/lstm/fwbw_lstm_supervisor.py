@@ -23,7 +23,6 @@ class FwbwLstmRegression(AbstractModel):
         self._r = self._model_kwargs.get('r')
 
         # Train's args
-        self._drop_out = self._train_kwargs.get('dropout')
         self._batch_size = self._data_kwargs.get('batch_size')
 
         # Test's args

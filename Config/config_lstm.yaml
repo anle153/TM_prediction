@@ -23,7 +23,7 @@ model:
   rnn_units: 64
   seq_len: 36
 train:
-  dropout: 0
+  dropout: 0.5
   epochs: 50000
   optimizer: adam
   patience: 50

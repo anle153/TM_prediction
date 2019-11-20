@@ -34,7 +34,7 @@ model:
   r: 2
 train:
   base_lr: 0.001
-  dropout: 0.2
+  dropout: 0.5
   epoch: 64
   epochs: 50000
   epsilon: 0.00000001

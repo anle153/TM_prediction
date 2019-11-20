@@ -1,0 +1,58 @@
+---
+alg: dcrnn_fwbw_s
+base_dir: logs/pretrained/Abilene
+log_level: INFO
+gpu: 0
+mon_ratio: 0.3
+scaler: MM
+data:
+  data_name: Abilene
+  batch_size: 32
+  val_batch_size: 32
+  eval_batch_size: 1
+  test_batch_size: 1
+  dataset_dir: Dataset/Abilene2d.npy
+  adj_method: OD
+  pos_thres: 0.7
+  neg_thres: -0.8
+  day_size: 288
+  data_size: 1.0
+  generate_data: False
+model:
+  cl_decay_steps: 2000
+  filter_type: dual_random_walk
+  horizon: 1
+  input_dim: 2
+  l1_decay: 0
+  max_diffusion_step: 3
+  num_nodes: 144
+  num_rnn_layers: 2
+  output_dim: 1
+  rnn_units: 128
+  seq_len: 36
+  use_curriculum_learning: true
+  r: 2
+train:
+  base_lr: 0.001
+  dropout: 0.5
+  epoch: 64
+  epochs: 50000
+  epsilon: 0.00000001
+  global_step: 24375
+  lr_decay_ratio: 0.1
+  max_grad_norm: 1
+  max_to_keep: 100
+  min_learning_rate: 2.0e-06
+  optimizer: adam
+  patience: 30
+  steps:
+    - 20
+    - 30
+    - 40
+    - 50
+  test_every_n_epochs: 10
+  continue_train: True
+test:
+  run_times: 50
+  flow_selection: Random
+  test_size: 2

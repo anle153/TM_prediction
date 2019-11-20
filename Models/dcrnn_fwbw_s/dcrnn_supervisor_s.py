@@ -21,13 +21,13 @@ from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
 
 
-class DCRNNSupervisor(AbstractModel):
+class DCRNNSSupervisor(AbstractModel):
     """
     Do experiments using Graph Random Walk RNN model.
     """
 
     def __init__(self, is_training=False, **kwargs):
-        super(DCRNNSupervisor, self).__init__(**kwargs)
+        super(DCRNNSSupervisor, self).__init__(**kwargs)
 
         self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
                                               horizon=self._model_kwargs.get('horizon'),
@@ -109,25 +109,23 @@ class DCRNNSupervisor(AbstractModel):
             self._logger.debug('{}, {}'.format(var.name, var.get_shape()))
 
         # Backward model
-        self._model_bw = None
+        self._bw_model = self._construct_bw()
 
-    def construct_fwbw_lstm(self):
+    def _construct_bw(self):
         # Input
         input_tensor = Input(shape=(self._seq_len, self._input_dim), name='input')
 
         # Backward Network
         bw_lstm_layer = LSTM(self._rnn_units, input_shape=(self._seq_len, self._input_dim),
                              return_sequences=True, go_backwards=True)(input_tensor)
-        bw_drop_out = Dropout(self._drop_out)(bw_lstm_layer)
-        bw_flat_layer = TimeDistributed(Flatten())(bw_drop_out)
-        bw_dense_1 = TimeDistributed(Dense(128, ))(bw_flat_layer)
-        bw_dense_2 = TimeDistributed(Dense(64, ))(bw_dense_1)
-        bw_dense_3 = TimeDistributed(Dense(32, ))(bw_dense_2)
-        bw_outputs = TimeDistributed(Dense(1, ))(bw_dense_3)
+        bw_outs = Dropout(self._drop_out)(bw_lstm_layer)
+        bw_outs = TimeDistributed(Flatten())(bw_outs)
+        bw_outs = TimeDistributed(Dense(128, ))(bw_outs)
+        bw_outs = TimeDistributed(Dense(64, ))(bw_outs)
+        bw_outs = TimeDistributed(Dense(32, ))(bw_outs)
+        bw_outs = TimeDistributed(Dense(1, ))(bw_outs)
 
-        bw_outputs = Reshape(target_shape=(self._seq_len, 1))(bw_outputs)
-
-        # bw_input_tensor_flatten = Reshape((self._seq_len * self._input_dim, 1))(input_tensor)
+        bw_outputs = Reshape(target_shape=(self._seq_len, 1))(bw_outs)
         bw_outputs = Concatenate(axis=-1)([input_tensor, bw_outputs])
 
         bw_outputs = Flatten()(bw_outputs)
@@ -137,10 +135,11 @@ class DCRNNSupervisor(AbstractModel):
         bw_outputs = Dropout(0.5)(bw_outputs)
         bw_outputs = Dense(self._seq_len, name='bw_outputs')(bw_outputs)
 
-        self.bw_model = Model(inputs=input_tensor, outputs=bw_outputs, name='bw-lstm')
-        self.bw_model.compile(loss='mse', optimizer='adam')
+        bw_model = Model(inputs=input_tensor, outputs=bw_outputs, name='bw-lstm')
+        bw_model.compile(loss='mse', optimizer='adam')
 
-        self.plot_models(self.bw_model, tag='bw')
+        self.plot_models(bw_model, tag='bw')
+        return bw_model
 
     def run_epoch_generator(self, sess, model, data_generator, return_output=False, training=False, writer=None):
         losses = []
@@ -222,7 +221,7 @@ class DCRNNSupervisor(AbstractModel):
         })
 
         y_truths = []
-
+        _last_err = 1.0
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):
 
             x = self._prepare_input_dcrnn(
@@ -245,13 +244,22 @@ class DCRNNSupervisor(AbstractModel):
 
             pred = vals['outputs'][0, 0, :, 0]
 
+            bw_outputs = self._bw_model.predict(x)
+
+            bw_outputs = bw_outputs.T
+            _corr_data = bw_outputs[1:]
+
+            _pred_err = self._calculate_pred_err(pred=_corr_data.copy(), tm=tm_pred[ts:ts + self._seq_len - 1].copy(),
+                                                 m_indicator=m_indicator[ts:ts + self._seq_len - 1].copy())
+            if _pred_err < _last_err:
+                _measured_data = tm_pred[ts:ts + self._seq_len - 1] * m_indicator[ts:ts + self._seq_len - 1]
+                _corr_data = _corr_data * (1.0 - m_indicator[ts:ts + self._seq_len - 1])
+                tm_pred[ts:ts + self._seq_len - 1] = _measured_data + _corr_data
+
+            _last_err = _pred_err
+
             sampling = self._monitored_flows_slection(time_slot=ts, m_indicator=m_indicator)
-
-            # invert of sampling: for choosing value from the original data
-
             ground_true = test_data_norm[ts + self._seq_len]
-
-            # Merge value from pred_input and measured_input
             new_input = pred * (1.0 - sampling) + ground_true * sampling
 
             # Concatenating new_input into current rnn_input
@@ -426,6 +434,7 @@ class DCRNNSupervisor(AbstractModel):
         :return:
         """
         self._saver.restore(sess, model_filename)
+        self._bw_model.load_weights(self._log_dir + 'best_bw_model.hdf5')
 
     def save(self, sess, val_loss):
         config = dict(self._kwargs)

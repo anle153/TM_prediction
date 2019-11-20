@@ -177,10 +177,6 @@ class FwbwLstmSRegression(AbstractModel):
             y_preds.append(np.expand_dims(fw_outputs, axis=0))
             pred = fw_outputs[0]
 
-            # Using part of current prediction as input to the next estimation
-            # Randomly choose the flows which is measured (using the correct data from test_set)
-
-            # boolean array(1 x n_flows):for choosing value from predicted data
             sampling = self._monitored_flows_slection(time_slot=ts, tm_pred=tm_pred, m_indicator=m_indicator,
                                                       fw_outputs=fw_outputs, lamda=self._lamda)
 

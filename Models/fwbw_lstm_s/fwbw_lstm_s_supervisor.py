@@ -230,7 +230,7 @@ class FwbwLstmSRegression(AbstractModel):
 
         if training_bw_history is not None:
             self.plot_training_history(training_bw_history, tag='bw')
-            self.save_model_history(times=self._time_callback.times, model_history=training_bw_history)
+            self.save_model_history(times=self._time_callback_bw.times, model_history=training_bw_history)
             config = dict(self._kwargs)
             config_filename = 'config_fwbw_lstm.yaml'
             config['train']['log_dir'] = self._log_dir

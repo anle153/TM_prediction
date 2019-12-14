@@ -53,21 +53,15 @@ class GCONVRNN(AbstractModel):
         laplacian = scipy.sparse.csr_matrix(laplacian, dtype=np.float32)
         lmax = graph.lmax(laplacian)
 
-        if is_training:
-            with tf.name_scope('Train'):
-                with tf.variable_scope('GCONVRNN', reuse=False):
-                    self._train_model = Model(is_training=True, laplacian=laplacian,
-                                              lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
+        with tf.name_scope('Train'):
+            with tf.variable_scope('GCONVRNN', reuse=False):
+                self._train_model = Model(is_training=True, laplacian=laplacian,
+                                          lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
 
-            with tf.name_scope('Val'):
-                with tf.variable_scope('GCONVRNN', reuse=True):
-                    self._val_model = Model(is_training=False, laplacian=laplacian,
-                                            lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
-        else:
-            with tf.name_scope('Test'):
-                with tf.variable_scope('GCONVRNN', reuse=True):
-                    self._test_model = Model(is_training=False, laplacian=laplacian,
-                                             lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
+        with tf.name_scope('Test'):
+            with tf.variable_scope('GCONVRNN', reuse=True):
+                self._test_model = Model(is_training=False, laplacian=laplacian,
+                                         lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
 
         self.saver = tf.train.Saver()
         self.model_saver = tf.train.Saver(self._train_model.model_vars)
@@ -198,7 +192,7 @@ class GCONVRNN(AbstractModel):
             train_loss = res['loss']
 
             # run validating
-            val_res = self.run_epoch_generator(model=self._val_model,
+            val_res = self.run_epoch_generator(model=self._train_model,
                                                data_generator=val_data_generator)
             val_loss = val_res['loss']
             end_time = time.time()

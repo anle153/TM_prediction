@@ -616,10 +616,8 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
-                       dataset_dir, data_size, day_size, batch_size, eval_batch_size,
-                       pos_thres, neg_thres, val_batch_size, adj_method='CORR1', scaler_type='SD',
-                       is_training=False, **kwargs):
+def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, dataset_dir, data_size, day_size, batch_size, pos_thres,
+                       neg_thres, adj_method='CORR1', scaler_type='SD', is_training=False, **kwargs):
     train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
         prepare_data(dataset_dir, day_size, data_size, scaler_type)
     data = {}

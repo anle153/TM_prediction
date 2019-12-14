@@ -1,6 +1,6 @@
 ---
 alg: gconvrnn
-base_dir: logs/pretrained
+base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
 mon_ratio: 0.5

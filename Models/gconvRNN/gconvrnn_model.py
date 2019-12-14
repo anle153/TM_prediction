@@ -245,6 +245,8 @@ class Model(object):
         self.return_seq = config['return_seq']
         self.rnn_units = int(config['rnn_units'])
         self.num_kernel = int(config['num_kernel'])
+        self.num_rnn_layers = int(config['num_rnn_layers'])
+
         self.classif_loss = config['classif_loss']
         self.learning_rate = float(config['learning_rate'])
         self.max_grad_norm = None
@@ -292,6 +294,7 @@ class Model(object):
         with tf.variable_scope("gconv_model", reuse=reuse) as sc:
             if self.model_type == 'lstm':
                 cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_units, forget_bias=1.0)
+                cells = [cell] * self.num_rnn_layers
                 n_classes = self.num_nodes
                 output_variable = {
                     'weight': tf.Variable(tf.random_normal([self.rnn_units, n_classes])),
@@ -301,6 +304,7 @@ class Model(object):
                                      laplacian=self.laplacian, lmax=self.lmax,
                                      feat_in=self.input_dim, K=self.num_kernel,
                                      nNode=self.num_nodes)
+                cells = [cell] * self.num_rnn_layers
                 output_variable = {
                     'weight': tf.Variable(tf.random_normal([self.rnn_units, self.output_dim])),
                     'bias': tf.Variable(tf.random_normal([self.output_dim]))}
@@ -308,8 +312,8 @@ class Model(object):
             else:
                 raise Exception("[!] Unkown model type: {}".format(self.model_type))
 
-            cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
-            outputs, states = tf.contrib.rnn.static_rnn(cell, self.rnn_input_seq, dtype=tf.float32)
+            cells = tf.nn.rnn_cell.DropoutWrapper(cells, output_keep_prob=0.8)
+            outputs, states = tf.contrib.rnn.static_rnn(cells, self.rnn_input_seq, dtype=tf.float32)
             # cell = tf.contrib.rnn.core_rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
             # Check the tf version here
             predictions = []

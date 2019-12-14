@@ -191,13 +191,13 @@ class GCONVRNN(AbstractModel):
         self.model_summary_writer = None
 
         ##Training
+        train_data_generator = self._data['train_loader'].get_iterator()
+        val_data_generator = self._data['val_loader'].get_iterator()
+
         while self._epoch <= self._epochs:
             start_time = time.time()
 
             self._logger.info('Training epoch: {}/{}'.format(self._epoch, self._epochs))
-
-            train_data_generator = self._data['train_loader'].get_iterator()
-            val_data_generator = self._data['val_loader'].get_iterator()
 
             # run training
             res = self.run_epoch_generator(model=self._train_model,
@@ -226,6 +226,8 @@ class GCONVRNN(AbstractModel):
                 if wait > patience:
                     self._logger.warning('Early stopping at epoch: %d' % self._epoch)
                     break
+
+            self._epoch += 1
 
     def _get_summary_writer(self, result):
         if result['step'] % self._logstep == 0:

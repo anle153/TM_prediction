@@ -14,7 +14,7 @@ from tqdm import tqdm
 import Models.gconvRNN.graph as graph
 from Models.AbstractModel import AbstractModel
 from Models.gconvRNN.gconvrnn_model import Model
-from lib import utils, metrics
+from lib import utils
 
 
 class GCONVRNN(AbstractModel):
@@ -25,17 +25,19 @@ class GCONVRNN(AbstractModel):
     def __init__(self, is_training=False, **kwargs):
         super(GCONVRNN, self).__init__(**kwargs)
 
+        self._epoch = int(kwargs['train'].get('epoch'))
+
         self._logstep = int(kwargs['train'].get('logstep'))
 
         self._checkpoint_secs = int(kwargs['train'].get('checkpoint_secs'))
 
-        self._data = utils.load_dataset_gconvrnn(seq_len=self._model_kwargs.get('seq_len'),
-                                                 horizon=self._model_kwargs.get('horizon'),
-                                                 input_dim=self._model_kwargs.get('input_dim'),
-                                                 mon_ratio=self._mon_ratio,
-                                                 scaler_type=self._kwargs.get('scaler'),
-                                                 is_training=is_training,
-                                                 **self._data_kwargs)
+        self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
+                                              horizon=self._model_kwargs.get('horizon'),
+                                              input_dim=self._model_kwargs.get('input_dim'),
+                                              mon_ratio=self._mon_ratio,
+                                              scaler_type=self._kwargs.get('scaler'),
+                                              is_training=is_training,
+                                              **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
@@ -43,7 +45,7 @@ class GCONVRNN(AbstractModel):
         # Build models.
         scaler = self._data['scaler']
 
-        W = self._data['adj']
+        W = self._data['adj_mx']
         laplacian = W / W.max()
         laplacian = scipy.sparse.csr_matrix(laplacian, dtype=np.float32)
         lmax = graph.lmax(laplacian)
@@ -109,19 +111,6 @@ class GCONVRNN(AbstractModel):
         }
         return results
 
-    def _prepare_input(self, ground_truth, data, m_indicator):
-
-        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
-        y = np.zeros(shape=(self._horizon, self._nodes), dtype='float32')
-
-        x[:, :, 0] = data
-        x[:, :, 1] = m_indicator
-
-        y[:] = ground_truth
-        y = np.expand_dims(y, axis=2)
-
-        return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
-
     def _run_tm_prediction(self, sess, model, runId, writer=None):
 
         test_data_norm = self._data['test_data_norm']
@@ -185,48 +174,46 @@ class GCONVRNN(AbstractModel):
         min_val_loss = float('inf')
         wait = 0
 
-        print("[*] Checking if previous run exists in {}"
-              "".format(self._log_dir))
-        latest_checkpoint = tf.train.latest_checkpoint(self._log_dir)
-        if tf.train.latest_checkpoint(self._log_dir) is not None:
-            print("[*] Saved result exists! loading...")
+        if self._epoch > 0:
+            pretrained_model = self._train_kwargs.get('model_filename')
+            self._logger.info("[*] Saved result exists! loading...")
             self.saver.restore(
                 self.sess,
-                latest_checkpoint
+                pretrained_model
             )
-            print("[*] Loaded previously trained weights")
+            self._logger.info("[*] Loaded previously trained weights")
             self.b_pretrain_loaded = True
         else:
-            print("[*] No previous result")
+            self._logger.info("[*] No previous result")
             self.b_pretrain_loaded = False
 
-        print("[*] Training starts...")
+        self._logger.info("[*] Training starts...")
         self.model_summary_writer = None
 
         ##Training
-        _epoch = 0
-        while _epoch <= self._epochs:
+        while self._epoch <= self._epochs:
             start_time = time.time()
 
-            self._logger.info('Training epoch: {}/{}'.format(_epoch, self._epochs))
+            self._logger.info('Training epoch: {}/{}'.format(self._epoch, self._epochs))
 
             train_data_generator = self._data['train_loader'].get_iterator()
             val_data_generator = self._data['val_loader'].get_iterator()
 
-            losses = []
-
+            # run training
             res = self.run_epoch_generator(model=self._train_model,
                                            data_generator=train_data_generator)
             train_loss = res['loss']
 
+            # run validating
             val_res = self.run_epoch_generator(model=self._val_model,
                                                data_generator=val_data_generator)
             val_loss = val_res['loss']
             end_time = time.time()
             message = 'Epoch [{}/{}] train_loss: {:f}, val_loss: {:f} {:.1f}s'.format(
-                _epoch, self._epochs, train_loss, val_loss, (end_time - start_time))
+                self._epoch, self._epochs, train_loss, val_loss, (end_time - start_time))
             self._logger.info(message)
 
+            # early stopping
             if val_loss <= min_val_loss:
                 wait = 0
                 if save_model > 0:
@@ -237,7 +224,7 @@ class GCONVRNN(AbstractModel):
             else:
                 wait += 1
                 if wait > patience:
-                    self._logger.warning('Early stopping at epoch: %d' % _epoch)
+                    self._logger.warning('Early stopping at epoch: %d' % self._epoch)
                     break
 
     def _get_summary_writer(self, result):
@@ -245,68 +232,6 @@ class GCONVRNN(AbstractModel):
             return self.summary_writer
         else:
             return None
-
-    def test(self, sess):
-
-        n_metrics = 4
-        # Metrics: MSE, MAE, RMSE, MAPE, ER
-        metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
-
-        for i in range(self._run_times):
-            self._logger.info('|--- Run time: {}'.format(i))
-            # y_test = self._prepare_test_set()
-
-            test_results = self._run_tm_prediction(sess, model=self._test_model, runId=i)
-
-            metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
-                                                      scaler=self._data['scaler'],
-                                                      runId=i, data_norm=self._data['test_data_norm'])
-
-        self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
-
-        return
-
-    def evaluate(self, sess):
-        global_step = sess.run(tf.train.get_or_create_global_step())
-        test_results = self.run_epoch_generator(sess, self._eval_model,
-                                                self._data['eval_loader'].get_iterator(),
-                                                return_output=True,
-                                                training=False)
-
-        # y_preds:  a list of (batch_size, horizon, num_nodes, output_dim)
-        test_loss, y_preds = test_results['loss'], test_results['outputs']
-        utils.add_simple_summary(self._writer, ['loss/test_loss'], [test_loss], global_step=global_step)
-
-        y_preds = np.concatenate(y_preds, axis=0)
-        scaler = self._data['scaler']
-        predictions = []
-        y_truths = []
-        for horizon_i in range(self._data['y_eval'].shape[1]):
-            y_truth = scaler.inverse_transform(self._data['y_eval'][:, horizon_i, :, 0])
-            y_truths.append(y_truth)
-
-            y_pred = scaler.inverse_transform(y_preds[:, horizon_i, :, 0])
-            predictions.append(y_pred)
-
-            mse = metrics.masked_mse_np(preds=y_pred, labels=y_truth, null_val=0)
-            mae = metrics.masked_mae_np(preds=y_pred, labels=y_truth, null_val=0)
-            mape = metrics.masked_mape_np(preds=y_pred, labels=y_truth, null_val=0)
-            rmse = metrics.masked_rmse_np(preds=y_pred, labels=y_truth, null_val=0)
-            self._logger.info(
-                "Horizon {:02d}, MSE: {:.2f}, MAE: {:.2f}, RMSE: {:.2f}, MAPE: {:.4f}".format(
-                    horizon_i + 1, mse, mae, rmse, mape
-                )
-            )
-            utils.add_simple_summary(self._writer,
-                                     ['%s_%d' % (item, horizon_i + 1) for item in
-                                      ['metric/rmse', 'metric/mae', 'metric/mse']],
-                                     [rmse, mae, mse],
-                                     global_step=global_step)
-        outputs = {
-            'predictions': predictions,
-            'groundtruth': y_truths
-        }
-        return outputs
 
     def load(self, sess, model_filename):
         """
@@ -319,12 +244,10 @@ class GCONVRNN(AbstractModel):
 
     def save(self, val_loss):
         config = dict(self._kwargs)
-        global_step = sess.run(tf.train.get_or_create_global_step()).item()
         prefix = os.path.join(self._log_dir, 'models-{:.4f}'.format(val_loss))
         config['train']['epoch'] = self._epoch
-        config['train']['global_step'] = global_step
         config['train']['log_dir'] = self._log_dir
-        config['train']['model_filename'] = self.saver.save(self.sess, self._log_dir)
+        config['train']['model_filename'] = self.saver.save(self.sess, prefix)
 
         config_filename = 'config_{}.yaml'.format(self._epoch)
         with open(os.path.join(self._log_dir, config_filename), 'w') as f:

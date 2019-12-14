@@ -235,15 +235,15 @@ class Model(object):
         self.is_training = is_training
         self.model_type = config['model_type']
         self.batch_size = int(config['batch_size'])
-        self.num_node = int(config['num_node'])
-        self.feat_in = int(config['feat_in'])
-        self.num_time_steps = int(config['num_time_steps'])
-        self.feat_out = int(config['feat_out'])
-        ##Need to import laplacian, lmax
+        self.num_nodes = int(config['num_nodes'])
+        self.input_dim = int(config['input_dim'])
+        self.seq_len = int(config['seq_len'])
+        self.output_dim = int(config['output_dim'])
+        # Need to import laplacian, lmax
         self.laplacian = laplacian
         self.lmax = lmax
 
-        self.num_hidden = int(config['num_hidden'])
+        self.rnn_units = int(config['rnn_units'])
         self.num_kernel = int(config['num_kernel'])
         self.classif_loss = config['classif_loss']
         self.learning_rate = float(config['learning_rate'])
@@ -263,40 +263,40 @@ class Model(object):
         if self.model_type == 'lstm':
             # here, self.num_node is the input feature
             self.rnn_input = tf.placeholder(tf.float32,
-                                            [self.batch_size, self.num_node, self.num_time_steps],
+                                            [self.batch_size, self.num_nodes, self.seq_len],
                                             name="rnn_input")
-            self.rnn_input_seq = tf.unstack(self.rnn_input, self.num_time_steps, 2)
+            self.rnn_input_seq = tf.unstack(self.rnn_input, self.seq_len, 2)
         elif self.model_type == 'glstm':
             self.rnn_input = tf.placeholder(tf.float32,
-                                            [self.batch_size, self.num_node, self.feat_in, self.num_time_steps],
+                                            [self.batch_size, self.num_nodes, self.input_dim, self.seq_len],
                                             name="rnn_input")
-            self.rnn_input_seq = tf.unstack(self.rnn_input, self.num_time_steps, 3)
+            self.rnn_input_seq = tf.unstack(self.rnn_input, self.seq_len, 3)
         else:
             raise Exception("[!] Unkown model type: {}".format(self.model_type))
 
         self.rnn_output = tf.placeholder(tf.int64,
-                                         [self.batch_size, self.num_time_steps],
+                                         [self.batch_size, self.seq_len],
                                          name="rnn_output")
-        self.rnn_output_seq = tf.unstack(self.rnn_output, self.num_time_steps, 1)
+        self.rnn_output_seq = tf.unstack(self.rnn_output, self.seq_len, 1)
         self.model_step = tf.Variable(
             0, name='model_step', trainable=False)
 
     def _build_model(self, reuse=None):
         with tf.variable_scope("gconv_model", reuse=reuse) as sc:
             if self.model_type == 'lstm':
-                cell = tf.nn.rnn_cell.BasicLSTMCell(self.num_hidden, forget_bias=1.0)
-                n_classes = self.num_node
+                cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_units, forget_bias=1.0)
+                n_classes = self.num_nodes
                 output_variable = {
-                    'weight': tf.Variable(tf.random_normal([self.num_hidden, n_classes])),
+                    'weight': tf.Variable(tf.random_normal([self.rnn_units, n_classes])),
                     'bias': tf.Variable(tf.random_normal([n_classes]))}
             elif self.model_type == 'glstm':
-                cell = gconvLSTMCell(num_units=self.num_hidden, forget_bias=1.0,
+                cell = gconvLSTMCell(num_units=self.rnn_units, forget_bias=1.0,
                                      laplacian=self.laplacian, lmax=self.lmax,
-                                     feat_in=self.feat_in, K=self.num_kernel,
-                                     nNode=self.num_node)
+                                     feat_in=self.input_dim, K=self.num_kernel,
+                                     nNode=self.num_nodes)
                 output_variable = {
-                    'weight': tf.Variable(tf.random_normal([self.num_hidden, self.feat_out])),
-                    'bias': tf.Variable(tf.random_normal([self.feat_out]))}
+                    'weight': tf.Variable(tf.random_normal([self.rnn_units, self.output_dim])),
+                    'bias': tf.Variable(tf.random_normal([self.output_dim]))}
 
             else:
                 raise Exception("[!] Unkown model type: {}".format(self.model_type))
@@ -311,10 +311,10 @@ class Model(object):
 
             predictions = []
             for output in outputs:
-                output_reshape = tf.reshape(output, [-1, self.num_hidden])
+                output_reshape = tf.reshape(output, [-1, self.rnn_units])
                 prediction = tf.matmul(output_reshape, output_variable['weight']) + output_variable['bias']
                 if self.model_type == 'glstm':
-                    prediction = tf.reshape(prediction, [-1, self.num_node, 1])
+                    prediction = tf.reshape(prediction, [-1, self.num_nodes, 1])
                 predictions.append(prediction)
 
             if self.model_type == 'lstm':
@@ -332,7 +332,7 @@ class Model(object):
     def _build_loss(self):
         if self.classif_loss == "cross_entropy":
             losses = [tf.nn.sparse_softmax_cross_entropy_with_logits(
-                logits=tf.reshape(logits, [-1, self.num_node]), labels=labels)
+                logits=tf.reshape(logits, [-1, self.num_nodes]), labels=labels)
                 for logits, labels in zip(self.predictions, self.rnn_output_seq)]
             loss_sum = tf.reduce_sum(losses, axis=1)
             loss_batchmean = tf.reduce_mean(loss_sum, name="model_loss")
@@ -344,7 +344,7 @@ class Model(object):
         else:
             raise ValueError(
                 "Unsupported loss type {}".format(
-                    self.config.classif_loss))
+                    self.classif_loss))
 
         with tf.name_scope("losses"):
             self.loss = loss_batchmean

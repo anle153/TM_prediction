@@ -329,8 +329,6 @@ class Model(object):
 
             if self.model_type == 'lstm':
                 self.pred_out = tf.concat(predictions, 1)
-            elif self.model_type == 'glstm':
-                self.pred_out = tf.concat(predictions, 2)
 
             # pred_out_softmax = tf.nn.softmax(pred_out,dim=1)
             self.predictions = tf.concat(predictions, 0)
@@ -339,8 +337,7 @@ class Model(object):
             else:
                 self.predictions = tf.reshape(self.predictions, [-1, 1, self.num_nodes, self.output_dim])
 
-            print('prediction shape', self.predictions.get_shape())
-
+            self.pred_out = self.predictions
             self.model_vars = tf.contrib.framework.get_variables(
                 sc, collection=tf.GraphKeys.TRAINABLE_VARIABLES)
 

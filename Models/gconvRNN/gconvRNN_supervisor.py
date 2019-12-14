@@ -63,7 +63,9 @@ class GCONVRNN(AbstractModel):
                 self._test_model = Model(is_training=False, laplacian=laplacian,
                                          lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
 
-        self.saver = tf.train.Saver()
+        max_to_keep = self._train_kwargs.get('max_to_keep', 100)
+
+        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
         self.model_saver = tf.train.Saver(self._train_model.model_vars)
         self.summary_writer = tf.summary.FileWriter(self._log_dir)
 

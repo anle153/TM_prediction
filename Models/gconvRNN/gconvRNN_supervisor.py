@@ -119,14 +119,6 @@ class GCONVRNN(AbstractModel):
         tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
 
         y_preds = []
-        fetches = {
-            'global_step': tf.train.get_or_create_global_step()
-        }
-
-        fetches.update({
-            'outputs': model.outputs
-        })
-
         y_truths = []
 
         for ts in tqdm(range(test_data_norm.shape[0] - self._horizon - self._seq_len)):

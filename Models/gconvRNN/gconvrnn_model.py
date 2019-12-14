@@ -281,9 +281,10 @@ class Model(object):
                                              name="rnn_output")
             self.rnn_output_seq = tf.unstack(self.rnn_output, self.seq_len, 1)
         else:
-            self.rnn_output_seq = tf.placeholder(tf.float32,
-                                                 [self.batch_size, 1, 1],
-                                                 name="rnn_output")
+            self.rnn_output = tf.placeholder(tf.float32,
+                                             [self.batch_size, 1, 1],
+                                             name="rnn_output")
+            self.rnn_output_seq = self.rnn_output
 
         self.model_step = tf.Variable(
             0, name='model_step', trainable=False)

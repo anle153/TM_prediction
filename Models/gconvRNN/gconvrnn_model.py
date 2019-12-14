@@ -92,8 +92,7 @@ class gconvLSTMCell(RNNCell):
     def __init__(self, num_units, forget_bias=1.0,
                  state_is_tuple=True, activation=None, reuse=None,
                  laplacian=None, lmax=None, K=None, feat_in=None, nNode=None):
-        if tfversion == 'new':
-            super(gconvLSTMCell, self).__init__(_reuse=reuse)  # super what is it?
+        super(gconvLSTMCell, self).__init__(_reuse=reuse)  # super what is it?
 
         self._num_units = num_units
         self._forget_bias = forget_bias
@@ -277,12 +276,12 @@ class Model(object):
 
         if self.return_seq:
             self.rnn_output = tf.placeholder(tf.float32,
-                                             [self.batch_size, self.seq_len],
+                                             [self.batch_size, self.seq_len, self.num_nodes, self.output_dim],
                                              name="rnn_output")
             self.rnn_output_seq = tf.unstack(self.rnn_output, self.seq_len, 1)
         else:
             self.rnn_output = tf.placeholder(tf.float32,
-                                             [self.batch_size, 1, 1],
+                                             [self.batch_size, 1, self.num_nodes, self.output_dim],
                                              name="rnn_output")
             self.rnn_output_seq = self.rnn_output
 
@@ -309,11 +308,8 @@ class Model(object):
             else:
                 raise Exception("[!] Unkown model type: {}".format(self.model_type))
 
-            if tfversion == 'new':
-                cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
-                outputs, states = tf.nn.static_rnn(cell, self.rnn_input_seq, dtype=tf.float32)
-            else:
-                outputs, states = tf.contrib.rnn.static_rnn(cell, self.rnn_input_seq, dtype=tf.float32)
+            cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
+            outputs, states = tf.contrib.rnn.static_rnn(cell, self.rnn_input_seq, dtype=tf.float32)
             # cell = tf.contrib.rnn.core_rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
             # Check the tf version here
             predictions = []
@@ -322,13 +318,13 @@ class Model(object):
                     output_reshape = tf.reshape(output, [-1, self.rnn_units])
                     prediction = tf.matmul(output_reshape, output_variable['weight']) + output_variable['bias']
                     if self.model_type == 'glstm':
-                        prediction = tf.reshape(prediction, [-1, self.num_nodes, 1])
+                        prediction = tf.reshape(prediction, [-1, self.num_nodes, self.output_dim])
                     predictions.append(prediction)
             else:
                 output_reshape = tf.reshape(outputs[-1], [-1, self.rnn_units])
                 prediction = tf.matmul(output_reshape, output_variable['weight']) + output_variable['bias']
                 if self.model_type == 'glstm':
-                    prediction = tf.reshape(prediction, [-1, self.num_nodes, 1])
+                    prediction = tf.reshape(prediction, [-1, self.num_nodes, self.output_dim])
                 predictions.append(prediction)
 
             if self.model_type == 'lstm':
@@ -337,7 +333,14 @@ class Model(object):
                 self.pred_out = tf.concat(predictions, 2)
 
             # pred_out_softmax = tf.nn.softmax(pred_out,dim=1)
-            self.predictions = predictions
+            self.predictions = tf.concat(predictions, 0)
+            if self.return_seq:
+                self.predictions = tf.reshape(self.predictions, [-1, self.seq_len, self.num_nodes, self.output_dim])
+            else:
+                self.predictions = tf.reshape(self.predictions, [-1, 1, self.num_nodes, self.output_dim])
+
+            print('prediction shape', self.predictions.get_shape())
+
             self.model_vars = tf.contrib.framework.get_variables(
                 sc, collection=tf.GraphKeys.TRAINABLE_VARIABLES)
 

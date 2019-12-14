@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 
+import numpy as np
 import tensorflow as tf
 import yaml
 
@@ -41,8 +42,6 @@ def print_gconvrnn_info(mode, config):
         print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
         print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
         print('|--- BATCH:\t{}'.format(config['model']['batch_size']))
-        print('|--- CONTINUE_TRAIN:\t{}'.format(config['train']['continue_train']))
-
     else:
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))
@@ -56,18 +55,14 @@ def print_gconvrnn_info(mode, config):
 
 def train_gconvrnn(config):
     print('|-- Run model training gconvrnn.')
+    rng = np.random.RandomState(config['seed'])
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 
     with tf.Session(config=tf_config) as sess:
         model = GCONVRNN(is_training=True, **config)
-        try:
-            if config['train']['continue_train']:
-                model.load(sess, config['train']['model_filename'])
-        except KeyError:
-            print('No saved model found!')
-        model.train(sess)
+        model.train()
 
 
 def test_gconvrnn(config):

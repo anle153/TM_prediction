@@ -630,10 +630,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
                                              mon_ratio=mon_ratio, eps=train_data_norm.std())
         x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
                                          mon_ratio=mon_ratio, eps=train_data_norm.std())
-        x_eval, y_eval = create_data_dcrnn(data=test_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                           mon_ratio=mon_ratio, eps=train_data_norm.std())
 
-        for category in ['train', 'val', 'eval']:
+        for category in ['train', 'val']:
             _x, _y = locals()["x_" + category], locals()["y_" + category]
             print(category, "x: ", _x.shape, "y:", _y.shape)
             data['x_' + category] = _x
@@ -641,8 +639,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio,
         # Data format
 
         data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
-        data['val_loader'] = DataLoader(data['x_val'], data['y_val'], val_batch_size, shuffle=False)
-        data['eval_loader'] = DataLoader(data['x_eval'], data['y_eval'], eval_batch_size, shuffle=False)
+        data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
 
     data['scaler'] = scaler
 

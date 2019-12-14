@@ -41,7 +41,7 @@ def print_gconvrnn_info(mode, config):
         print('|--- DROPOUT:\t{}'.format(config['train']['dropout']))
         print('|--- EPSILON:\t{}'.format(config['train']['epsilon']))
         print('|--- PATIENCE:\t{}'.format(config['train']['patience']))
-        print('|--- BATCH:\t{}'.format(config['model']['batch_size']))
+        print('|--- BATCH:\t{}'.format(config['data']['batch_size']))
     else:
         print('----------------------- TEST -----------------------')
         print('|--- MODEL_FILENAME:\t{}'.format(config['train']['model_filename']))

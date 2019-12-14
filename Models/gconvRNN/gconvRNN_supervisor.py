@@ -265,7 +265,7 @@ class GCONVRNN(AbstractModel):
 
     def save(self, val_loss):
         config = dict(self._kwargs)
-        prefix = os.path.join(self._log_dir, 'models-{:.4f}'.format(val_loss))
+        prefix = os.path.join(self._log_dir, 'models-{}-{}'.format(self._epoch, val_loss))
         config['train']['epoch'] = self._epoch
         config['train']['log_dir'] = self._log_dir
         config['train']['model_filename'] = self.saver.save(self.sess, prefix)

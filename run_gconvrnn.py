@@ -72,22 +72,10 @@ def test_gconvrnn(config):
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
         model = GCONVRNN(is_training=False, **config)
-        model.load(sess, config['train']['model_filename'])
-        model.test(sess)
+        model.test()
         # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
         #
         # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
-
-
-def evaluate_gconvrnn(config):
-    print('|-- Run model testing gconvrnn.')
-
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        model = GCONVRNN(is_training=False, **config)
-        model.load(sess, config['train']['model_filename'])
-        outputs = model.evaluate(sess)
 
 
 if __name__ == '__main__':
@@ -108,8 +96,6 @@ if __name__ == '__main__':
     print_gconvrnn_info(args.mode, config)
     if args.mode == 'train':
         train_gconvrnn(config)
-    elif args.mode == 'evaluate' or args.mode == 'evaluation':
-        evaluate_gconvrnn(config)
     else:
         test_gconvrnn(config)
     # get_results(data)

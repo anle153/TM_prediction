@@ -395,8 +395,7 @@ class Model(object):
                        self.model_summary, summary_writer,
                        output_op=self.pred_out if with_output else None, )
 
-        def test(sess, feed_dict, summary_writer=None,
-                 with_output=False):
+        def test(sess, feed_dict, summary_writer=None, with_output=False):
             fetch = {'loss': self.loss,
                      'step': self.model_step}
             return run(sess, feed_dict, fetch,

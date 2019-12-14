@@ -111,7 +111,7 @@ class GCONVRNN(AbstractModel):
         }
         return results
 
-    def _run_tm_prediction(self, sess, model, runId, writer=None):
+    def _run_tm_prediction(self, model, runId, writer=None):
 
         test_data_norm = self._data['test_data_norm']
 
@@ -140,16 +140,13 @@ class GCONVRNN(AbstractModel):
                 np.expand_dims(test_data_norm[ts + self._seq_len:ts + self._seq_len + self._horizon].copy(), axis=0))
 
             feed_dict = {
-                model.inputs: x,
+                model.rnn_input: x,
             }
 
-            vals = sess.run(fetches, feed_dict=feed_dict)
-            y_preds.append(np.squeeze(vals['outputs'], axis=-1))
+            res = model.test(self.sess, feed_dict, with_output=True)
+            y_preds.append(np.squeeze(res['output'], axis=-1))
 
-            if writer is not None and 'merged' in vals:
-                writer.add_summary(vals['merged'], global_step=vals['global_step'])
-
-            pred = vals['outputs'][0, 0, :, 0]
+            pred = res['output'][0, 0, :, 0]
 
             sampling = self._monitored_flows_slection(time_slot=ts, m_indicator=m_indicator)
 
@@ -239,6 +236,23 @@ class GCONVRNN(AbstractModel):
         )
         self._logger.info("[*] Loaded previously trained weights")
         self.b_pretrain_loaded = True
+
+        n_metrics = 4
+        # Metrics: MSE, MAE, RMSE, MAPE, ER
+        metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
+
+        for i in range(self._run_times):
+            self._logger.info('|--- Run time: {}'.format(i))
+            # y_test = self._prepare_test_set()
+
+            test_results = self._run_tm_prediction(model=self._test_model, runId=i)
+
+            metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
+                                                      scaler=self._data['scaler'],
+                                                      runId=i, data_norm=self._data['test_data_norm'])
+
+        self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
+
 
 
 

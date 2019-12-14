@@ -135,7 +135,7 @@ class gconvLSTMCell(RNNCell):
             if feat_in is None:
                 # Take out the shape of input
                 batch_size, nNode, feat_in = inputs.get_shape()
-                print("hey!")
+                # print("hey!")
 
             feat_out = self._num_units
 
@@ -294,6 +294,7 @@ class Model(object):
         with tf.variable_scope("gconv_model", reuse=reuse) as sc:
             if self.model_type == 'lstm':
                 cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_units, forget_bias=1.0)
+                cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
                 cells = [cell] * self.num_rnn_layers
                 n_classes = self.num_nodes
                 output_variable = {
@@ -302,8 +303,9 @@ class Model(object):
             elif self.model_type == 'glstm':
                 cell = gconvLSTMCell(num_units=self.rnn_units, forget_bias=1.0,
                                      laplacian=self.laplacian, lmax=self.lmax,
-                                     feat_in=self.input_dim, K=self.num_kernel,
+                                     K=self.num_kernel,
                                      nNode=self.num_nodes)
+                cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
                 cells = [cell] * self.num_rnn_layers
                 output_variable = {
                     'weight': tf.Variable(tf.random_normal([self.rnn_units, self.output_dim])),
@@ -312,7 +314,7 @@ class Model(object):
             else:
                 raise Exception("[!] Unkown model type: {}".format(self.model_type))
 
-            cells = tf.nn.rnn_cell.DropoutWrapper(cells, output_keep_prob=0.8)
+            cells = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=True)
             outputs, states = tf.contrib.rnn.static_rnn(cells, self.rnn_input_seq, dtype=tf.float32)
             # cell = tf.contrib.rnn.core_rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
             # Check the tf version here

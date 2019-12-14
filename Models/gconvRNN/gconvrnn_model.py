@@ -230,10 +230,10 @@ class Model(object):
         Train / Test function
     """
 
-    def __init__(self, is_training, laplacian, lmax, **config):
+    def __init__(self, is_training, laplacian, lmax, batch_size, **config):
         self.is_training = is_training
         self.model_type = config['model_type']
-        self.batch_size = int(config['batch_size'])
+        self.batch_size = batch_size
         self.num_nodes = int(config['num_nodes'])
         self.input_dim = int(config['input_dim'])
         self.seq_len = int(config['seq_len'])

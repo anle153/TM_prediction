@@ -25,6 +25,9 @@ class GCONVRNN(AbstractModel):
     def __init__(self, is_training=False, **kwargs):
         super(GCONVRNN, self).__init__(**kwargs)
 
+        self._train_batch_size = int(kwargs['data'].get('batch_size'))
+        self._test_batch_size = int(kwargs['data'].get('test_batch_size'))
+
         self._epoch = int(kwargs['train'].get('epoch'))
 
         self._logstep = int(kwargs['train'].get('logstep'))
@@ -52,19 +55,18 @@ class GCONVRNN(AbstractModel):
 
         with tf.name_scope('Train'):
             with tf.variable_scope('GCONVRNN', reuse=False):
-                self._train_model = Model(is_training=True, laplacian=laplacian, lmax=lmax, **self._model_kwargs)
+                self._train_model = Model(is_training=True, laplacian=laplacian,
+                                          lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
 
         with tf.name_scope('Val'):
             with tf.variable_scope('GCONVRNN', reuse=True):
-                self._val_model = Model(is_training=False, laplacian=laplacian, lmax=lmax, **self._model_kwargs)
-
-        with tf.name_scope('Eval'):
-            with tf.variable_scope('GCONVRNN', reuse=True):
-                self._eval_model = Model(is_training=False, laplacian=laplacian, lmax=lmax, **self._model_kwargs)
+                self._val_model = Model(is_training=False, laplacian=laplacian,
+                                        lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
 
         with tf.name_scope('Test'):
             with tf.variable_scope('GCONVRNN', reuse=True):
-                self._test_model = Model(is_training=False, laplacian=laplacian, lmax=lmax, **self._model_kwargs)
+                self._test_model = Model(is_training=False, laplacian=laplacian,
+                                         lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
 
         self.saver = tf.train.Saver()
         self.model_saver = tf.train.Saver(self._train_model.model_vars)

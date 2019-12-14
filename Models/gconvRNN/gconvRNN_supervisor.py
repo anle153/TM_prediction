@@ -53,20 +53,21 @@ class GCONVRNN(AbstractModel):
         laplacian = scipy.sparse.csr_matrix(laplacian, dtype=np.float32)
         lmax = graph.lmax(laplacian)
 
-        with tf.name_scope('Train'):
-            with tf.variable_scope('GCONVRNN', reuse=False):
-                self._train_model = Model(is_training=True, laplacian=laplacian,
-                                          lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
+        if is_training:
+            with tf.name_scope('Train'):
+                with tf.variable_scope('GCONVRNN', reuse=False):
+                    self._train_model = Model(is_training=True, laplacian=laplacian,
+                                              lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
 
-        with tf.name_scope('Val'):
-            with tf.variable_scope('GCONVRNN', reuse=True):
-                self._val_model = Model(is_training=False, laplacian=laplacian,
-                                        lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
-
-        with tf.name_scope('Test'):
-            with tf.variable_scope('GCONVRNN', reuse=True):
-                self._test_model = Model(is_training=False, laplacian=laplacian,
-                                         lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
+            with tf.name_scope('Val'):
+                with tf.variable_scope('GCONVRNN', reuse=True):
+                    self._val_model = Model(is_training=False, laplacian=laplacian,
+                                            lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
+        else:
+            with tf.name_scope('Test'):
+                with tf.variable_scope('GCONVRNN', reuse=True):
+                    self._test_model = Model(is_training=False, laplacian=laplacian,
+                                             lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
 
         self.saver = tf.train.Saver()
         self.model_saver = tf.train.Saver(self._train_model.model_vars)

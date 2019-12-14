@@ -136,8 +136,6 @@ class GCONVRNN(AbstractModel):
 
             res = model.test(self.sess, feed_dict, with_output=True)
 
-            print('preds     shape', res['output'].shape)
-
             y_preds.append(np.squeeze(res['output'], axis=-1))
 
             pred = res['output'][0, 0, :, 0]

@@ -57,12 +57,8 @@ def train_gconvrnn(config):
     print('|-- Run model training gconvrnn.')
     rng = np.random.RandomState(config['seed'])
 
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-
-    with tf.Session(config=tf_config) as sess:
-        model = GCONVRNN(is_training=True, **config)
-        model.train()
+    model = GCONVRNN(is_training=True, **config)
+    model.train()
 
 
 def test_gconvrnn(config):

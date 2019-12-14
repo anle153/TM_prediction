@@ -53,44 +53,46 @@ class GCONVRNN(AbstractModel):
         laplacian = scipy.sparse.csr_matrix(laplacian, dtype=np.float32)
         lmax = graph.lmax(laplacian)
 
-        with tf.name_scope('Train'):
-            with tf.variable_scope('GCONVRNN', reuse=False):
-                self._train_model = Model(is_training=True, laplacian=laplacian,
-                                          lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
+        with tf.device('/device:GPU:{}'.format(int(kwargs['gpu']))):
 
-        with tf.name_scope('Test'):
-            with tf.variable_scope('GCONVRNN', reuse=True):
-                self._test_model = Model(is_training=False, laplacian=laplacian,
-                                         lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
+            with tf.name_scope('Train'):
+                with tf.variable_scope('GCONVRNN', reuse=False):
+                    self._train_model = Model(is_training=True, laplacian=laplacian,
+                                              lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
 
-        max_to_keep = self._train_kwargs.get('max_to_keep', 100)
+            with tf.name_scope('Test'):
+                with tf.variable_scope('GCONVRNN', reuse=True):
+                    self._test_model = Model(is_training=False, laplacian=laplacian,
+                                             lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
 
-        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
-        self.model_saver = tf.train.Saver(self._train_model.model_vars)
-        self.summary_writer = tf.summary.FileWriter(self._log_dir)
+            max_to_keep = self._train_kwargs.get('max_to_keep', 100)
 
-        sv = tf.train.Supervisor(logdir=self._log_dir,
-                                 is_chief=True,
-                                 saver=self.saver,
-                                 summary_op=None,
-                                 summary_writer=self.summary_writer,
-                                 save_summaries_secs=300,
-                                 save_model_secs=self._checkpoint_secs,
-                                 global_step=self._train_model.model_step)
+            self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
+            self.model_saver = tf.train.Saver(self._train_model.model_vars)
+            self.summary_writer = tf.summary.FileWriter(self._log_dir)
 
-        gpu_options = tf.GPUOptions(
-            per_process_gpu_memory_fraction=1.0,
-            allow_growth=True)  # seems to be not working
-        sess_config = tf.ConfigProto(allow_soft_placement=True,
-                                     gpu_options=gpu_options)
+            sv = tf.train.Supervisor(logdir=self._log_dir,
+                                     is_chief=True,
+                                     saver=self.saver,
+                                     summary_op=None,
+                                     summary_writer=self.summary_writer,
+                                     save_summaries_secs=300,
+                                     save_model_secs=self._checkpoint_secs,
+                                     global_step=self._train_model.model_step)
 
-        self.sess = sv.prepare_or_wait_for_session(config=sess_config)
+            gpu_options = tf.GPUOptions(
+                per_process_gpu_memory_fraction=1.0,
+                allow_growth=True)  # seems to be not working
+            sess_config = tf.ConfigProto(allow_soft_placement=True,
+                                         gpu_options=gpu_options)
 
-        # Log model statistics.
-        total_trainable_parameter = utils.get_total_trainable_parameter_size()
-        self._logger.info('Total number of trainable parameters: {:d}'.format(total_trainable_parameter))
-        for var in tf.global_variables():
-            self._logger.debug('{}, {}'.format(var.name, var.get_shape()))
+            self.sess = sv.prepare_or_wait_for_session(config=sess_config)
+
+            # Log model statistics.
+            total_trainable_parameter = utils.get_total_trainable_parameter_size()
+            self._logger.info('Total number of trainable parameters: {:d}'.format(total_trainable_parameter))
+            for var in tf.global_variables():
+                self._logger.debug('{}, {}'.format(var.name, var.get_shape()))
 
     def run_epoch_generator(self, model, data_generator):
         losses = []

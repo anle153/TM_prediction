@@ -190,8 +190,8 @@ class gconvLSTMCell(RNNCell):
                 bot = tf.get_variable("bot", [feat_out])
 
                 # gconv Calculation
-                zxt = cheby_conv(inputs, laplacian, lmax, feat_out, K, Wzxt)
-                zht = cheby_conv(h, laplacian, lmax, feat_out, K, Wzht)
+                zxt = cheby_conv(inputs, laplacian, lmax, feat_out, K, Wzxt)  # Wxc * x_t
+                zht = cheby_conv(h, laplacian, lmax, feat_out, K, Wzht)  # Whc * h_(t-1)
                 zt = zxt + zht + bzt
                 zt = tf.tanh(zt)
 
@@ -243,6 +243,7 @@ class Model(object):
         self.laplacian = laplacian
         self.lmax = lmax
 
+        self.return_seq = config['return_seq']
         self.rnn_units = int(config['rnn_units'])
         self.num_kernel = int(config['num_kernel'])
         self.classif_loss = config['classif_loss']
@@ -263,21 +264,27 @@ class Model(object):
         if self.model_type == 'lstm':
             # here, self.num_node is the input feature
             self.rnn_input = tf.placeholder(tf.float32,
-                                            [self.batch_size, self.num_nodes, self.seq_len],
+                                            [self.batch_size, self.seq_len, self.num_nodes],
                                             name="rnn_input")
-            self.rnn_input_seq = tf.unstack(self.rnn_input, self.seq_len, 2)
+            self.rnn_input_seq = tf.unstack(self.rnn_input, self.seq_len, 1)
         elif self.model_type == 'glstm':
             self.rnn_input = tf.placeholder(tf.float32,
-                                            [self.batch_size, self.num_nodes, self.input_dim, self.seq_len],
+                                            [self.batch_size, self.seq_len, self.num_nodes, self.input_dim],
                                             name="rnn_input")
-            self.rnn_input_seq = tf.unstack(self.rnn_input, self.seq_len, 3)
+            self.rnn_input_seq = tf.unstack(self.rnn_input, self.seq_len, 1)
         else:
             raise Exception("[!] Unkown model type: {}".format(self.model_type))
 
-        self.rnn_output = tf.placeholder(tf.int64,
-                                         [self.batch_size, self.seq_len],
-                                         name="rnn_output")
-        self.rnn_output_seq = tf.unstack(self.rnn_output, self.seq_len, 1)
+        if self.return_seq:
+            self.rnn_output = tf.placeholder(tf.float32,
+                                             [self.batch_size, self.seq_len],
+                                             name="rnn_output")
+            self.rnn_output_seq = tf.unstack(self.rnn_output, self.seq_len, 1)
+        else:
+            self.rnn_output_seq = tf.placeholder(tf.float32,
+                                                 [self.batch_size, 1, 1],
+                                                 name="rnn_output")
+
         self.model_step = tf.Variable(
             0, name='model_step', trainable=False)
 
@@ -308,10 +315,16 @@ class Model(object):
                 outputs, states = tf.contrib.rnn.static_rnn(cell, self.rnn_input_seq, dtype=tf.float32)
             # cell = tf.contrib.rnn.core_rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
             # Check the tf version here
-
             predictions = []
-            for output in outputs:
-                output_reshape = tf.reshape(output, [-1, self.rnn_units])
+            if self.return_seq:
+                for output in outputs:
+                    output_reshape = tf.reshape(output, [-1, self.rnn_units])
+                    prediction = tf.matmul(output_reshape, output_variable['weight']) + output_variable['bias']
+                    if self.model_type == 'glstm':
+                        prediction = tf.reshape(prediction, [-1, self.num_nodes, 1])
+                    predictions.append(prediction)
+            else:
+                output_reshape = tf.reshape(outputs[-1], [-1, self.rnn_units])
                 prediction = tf.matmul(output_reshape, output_variable['weight']) + output_variable['bias']
                 if self.model_type == 'glstm':
                     prediction = tf.reshape(prediction, [-1, self.num_nodes, 1])

@@ -8,6 +8,7 @@ scaler: MM
 seed: 1
 data:
   data_name: Abilene
+  batch_size: 128
   val_batch_size: 128
   eval_batch_size: 1
   test_batch_size: 1
@@ -37,6 +38,7 @@ model:
   optimizer: adam
   learning_rate: 0.001
   max_grad_norm: 1
+  return_seq: False
 train:
   base_lr: 0.001
   dropout: 0.5
@@ -53,6 +55,8 @@ train:
     - 30
     - 40
     - 50
+  logstep: 20
+  checkpoint_secs: 300
 test:
   run_times: 50
   flow_selection: Random

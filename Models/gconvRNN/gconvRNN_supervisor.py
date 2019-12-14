@@ -191,8 +191,6 @@ class GCONVRNN(AbstractModel):
         self.model_summary_writer = None
 
         ##Training
-        train_data_generator = self._data['train_loader'].get_iterator()
-        val_data_generator = self._data['val_loader'].get_iterator()
 
         while self._epoch <= self._epochs:
             start_time = time.time()
@@ -200,6 +198,9 @@ class GCONVRNN(AbstractModel):
             self._logger.info('Training epoch: {}/{}'.format(self._epoch, self._epochs))
 
             # run training
+            train_data_generator = self._data['train_loader'].get_iterator()
+            val_data_generator = self._data['val_loader'].get_iterator()
+
             res = self.run_epoch_generator(model=self._train_model,
                                            data_generator=train_data_generator)
             train_loss = res['loss']
@@ -228,6 +229,18 @@ class GCONVRNN(AbstractModel):
                     break
 
             self._epoch += 1
+
+    def test(self):
+        pretrained_model = self._train_kwargs.get('model_filename')
+        self._logger.info("[*] Saved result exists! loading...")
+        self.saver.restore(
+            self.sess,
+            pretrained_model
+        )
+        self._logger.info("[*] Loaded previously trained weights")
+        self.b_pretrain_loaded = True
+
+
 
     def _get_summary_writer(self, result):
         if result['step'] % self._logstep == 0:

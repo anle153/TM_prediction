@@ -29,7 +29,7 @@ def _get_log_dir_lstm_based(kwargs):
     return log_dir
 
 
-def _get_log_dir_dcrnn_based(kwargs):
+def _get_log_dir_graph_based(kwargs):
     alg = kwargs.get('alg')
     batch_size = kwargs['data'].get('batch_size')
     learning_rate = kwargs['train'].get('base_lr')
@@ -112,8 +112,8 @@ class AbstractModel(object):
         log_dir = kwargs['train'].get('log_dir')
         if log_dir is None:
             alg = kwargs.get('alg')
-            if 'dcrnn' in alg or 'dclstm' in alg:
-                return _get_log_dir_dcrnn_based(kwargs)
+            if 'dcrnn' in alg or 'dclstm' in alg or 'rnn' in alg:
+                return _get_log_dir_graph_based(kwargs)
             elif 'lstm' in alg:
                 return _get_log_dir_lstm_based(kwargs)
         else:

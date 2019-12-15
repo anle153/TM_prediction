@@ -58,7 +58,7 @@ def train_gconvrnn(config):
     rng = np.random.RandomState(config['seed'])
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
-    tf_config.gpu_options.set_soft_device_placement = True
+    tf_config.allow_soft_placement = True
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         with tf.Session(config=tf_config) as sess:
             model = GCONVRNN(is_training=True, **config)

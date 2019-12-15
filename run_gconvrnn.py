@@ -61,9 +61,9 @@ def train_gconvrnn(config, gpu):
     tf_config.allow_soft_placement = True
     tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
 
-    strategy = tf.contrib.distribute.MirroredStrategy(num_gpus=2)
-    with strategy.scope():
-        # with tf.device('/device:GPU:{}'.format(gpu)):
+    # strategy = tf.contrib.distribute.MirroredStrategy(num_gpus=2)
+    # with strategy.scope():
+    with tf.device('/device:GPU:{}'.format(gpu)):
         with tf.Session(config=tf_config) as sess:
             model = GCONVRNN(is_training=True, **config)
             sess.run(tf.global_variables_initializer())

@@ -8,7 +8,7 @@ scaler: MM
 seed: 1
 data:
   data_name: Abilene
-  batch_size: 256
+  batch_size: 64
   test_batch_size: 1
   dataset_dir: Dataset/Abilene2d.npy
   adj_method: OD
@@ -25,7 +25,7 @@ model:
   l1_decay: 0
   max_diffusion_step: 1
   num_nodes: 144
-  num_rnn_layers: 1
+  num_rnn_layers: 2
   output_dim: 1
   rnn_units: 128
   seq_len: 36

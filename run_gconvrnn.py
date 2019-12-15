@@ -53,27 +53,30 @@ def print_gconvrnn_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-def train_gconvrnn(config):
+def train_gconvrnn(config, gpu):
     print('|-- Run model training gconvrnn.')
     rng = np.random.RandomState(config['seed'])
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     tf_config.allow_soft_placement = True
     tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
-    with tf.device('/device:GPU:{}'.format(config['gpu'])):
+    with tf.device('/device:GPU:{}'.format(gpu)):
         with tf.Session(config=tf_config) as sess:
             model = GCONVRNN(is_training=True, **config)
             model.train(sess)
 
 
-def test_gconvrnn(config):
+def test_gconvrnn(config, gpu):
     print('|-- Run model testing gconvrnn.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        model = GCONVRNN(is_training=False, **config)
-        model.test(sess)
+    tf_config.allow_soft_placement = True
+    tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
+    with tf.device('/device:GPU:{}'.format(gpu)):
+        with tf.Session(config=tf_config) as sess:
+            model = GCONVRNN(is_training=False, **config)
+            model.test(sess)
         # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
         #
         # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
@@ -88,6 +91,8 @@ if __name__ == '__main__':
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
+    parser.add_argument('--gpu', default='0', type=str,
+                        help='GPU device.')
     parser.add_argument('--output_filename', default='data/gconvrnn_predictions.npz')
     args = parser.parse_args()
 
@@ -96,7 +101,7 @@ if __name__ == '__main__':
 
     print_gconvrnn_info(args.mode, config)
     if args.mode == 'train':
-        train_gconvrnn(config)
+        train_gconvrnn(config, args.gpu)
     else:
-        test_gconvrnn(config)
+        test_gconvrnn(config, args.gpu)
     # get_results(data)

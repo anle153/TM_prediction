@@ -25,7 +25,7 @@ model:
   l1_decay: 0
   max_diffusion_step: 1
   num_nodes: 144
-  num_rnn_layers: 2
+  num_rnn_layers: 3
   output_dim: 1
   rnn_units: 128
   seq_len: 36

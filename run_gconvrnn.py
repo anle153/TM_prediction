@@ -56,9 +56,12 @@ def print_gconvrnn_info(mode, config):
 def train_gconvrnn(config):
     print('|-- Run model training gconvrnn.')
     rng = np.random.RandomState(config['seed'])
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
 
-    model = GCONVRNN(is_training=True, **config)
-    model.train()
+    with tf.Session(config=tf_config) as sess:
+        model = GCONVRNN(is_training=True, **config)
+        model.train(sess)
 
 
 def test_gconvrnn(config):
@@ -68,7 +71,7 @@ def test_gconvrnn(config):
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
         model = GCONVRNN(is_training=False, **config)
-        model.test()
+        model.test(sess)
         # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
         #
         # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))

@@ -68,25 +68,7 @@ class GCONVRNN(AbstractModel):
             max_to_keep = self._train_kwargs.get('max_to_keep', 100)
 
             self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
-            self.model_saver = tf.train.Saver(self._train_model.model_vars)
             self.summary_writer = tf.summary.FileWriter(self._log_dir)
-
-            sv = tf.train.Supervisor(logdir=self._log_dir,
-                                     is_chief=True,
-                                     saver=self.saver,
-                                     summary_op=None,
-                                     summary_writer=self.summary_writer,
-                                     save_summaries_secs=300,
-                                     save_model_secs=self._checkpoint_secs,
-                                     global_step=self._train_model.model_step)
-
-            gpu_options = tf.GPUOptions(
-                per_process_gpu_memory_fraction=1.0,
-                allow_growth=True)  # seems to be not working
-            sess_config = tf.ConfigProto(allow_soft_placement=True,
-                                         gpu_options=gpu_options)
-
-            self.sess = sv.prepare_or_wait_for_session(config=sess_config)
 
             # Log model statistics.
             total_trainable_parameter = utils.get_total_trainable_parameter_size()
@@ -94,7 +76,7 @@ class GCONVRNN(AbstractModel):
             for var in tf.global_variables():
                 self._logger.debug('{}, {}'.format(var.name, var.get_shape()))
 
-    def run_epoch_generator(self, model, data_generator):
+    def run_epoch_generator(self, sess, model, data_generator):
         losses = []
 
         for _, (x, y) in enumerate(data_generator):
@@ -102,7 +84,7 @@ class GCONVRNN(AbstractModel):
                 model.rnn_input: x,
                 model.rnn_output: y
             }
-            res = model.train(self.sess, feed_dict, self.model_summary_writer,
+            res = model.train(sess, feed_dict, self.model_summary_writer,
                               with_output=True)
             self.model_summary_writer = self._get_summary_writer(res)
             losses.append(res['loss'])
@@ -112,7 +94,7 @@ class GCONVRNN(AbstractModel):
         }
         return results
 
-    def _run_tm_prediction(self, model, runId, writer=None):
+    def _run_tm_prediction(self, sess, model, runId, writer=None):
 
         test_data_norm = self._data['test_data_norm']
 
@@ -136,7 +118,7 @@ class GCONVRNN(AbstractModel):
                 model.rnn_input: x,
             }
 
-            res = model.test(self.sess, feed_dict, with_output=True)
+            res = model.test(sess, feed_dict, with_output=True)
 
             y_preds.append(np.squeeze(res['output'], axis=-1))
 
@@ -161,7 +143,7 @@ class GCONVRNN(AbstractModel):
                    }
         return results
 
-    def train(self, save_model=1, patience=50):
+    def train(self, sess, save_model=1, patience=50):
         min_val_loss = float('inf')
         wait = 0
 
@@ -169,7 +151,7 @@ class GCONVRNN(AbstractModel):
             pretrained_model = self._train_kwargs.get('model_filename')
             self._logger.info("[*] Saved result exists! loading...")
             self.saver.restore(
-                self.sess,
+                sess,
                 pretrained_model
             )
             self._logger.info("[*] Loaded previously trained weights")
@@ -192,12 +174,12 @@ class GCONVRNN(AbstractModel):
             train_data_generator = self._data['train_loader'].get_iterator()
             val_data_generator = self._data['val_loader'].get_iterator()
 
-            res = self.run_epoch_generator(model=self._train_model,
+            res = self.run_epoch_generator(sess, model=self._train_model,
                                            data_generator=train_data_generator)
             train_loss = res['loss']
 
             # run validating
-            val_res = self.run_epoch_generator(model=self._train_model,
+            val_res = self.run_epoch_generator(sess, model=self._train_model,
                                                data_generator=val_data_generator)
             val_loss = val_res['loss']
             end_time = time.time()
@@ -209,7 +191,7 @@ class GCONVRNN(AbstractModel):
             if val_loss <= min_val_loss:
                 wait = 0
                 if save_model > 0:
-                    model_filename = self.save(val_loss)
+                    model_filename = self.save(sess, val_loss)
                 self._logger.info(
                     'Val loss decrease from %f to %f, saving to %s' % (min_val_loss, val_loss, model_filename))
                 min_val_loss = val_loss
@@ -221,11 +203,11 @@ class GCONVRNN(AbstractModel):
 
             self._epoch += 1
 
-    def test(self):
+    def test(self, sess):
         pretrained_model = self._train_kwargs.get('model_filename')
         self._logger.info("[*] Saved result exists! loading...")
         self.saver.restore(
-            self.sess,
+            sess,
             pretrained_model
         )
         self._logger.info("[*] Loaded previously trained weights")
@@ -239,7 +221,7 @@ class GCONVRNN(AbstractModel):
             self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
-            test_results = self._run_tm_prediction(model=self._test_model, runId=i)
+            test_results = self._run_tm_prediction(sess, model=self._test_model, runId=i)
 
             metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
                                                       scaler=self._data['scaler'],
@@ -263,14 +245,14 @@ class GCONVRNN(AbstractModel):
         :param model_filename:
         :return:
         """
-        self._saver.restore(sess, model_filename)
+        self.saver.restore(sess, model_filename)
 
-    def save(self, val_loss):
+    def save(self, sess, val_loss):
         config = dict(self._kwargs)
         prefix = os.path.join(self._log_dir, 'models-{}-{}'.format(self._epoch, val_loss))
         config['train']['epoch'] = self._epoch
         config['train']['log_dir'] = self._log_dir
-        config['train']['model_filename'] = self.saver.save(self.sess, prefix)
+        config['train']['model_filename'] = self.saver.save(sess, prefix)
 
         config_filename = 'config_{}.yaml'.format(self._epoch)
         with open(os.path.join(self._log_dir, config_filename), 'w') as f:

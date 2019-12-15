@@ -25,9 +25,9 @@ model:
   l1_decay: 0
   max_diffusion_step: 1
   num_nodes: 144
-  num_rnn_layers: 3
+  num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 128
+  rnn_units: 256
   seq_len: 36
   use_curriculum_learning: true
   num_kernel: 1

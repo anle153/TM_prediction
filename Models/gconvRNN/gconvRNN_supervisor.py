@@ -54,14 +54,12 @@ class GCONVRNN(AbstractModel):
         lmax = graph.lmax(laplacian)
 
         with tf.name_scope('Train'):
-            with tf.variable_scope('GCONVRNN', reuse=False):
-                self._train_model = Model(is_training=True, laplacian=laplacian,
-                                          lmax=lmax, batch_size=self._train_batch_size, **self._model_kwargs)
+            self._train_model = Model(is_training=True, laplacian=laplacian,
+                                      lmax=lmax, batch_size=self._train_batch_size, reuse=True, **self._model_kwargs)
 
         with tf.name_scope('Test'):
-            with tf.variable_scope('GCONVRNN', reuse=True):
-                self._test_model = Model(is_training=False, laplacian=laplacian,
-                                         lmax=lmax, batch_size=self._test_batch_size, **self._model_kwargs)
+            self._test_model = Model(is_training=False, laplacian=laplacian,
+                                     lmax=lmax, batch_size=self._test_batch_size, reuse=False, **self._model_kwargs)
 
         max_to_keep = self._train_kwargs.get('max_to_keep', 100)
 

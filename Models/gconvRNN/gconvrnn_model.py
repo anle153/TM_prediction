@@ -230,7 +230,7 @@ class Model(object):
         Train / Test function
     """
 
-    def __init__(self, is_training, laplacian, lmax, batch_size, **config):
+    def __init__(self, is_training, laplacian, lmax, batch_size, reuse, **config):
         self.is_training = is_training
         self.model_type = config['model_type']
         self.batch_size = batch_size
@@ -255,7 +255,7 @@ class Model(object):
         self.optimizer = config['optimizer']
 
         self._build_placeholders()
-        self._build_model()
+        self._build_model(reuse=reuse)
         self._build_steps()
         self._build_optim()
 

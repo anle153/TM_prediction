@@ -81,7 +81,7 @@ class GCONVRNN(AbstractModel):
             }
             res = model.train(sess, feed_dict, self.model_summary_writer,
                               with_output=True)
-            self.model_summary_writer = self._get_summary_writer(res)
+            # self.model_summary_writer = self._get_summary_writer(sess)
             losses.append(res['loss'])
 
         results = {
@@ -224,11 +224,9 @@ class GCONVRNN(AbstractModel):
 
         self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 
-
-
-
-    def _get_summary_writer(self, result):
-        if result['step'] % self._logstep == 0:
+    def _get_summary_writer(self, sess):
+        global_step = sess.run(tf.train.get_or_create_global_step())
+        if global_step % self._logstep == 0:
             return self.summary_writer
         else:
             return None

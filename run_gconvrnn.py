@@ -58,12 +58,13 @@ def train_gconvrnn(config, gpu):
     rng = np.random.RandomState(config['seed'])
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
-    tf_config.allow_soft_placement = True
-    tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
-    with tf.device('/device:GPU:{}'.format(gpu)):
-        with tf.Session(config=tf_config) as sess:
-            model = GCONVRNN(is_training=True, **config)
-            model.train(sess)
+    # tf_config.allow_soft_placement = True
+    # tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
+    # with tf.device('/device:GPU:{}'.format(gpu)):
+    with tf.Session(config=tf_config) as sess:
+        model = GCONVRNN(is_training=True, **config)
+        sess.run(tf.global_variables_initializer())
+        model.train(sess)
 
 
 def test_gconvrnn(config, gpu):

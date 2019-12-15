@@ -255,7 +255,7 @@ class Model(object):
         self.optimizer = config['optimizer']
 
         self._build_placeholders()
-        self._build_model(reuse=tf.AUTO_REUSE)
+        self._build_model()
         self._build_steps()
         self._build_optim()
 
@@ -290,7 +290,7 @@ class Model(object):
         self.model_step = tf.Variable(
             0, name='model_step', trainable=False)
 
-    def _build_model(self, reuse=tf.AUTO_REUSE):
+    def _build_model(self, reuse=None):
         with tf.variable_scope("gconv_model", reuse=reuse) as sc:
             if self.model_type == 'lstm':
                 cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_units, forget_bias=1.0)
@@ -392,14 +392,13 @@ class Model(object):
                   with_output=False):
             fetch = {'loss': self.loss,
                      'optim': self.model_optim,  # ?
-                     'step': self.model_step  # ?
                      }
             return run(sess, feed_dict, fetch,
                        self.model_summary, summary_writer,
                        output_op=self.pred_out if with_output else None, )
 
         def test(sess, feed_dict, summary_writer=None, with_output=False):
-            fetch = {'step': self.model_step}
+            fetch = {}
             return run(sess, feed_dict, fetch,
                        self.model_summary, summary_writer,
                        output_op=self.pred_out if with_output else None, )
@@ -408,20 +407,39 @@ class Model(object):
         self.test = test
 
     def _build_optim(self):
+        def minimize(loss, step, var_list, learning_rate, optimizer):
+            if optimizer == "sgd":
+                optim = tf.train.GradientDescentOptimizer(learning_rate)
+            elif optimizer == "adam":
+                optim = tf.train.AdamOptimizer(learning_rate)
+            elif optimizer == "rmsprop":
+                optim = tf.train.RMSPropOptimizer(learning_rate)
+            else:
+                raise Exception("[!] Unkown optimizer: {}".format(
+                    optimizer))
+            ## Gradient clipping ##
+            if self.max_grad_norm is not None:
+                grads_and_vars = optim.compute_gradients(
+                    loss, var_list=var_list)
+                new_grads_and_vars = []
+                for idx, (grad, var) in enumerate(grads_and_vars):
+                    if grad is not None and var in var_list:
+                        grad = tf.clip_by_norm(grad, self.max_grad_norm)
+                        grad = tf.check_numerics(
+                            grad, "Numerical error in gradient for {}".format(
+                                var.name))
+                        new_grads_and_vars.append((grad, var))
+                return optim.apply_gradients(new_grads_and_vars, global_step=step)
+            else:
+                grads_and_vars = optim.compute_gradients(
+                    loss, var_list=var_list)
+                return optim.apply_gradients(grads_and_vars,
+                                             global_step=step)
 
-        if self.optimizer == "sgd":
-            optim = tf.train.GradientDescentOptimizer(self.learning_rate)
-        elif self.optimizer == "adam":
-            optim = tf.train.AdamOptimizer(self.learning_rate)
-        elif self.optimizer == "rmsprop":
-            optim = tf.train.RMSPropOptimizer(self.learning_rate)
-        else:
-            raise Exception("[!] Unkown optimizer: {}".format(
-                self.optimizer))
-        ## Gradient clipping ##
-
-        tvars = tf.trainable_variables()
-        grads = tf.gradients(self.loss, tvars)
-        grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
-        global_step = tf.train.get_or_create_global_step()
-        self.model_optim = optim.apply_gradients(zip(grads, tvars), global_step=global_step, name='model_optim')
+        # optim #
+        self.model_optim = minimize(
+            self.loss,
+            self.model_step,
+            self.model_vars,
+            self.learning_rate,
+            self.optimizer)

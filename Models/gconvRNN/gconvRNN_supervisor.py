@@ -53,11 +53,10 @@ class GCONVRNN(AbstractModel):
         laplacian = scipy.sparse.csr_matrix(laplacian, dtype=np.float32)
         lmax = graph.lmax(laplacian)
 
-        with tf.name_scope('Train'):
+        if is_training:
             self._train_model = Model(is_training=True, laplacian=laplacian,
                                       lmax=lmax, batch_size=self._train_batch_size, reuse=True, **self._model_kwargs)
-
-        with tf.name_scope('Test'):
+        else:
             self._test_model = Model(is_training=False, laplacian=laplacian,
                                      lmax=lmax, batch_size=self._test_batch_size, reuse=False, **self._model_kwargs)
 

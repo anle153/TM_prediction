@@ -308,13 +308,13 @@ class Model(object):
                 cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
                 cells = [cell] * self.num_rnn_layers
 
-                fc_variable = {
-                    'weight': tf.Variable(tf.random_normal([self.rnn_units, int(self.rnn_units / 2)]), name='fc_var'),
-                    'bias': tf.Variable(tf.random_normal([int(self.rnn_units / 2)]), name='fc_bias')
-                }
+                # fc_variable = {
+                #     'weight': tf.Variable(tf.random_normal([self.rnn_units, int(self.rnn_units / 2)]), name='fc_var'),
+                #     'bias': tf.Variable(tf.random_normal([int(self.rnn_units / 2)]), name='fc_bias')
+                # }
 
                 output_variable = {
-                    'weight': tf.Variable(tf.random_normal([int(self.rnn_units / 2), self.output_dim])),
+                    'weight': tf.Variable(tf.random_normal([int(self.rnn_units), self.output_dim])),
                     'bias': tf.Variable(tf.random_normal([self.output_dim]))}
 
 
@@ -328,15 +328,15 @@ class Model(object):
             predictions = []
             if self.return_seq:
                 for output in outputs:
-                    output_reshape = tf.reshape(output, [-1, self.rnn_units])
-                    prediction = tf.matmul(output_reshape, fc_variable['weight']) + fc_variable['bias']
+                    prediction = tf.reshape(output, [-1, self.rnn_units])
+                    # prediction = tf.matmul(prediction, fc_variable['weight']) + fc_variable['bias']
                     prediction = tf.matmul(prediction, output_variable['weight']) + output_variable['bias']
                     if self.model_type == 'glstm':
                         prediction = tf.reshape(prediction, [-1, self.num_nodes, self.output_dim])
                     predictions.append(prediction)
             else:
-                output_reshape = tf.reshape(outputs[-1], [-1, self.rnn_units])
-                prediction = tf.matmul(output_reshape, fc_variable['weight']) + fc_variable['bias']
+                prediction = tf.reshape(outputs[-1], [-1, self.rnn_units])
+                # prediction = tf.matmul(prediction, fc_variable['weight']) + fc_variable['bias']
                 prediction = tf.matmul(prediction, output_variable['weight']) + output_variable['bias']
                 if self.model_type == 'glstm':
                     prediction = tf.reshape(prediction, [-1, self.num_nodes, self.output_dim])

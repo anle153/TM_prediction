@@ -290,6 +290,15 @@ class Model(object):
         self.model_step = tf.Variable(
             0, name='model_step', trainable=False)
 
+    @staticmethod
+    def _dense(x, units, name=None):
+        input_shape = x.get_shape()
+        output_variable = {
+            'weight': tf.Variable(tf.random_normal([input_shape[1], units])),
+            'bias': tf.Variable(tf.random_normal([units]))}
+        o = tf.matmul(x, output_variable['weight']) + output_variable['bias']
+        return o
+
     def _build_model(self, reuse=None):
         with tf.variable_scope("gconv_model", reuse=reuse) as sc:
             if self.model_type == 'lstm':
@@ -308,16 +317,6 @@ class Model(object):
                 cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.8)
                 cells = [cell] * self.num_rnn_layers
 
-                fc_variable = {
-                    'weight': tf.Variable(tf.random_normal([self.rnn_units, int(self.rnn_units / 2)]), name='fc_var'),
-                    'bias': tf.Variable(tf.random_normal([int(self.rnn_units / 2)]), name='fc_bias')
-                }
-
-                output_variable = {
-                    'weight': tf.Variable(tf.random_normal([int(self.rnn_units / 2), self.output_dim])),
-                    'bias': tf.Variable(tf.random_normal([self.output_dim]))}
-
-
             else:
                 raise Exception("[!] Unkown model type: {}".format(self.model_type))
 
@@ -329,15 +328,14 @@ class Model(object):
             if self.return_seq:
                 for output in outputs:
                     prediction = tf.reshape(output, [-1, self.rnn_units])
-                    prediction = tf.matmul(prediction, fc_variable['weight']) + fc_variable['bias']
-                    prediction = tf.matmul(prediction, output_variable['weight']) + output_variable['bias']
+                    # prediction = tf.matmul(prediction, fc_variable['weight']) + fc_variable['bias']
+                    prediction = self._dense(prediction, 1)
                     if self.model_type == 'glstm':
                         prediction = tf.reshape(prediction, [-1, self.num_nodes, self.output_dim])
                     predictions.append(prediction)
             else:
                 prediction = tf.reshape(outputs[-1], [-1, self.rnn_units])
-                prediction = tf.matmul(prediction, fc_variable['weight']) + fc_variable['bias']
-                prediction = tf.matmul(prediction, output_variable['weight']) + output_variable['bias']
+                prediction = self._dense(prediction, 1)
                 if self.model_type == 'glstm':
                     prediction = tf.reshape(prediction, [-1, self.num_nodes, self.output_dim])
                 predictions.append(prediction)

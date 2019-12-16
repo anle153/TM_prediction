@@ -30,7 +30,7 @@ model:
   rnn_units: 128
   seq_len: 36
   use_curriculum_learning: true
-  num_kernel: 3
+  num_kernel: 1
   classif_loss: mse
   optimizer: adam
   learning_rate: 0.001

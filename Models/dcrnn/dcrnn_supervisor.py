@@ -287,8 +287,6 @@ class DCRNNSupervisor(AbstractModel):
             message = 'Epoch [{}/{}] ({}) train_mse: {:f}, val_mse: {:f} lr:{:f} {:.1f}s'.format(
                 self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
             self._logger.info(message)
-            if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
-                self.evaluate(sess)
             if val_loss <= min_val_loss:
                 wait = 0
                 if save_model > 0:

@@ -45,10 +45,9 @@ train:
   optimizer: adam
   patience: 30
   steps:
-    - 20
-    - 30
     - 40
     - 50
+    - 60
   test_every_n_epochs: 10
   results_path: results/
   results_name: Abilene-dgc-lstm

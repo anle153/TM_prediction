@@ -65,6 +65,7 @@ def train_dcrnn(config, gpu):
     with tf.device('/device:GPU:{}'.format(gpu)):
         with tf.Session(config=tf_config) as sess:
             model = DCRNNSupervisor(is_training=True, **config)
+            sess.run(tf.global_variables_initializer())
             try:
                 if config['train']['continue_train']:
                     model.load(sess, config['train']['model_filename'])
@@ -83,6 +84,7 @@ def test_dcrnn(config, gpu):
     with tf.device('/device:GPU:{}'.format(gpu)):
         with tf.Session(config=tf_config) as sess:
             model = DCRNNSupervisor(is_training=False, **config)
+            sess.run(tf.global_variables_initializer())
             model.load(sess, config['train']['model_filename'])
             model.test(sess)
             # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)

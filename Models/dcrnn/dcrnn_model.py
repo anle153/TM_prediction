@@ -82,7 +82,7 @@ class DCRNNModel(object):
             #                                                   loop_function=_loop_function)
 
         # Project the output to output_dim.
-        outputs = tf.stack(outputs[:-1], axis=1)
+        outputs = tf.stack(outputs[-1], axis=1)
         self._outputs = tf.reshape(outputs, (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
 

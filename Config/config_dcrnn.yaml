@@ -20,7 +20,7 @@ data:
   generate_data: False
 model:
   cl_decay_steps: 2000
-  filter_type: random_walk
+  filter_type: dual_random_walk
   horizon: 1
   input_dim: 2
   l1_decay: 0
@@ -28,7 +28,7 @@ model:
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 512
+  rnn_units: 64
   seq_len: 36
   use_curriculum_learning: true
 train:

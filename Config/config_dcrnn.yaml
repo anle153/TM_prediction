@@ -7,8 +7,8 @@ mon_ratio: 0.5
 scaler: MM
 data:
   data_name: Abilene
-  batch_size: 256
-  val_batch_size: 256
+  batch_size: 128
+  val_batch_size: 128
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/Abilene2d.npy
@@ -28,7 +28,7 @@ model:
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 32
+  rnn_units: 128
   seq_len: 36
   use_curriculum_learning: true
 train:

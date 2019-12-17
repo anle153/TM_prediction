@@ -3,10 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-# from tensorflow.contrib import legacy_seq2seq
-from keras.layers import RNN
 
 from Models.dcrnn.dcrnn_cell import DCGRUCell
+
+
+# from tensorflow.contrib import legacy_seq2seq
 
 
 class DCRNNModel(object):
@@ -45,7 +46,7 @@ class DCRNNModel(object):
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
                                          num_proj=output_dim, filter_type=filter_type)
 
-        encoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
+        encoding_cells = [cell] * num_rnn_layers
         decoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
         decoding_cells = tf.contrib.rnn.MultiRNNCell(decoding_cells, state_is_tuple=True)
@@ -73,7 +74,7 @@ class DCRNNModel(object):
                     result = prev
                 return result
 
-            outputs, enc_state = RNN(encoding_cells, dtype=tf.float32, return_state=True)(inputs)
+            outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
 
             # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
             # _, enc_state = encoder_layers(inputs)

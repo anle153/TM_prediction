@@ -41,13 +41,13 @@ class DCRNNSupervisor(AbstractModel):
         # Build models.
         scaler = self._data['scaler']
         if is_training:
-            self._train_model = DCRNNModel(scaler=scaler,
-                                           batch_size=self._data_kwargs['batch_size'],
-                                           adj_mx=self._data['adj_mx'], **self._model_kwargs)
+            self.model = DCRNNModel(scaler=scaler,
+                                    batch_size=self._data_kwargs['batch_size'],
+                                    adj_mx=self._data['adj_mx'], **self._model_kwargs)
         else:
-            self._test_model = DCRNNModel(scaler=scaler,
-                                          batch_size=self._data_kwargs['test_batch_size'],
-                                          adj_mx=self._data['adj_mx'], **self._model_kwargs)
+            self.model = DCRNNModel(scaler=scaler,
+                                    batch_size=self._data_kwargs['test_batch_size'],
+                                    adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -66,8 +66,8 @@ class DCRNNSupervisor(AbstractModel):
 
         # Calculate loss
         output_dim = self._model_kwargs.get('output_dim')
-        preds = self._train_model.outputs
-        labels = self._train_model.labels[..., :output_dim]
+        preds = self.model.outputs
+        labels = self.model.labels[..., :output_dim]
 
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)
@@ -249,7 +249,7 @@ class DCRNNSupervisor(AbstractModel):
             self.set_lr(sess=sess, lr=new_lr)
 
             start_time = time.time()
-            train_results = self.run_epoch_generator(sess, self._train_model,
+            train_results = self.run_epoch_generator(sess, self.model,
                                                      self._data['train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
@@ -260,7 +260,7 @@ class DCRNNSupervisor(AbstractModel):
 
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
-            val_results = self.run_epoch_generator(sess, self._train_model,
+            val_results = self.run_epoch_generator(sess, self.model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()
@@ -309,7 +309,7 @@ class DCRNNSupervisor(AbstractModel):
             self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
-            test_results = self._run_tm_prediction(sess, model=self._test_model, runId=i)
+            test_results = self._run_tm_prediction(sess, model=self.model, runId=i)
 
             metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
                                                       scaler=self._data['scaler'],
@@ -325,7 +325,7 @@ class DCRNNSupervisor(AbstractModel):
 
     def evaluate(self, sess):
         global_step = sess.run(tf.train.get_or_create_global_step())
-        test_results = self.run_epoch_generator(sess, self._eval_model,
+        test_results = self.run_epoch_generator(sess, self.model,
                                                 self._data['eval_loader'].get_iterator(),
                                                 return_output=True,
                                                 training=False)

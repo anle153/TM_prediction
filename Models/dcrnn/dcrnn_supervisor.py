@@ -41,15 +41,13 @@ class DCRNNSupervisor(AbstractModel):
         # Build models.
         scaler = self._data['scaler']
         if is_training:
-            with tf.variable_scope('DCRNN', reuse=False):
-                self._train_model = DCRNNModel(scaler=scaler,
-                                               batch_size=self._data_kwargs['batch_size'],
-                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
+            self._train_model = DCRNNModel(scaler=scaler,
+                                           batch_size=self._data_kwargs['batch_size'],
+                                           adj_mx=self._data['adj_mx'], **self._model_kwargs)
         else:
-            with tf.variable_scope('DCRNN', reuse=True):
-                self._test_model = DCRNNModel(scaler=scaler,
-                                              batch_size=self._data_kwargs['test_batch_size'],
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+            self._test_model = DCRNNModel(scaler=scaler,
+                                          batch_size=self._data_kwargs['test_batch_size'],
+                                          adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),

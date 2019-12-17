@@ -102,7 +102,8 @@ class DCGRUCell(RNNCell):
             output = new_state = u * state + (1 - u) * c
             if self._num_proj is not None:
                 with tf.variable_scope("projection"):
-                    w = tf.get_variable('w', shape=(self._num_units, self._num_proj))
+                    w = tf.get_variable('w', shape=(self._num_units, self._num_proj),
+                                        initializer=tf.contrib.layers.xavier_initializer())
                     batch_size = inputs.get_shape()[0].value
                     output = tf.reshape(new_state, shape=(-1, self._num_units))
                     output = tf.reshape(tf.matmul(output, w), shape=(batch_size, self.output_size))

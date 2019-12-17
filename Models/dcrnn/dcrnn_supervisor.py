@@ -40,27 +40,14 @@ class DCRNNSupervisor(AbstractModel):
 
         # Build models.
         scaler = self._data['scaler']
-        with tf.name_scope('Train'):
+        if is_training:
             with tf.variable_scope('DCRNN', reuse=False):
-                self._train_model = DCRNNModel(is_training=True, scaler=scaler,
+                self._train_model = DCRNNModel(scaler=scaler,
                                                batch_size=self._data_kwargs['batch_size'],
                                                adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('Val'):
+        else:
             with tf.variable_scope('DCRNN', reuse=True):
-                self._val_model = DCRNNModel(is_training=False, scaler=scaler,
-                                             batch_size=self._data_kwargs['val_batch_size'],
-                                             adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('Eval'):
-            with tf.variable_scope('DCRNN', reuse=True):
-                self._eval_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=self._data_kwargs['eval_batch_size'],
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('Test'):
-            with tf.variable_scope('DCRNN', reuse=True):
-                self._test_model = DCRNNModel(is_training=False, scaler=scaler,
+                self._test_model = DCRNNModel(scaler=scaler,
                                               batch_size=self._data_kwargs['test_batch_size'],
                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
@@ -275,7 +262,7 @@ class DCRNNSupervisor(AbstractModel):
 
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
-            val_results = self.run_epoch_generator(sess, self._val_model,
+            val_results = self.run_epoch_generator(sess, self._train_model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()

@@ -11,7 +11,7 @@ from Models.dcrnn.dcrnn_cell import DCGRUCell
 
 
 class DCRNNModel(object):
-    def __init__(self, is_training, batch_size, scaler, adj_mx, **model_kwargs):
+    def __init__(self, batch_size, scaler, adj_mx, **model_kwargs):
         # Scaler for data normalization.
         self._scaler = scaler
 
@@ -60,13 +60,7 @@ class DCRNNModel(object):
 
             outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
 
-            # encoder_layers = RNN(encoding_cells, return_state=True, return_sequences=True)
-            # _, enc_state = encoder_layers(inputs)
-            # outputs, final_state = legacy_seq2seq.rnn_decoder(labels, enc_state, decoding_cells,
-            #                                                   loop_function=_loop_function)
-
         # Project the output to output_dim.
-        # outputs = tf.stack(outputs[-1], axis=1)
         self._outputs = tf.reshape(outputs[-1], (batch_size, horizon, num_nodes, output_dim), name='outputs')
         self._merged = tf.summary.merge_all()
 

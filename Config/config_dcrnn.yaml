@@ -26,9 +26,9 @@ model:
   l1_decay: 0
   max_diffusion_step: 1
   num_nodes: 144
-  num_rnn_layers: 2
+  num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 128
+  rnn_units: 256
   seq_len: 36
   use_curriculum_learning: true
 train:
@@ -40,8 +40,8 @@ train:
   global_step: 24375
   lr_decay_ratio: 0.05
   max_grad_norm: 1
-  max_to_keep: 100
-  min_learning_rate: 2.0e-06
+  max_to_keep: 300
+  min_learning_rate: 0.00005
   optimizer: adam
   patience: 30
   steps:

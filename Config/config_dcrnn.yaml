@@ -7,8 +7,8 @@ mon_ratio: 0.5
 scaler: MM
 data:
   data_name: Abilene
-  batch_size: 256
-  val_batch_size: 256
+  batch_size: 128
+  val_batch_size: 128
   eval_batch_size: 1
   test_batch_size: 1
   dataset_dir: Dataset/Abilene2d.npy
@@ -28,7 +28,7 @@ model:
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 128
+  rnn_units: 64
   seq_len: 36
   use_curriculum_learning: true
 train:
@@ -41,13 +41,13 @@ train:
   lr_decay_ratio: 0.05
   max_grad_norm: 1
   max_to_keep: 300
-  min_learning_rate: 0.00005
+  min_learning_rate: 0.0005
   optimizer: adam
   patience: 30
   steps:
-    - 80
     - 100
-    - 120
+    - 150
+    - 200
   test_every_n_epochs: 10
   results_path: results/
   results_name: Abilene-dgc-lstm

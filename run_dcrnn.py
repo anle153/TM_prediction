@@ -55,34 +55,39 @@ def print_dcrnn_info(mode, config):
         raise RuntimeError('Information is not correct!')
 
 
-def train_dcrnn(config):
+def train_dcrnn(config, gpu):
     print('|-- Run model training dcrnn.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
+    tf_config.allow_soft_placement = True
+    tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
+    with tf.device('/device:GPU:{}'.format(gpu)):
+        with tf.Session(config=tf_config) as sess:
+            model = DCRNNSupervisor(is_training=True, **config)
+            try:
+                if config['train']['continue_train']:
+                    model.load(sess, config['train']['model_filename'])
+            except KeyError:
+                print('No saved model found!')
+            model.train(sess)
 
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(is_training=True, **config)
-        try:
-            if config['train']['continue_train']:
-                model.load(sess, config['train']['model_filename'])
-        except KeyError:
-            print('No saved model found!')
-        model.train(sess)
 
-
-def test_dcrnn(config):
+def test_dcrnn(config, gpu):
     print('|-- Run model testing dcrnn.')
 
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(is_training=False, **config)
-        model.load(sess, config['train']['model_filename'])
-        model.test(sess)
-        # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
-        #
-        # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
+    tf_config.allow_soft_placement = True
+    tf_config.gpu_options.per_process_gpu_memory_fraction = 1.0
+    with tf.device('/device:GPU:{}'.format(gpu)):
+        with tf.Session(config=tf_config) as sess:
+            model = DCRNNSupervisor(is_training=False, **config)
+            model.load(sess, config['train']['model_filename'])
+            model.test(sess)
+            # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
+            #
+            # print('Predictions saved as {}.'.format(os.path.join(HOME_PATH, config['test']['results_path']) + '.npz'))
 
 
 def evaluate_dcrnn(config):
@@ -105,6 +110,9 @@ if __name__ == '__main__':
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
+    parser.add_argument('--gpu', default='0', type=str,
+                        help='GPU device.')
+
     parser.add_argument('--output_filename', default='data/dcrnn_predictions.npz')
     args = parser.parse_args()
 
@@ -113,9 +121,9 @@ if __name__ == '__main__':
 
     print_dcrnn_info(args.mode, config)
     if args.mode == 'train':
-        train_dcrnn(config)
+        train_dcrnn(config, args.gpu)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
         evaluate_dcrnn(config)
     else:
-        test_dcrnn(config)
+        test_dcrnn(config, args.gpu)
     # get_results(data)

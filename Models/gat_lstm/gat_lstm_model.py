@@ -4,8 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from Models.gat_lstm.gat_lstm_cell import GATLSTMCell
-from keras.layers import LSTM
+from Models.gat_lstm.gat_lstm_cell import attn_head
 
 
 # from tensorflow.contrib import legacy_seq2seq
@@ -21,43 +20,15 @@ class GATLSTMModel(object):
         self._mse = None
         self._train_op = None
 
-        max_diffusion_step = int(model_kwargs.get('max_diffusion_step', 2))
-        filter_type = model_kwargs.get('filter_type', 'laplacian')
-        horizon = int(model_kwargs.get('horizon', 1))
-        num_nodes = int(model_kwargs.get('num_nodes', 1))
-        num_rnn_layers = int(model_kwargs.get('num_rnn_layers', 1))
-        rnn_units = int(model_kwargs.get('rnn_units'))
-        seq_len = int(model_kwargs.get('seq_len'))
-        input_dim = int(model_kwargs.get('input_dim', 1))
-        output_dim = int(model_kwargs.get('output_dim', 1))
-
+        self.num_nodes = int(model_kwargs.get('num_nodes', 1))
+        self.seq_len = int(model_kwargs.get('seq_len'))
+        self.input_dim = int(model_kwargs.get('input_dim', 1))
+        self.output_dim = int(model_kwargs.get('output_dim', 1))
         self.batch_size = batch_size
-        self.num_nodes = num_nodes
-        self.input_dim = input_dim
-        self.seq_len = seq_len
-        s
-        cell = GATLSTMCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                           filter_type=filter_type)
-        cell_with_projection = GATLSTMCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step,
-                                           num_nodes=num_nodes,
-                                           num_proj=output_dim, filter_type=filter_type)
-
-        encoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
-        encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)
-
-        # Outputs: (batch_size, timesteps, num_nodes, output_dim)
-        with tf.variable_scope('DCRNN_SEQ'):
-            inputs = tf.unstack(tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim)), axis=1)
-            # inputs = tf.reshape(self._inputs, (batch_size, seq_len, num_nodes * input_dim))
-            labels = tf.unstack(
-                tf.reshape(self._labels[..., :output_dim], (batch_size, horizon, num_nodes * output_dim)), axis=1)
-            labels.insert(0, GO_SYMBOL)
-
-            outputs, enc_state = tf.contrib.rnn.static_rnn(encoding_cells, inputs, dtype=tf.float32)
-
-        # Project the output to output_dim.
-        self._outputs = tf.reshape(outputs[-1], (batch_size, horizon, num_nodes, output_dim), name='outputs')
-        self._merged = tf.summary.merge_all()
+        self.n_heads = model_kwargs.get('n_heads')
+        self.hid_units = model_kwargs.get('hid_units')
+        self.activation = tf.nn.elu
+        self.residual = model_kwargs.get('residual')
 
     @staticmethod
     def _compute_sampling_threshold(global_step, k):
@@ -94,14 +65,41 @@ class GATLSTMModel(object):
         return self._outputs
 
     def _build_placeholder(self):
-        self._lstm_inputs = tf.placeholder(tf.float32,
-                                           shape=(self.batch_size, self.seq_len, self.num_nodes, self.input_dim),
-                                           name='lstm_inputs')
+        with tf.name_scope('input'):
+            self._inputs = tf.placeholder(dtype=tf.float32, shape=(self.batch_size, self.num_nodes, self.input_dim))
+            self.bias_in = tf.placeholder(dtype=tf.float32, shape=(self.batch_size, self.num_nodes, self.num_nodes))
+            self._labels = tf.placeholder(dtype=tf.int32, shape=(self.batch_size, self.num_nodes, self.output_dim))
+            self.msk_in = tf.placeholder(dtype=tf.int32, shape=(self.batch_size, self.num_nodes))
+            self.attn_drop = tf.placeholder(dtype=tf.float32, shape=())
+            self.ffd_drop = tf.placeholder(dtype=tf.float32, shape=())
+            self.is_train = tf.placeholder(dtype=tf.bool, shape=())
 
-        self._gat_input = tf.placeholder(tf.float32,
-                                         shape=(self.batch_size, self.num_nodes, self.num_nodes, self.gat_input_dim),
-                                         name='gat_input')
-        # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
-        self._labels = tf.placeholder(tf.float32, shape=(self.batch_size, horizon, num_nodes, 1), name='labels')
+    def _build_model(self):
+        attns = []
+        for _ in range(self.n_heads[0]):
+            attns.append(attn_head(self._inputs, bias_mat=self.msk_in,
+                                   out_sz=self.hid_units, activation=self.activation,
+                                   in_drop=self.ffd_drop, coef_drop=self.attn_drop, residual=False))
 
-        lstm_net = LSTM(units=self.lstm_units, return_sequences=False)
+        h_1 = tf.concat(attns, axis=-1)  # the outputs for first layer are con catenated
+
+        # attention for other layers
+        for i in range(1, len(self.hid_units)):
+            # h_1 then is used as input for other layers
+            h_old = h_1
+            attns = []
+            for _ in range(self.n_heads[i]):
+                attns.append(attn_head(h_1, bias_mat=self.msk_in,
+                                       out_sz=self.hid_units[i], activation=self.activation,
+                                       in_drop=self.ffd_drop, coef_drop=self.attn_drop, residual=self.residual))
+            h_1 = tf.concat(attns, axis=-1)
+
+        # Calculate output by applying averaging attention layer on the final layer of the network
+        # n_heads[-1]: the number of head attention applied for the last layer
+        out = []
+        for i in range(self.n_heads[-1]):
+            out.append(attn_head(h_1, bias_mat=self.msk_in,
+                                 out_sz=self.output_dim, activation=lambda x: x,
+                                 in_drop=self.ffd_drop, coef_drop=self.attn_drop, residual=False))
+        self._outputs = tf.add_n(out) / self.n_heads[-1]  # Averaging to obtain the output
+        self._merged = tf.summary.merge_all()

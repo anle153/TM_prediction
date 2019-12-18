@@ -52,17 +52,11 @@ def _get_log_dir_graph_based(kwargs):
 
     # ADJ_METHOD = ['CORR1', 'CORR2', 'OD', 'EU_PPA', 'DTW', 'DTW_PPA', 'SAX', 'KNN', 'SD']
     adj_method = kwargs['data'].get('adj_method')
-    adj_pos_thres = kwargs['data'].get('pos_thres')
-    adj_neg_thres = -kwargs['data'].get('neg_thres')
 
-    if adj_method != 'OD':
-        run_id = '%s_%s_%g_%d_%s_%g_%g_%d_%d_%s_%g_%d_%s/' % (
-            alg, filter_type_abbr, mon_ratio, max_diffusion_step, adj_method, adj_pos_thres, adj_neg_thres,
-            horizon, seq_len, structure, learning_rate, batch_size, scaler)
-    else:
-        run_id = '%s_%s_%g_%d_%s_%d_%d_%s_%g_%d_%s/' % (
-            alg, filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
-            horizon, seq_len, structure, learning_rate, batch_size, scaler)
+    run_id = '%s_%s_%g_%d_%s_%d_%d_%s_%g_%d_%s/' % (
+        alg, filter_type_abbr, mon_ratio, max_diffusion_step, adj_method,
+        horizon, seq_len, structure, learning_rate, batch_size, scaler)
+
     base_dir = kwargs.get('base_dir')
     log_dir = os.path.join(base_dir, run_id)
     if not os.path.exists(log_dir):

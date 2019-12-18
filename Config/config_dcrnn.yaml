@@ -37,7 +37,7 @@ train:
   lr_decay_ratio: 0.05
   max_grad_norm: 1
   max_to_keep: 300
-  min_learning_rate: 0.001
+  min_learning_rate: 0.0005
   optimizer: adam
   patience: 30
   steps:

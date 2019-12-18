@@ -13,56 +13,41 @@ import yaml
 from tqdm import tqdm
 
 from Models.AbstractModel import AbstractModel
-from Models.dcrnn_att.dcrnn_model_att import DCRNNModel
+from Models.dcrnn_att.dcrnn_model_att import DCRNN_ATT_Model
 from lib import utils, metrics
 from lib.AMSGrad import AMSGrad
 from lib.metrics import masked_mse_loss
 
 
-class DCRNNSupervisor(AbstractModel):
+class DCRNN_ATT_Supervisor(AbstractModel):
     """
     Do experiments using Graph Random Walk RNN model.
     """
 
     def __init__(self, is_training=False, **kwargs):
-        super(DCRNNSupervisor, self).__init__(**kwargs)
+        super(DCRNN_ATT_Supervisor, self).__init__(**kwargs)
 
-        self._data = utils.load_dataset_dcrnn_att(seq_len=self._model_kwargs.get('seq_len'),
-                                                  horizon=self._model_kwargs.get('horizon'),
-                                                  input_dim=self._model_kwargs.get('input_dim'),
-                                                  mon_ratio=self._mon_ratio,
-                                                  scaler_type=self._kwargs.get('scaler'),
-                                                  is_training=is_training,
-                                                  **self._data_kwargs)
+        self._data = utils.load_dataset_dcrnn(seq_len=self._model_kwargs.get('seq_len'),
+                                              horizon=self._model_kwargs.get('horizon'),
+                                              input_dim=self._model_kwargs.get('input_dim'),
+                                              mon_ratio=self._mon_ratio,
+                                              scaler_type=self._kwargs.get('scaler'),
+                                              is_training=is_training,
+                                              **self._data_kwargs)
         for k, v in self._data.items():
             if hasattr(v, 'shape'):
                 self._logger.info((k, v.shape))
 
         # Build models.
         scaler = self._data['scaler']
-        with tf.name_scope('Train'):
-            with tf.variable_scope('DCRNN_ATT', reuse=False):
-                self._train_model = DCRNNModel(is_training=True, scaler=scaler,
-                                               batch_size=self._data_kwargs['batch_size'],
-                                               adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('Val'):
-            with tf.variable_scope('DCRNN_ATT', reuse=True):
-                self._val_model = DCRNNModel(is_training=False, scaler=scaler,
-                                             batch_size=self._data_kwargs['val_batch_size'],
-                                             adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('Eval'):
-            with tf.variable_scope('DCRNN_ATT', reuse=True):
-                self._eval_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=self._data_kwargs['eval_batch_size'],
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
-
-        with tf.name_scope('Test'):
-            with tf.variable_scope('DCRNN_ATT', reuse=True):
-                self._test_model = DCRNNModel(is_training=False, scaler=scaler,
-                                              batch_size=self._data_kwargs['test_batch_size'],
-                                              adj_mx=self._data['adj_mx'], **self._model_kwargs)
+        if is_training:
+            self.model = DCRNN_ATT_Model(scaler=scaler,
+                                         batch_size=self._data_kwargs['batch_size'],
+                                         adj_mx=self._data['adj_mx'], **self._model_kwargs)
+        else:
+            self.model = DCRNN_ATT_Model(scaler=scaler,
+                                         batch_size=1,
+                                         adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.
         self._lr = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(0.01),
@@ -81,8 +66,8 @@ class DCRNNSupervisor(AbstractModel):
 
         # Calculate loss
         output_dim = self._model_kwargs.get('output_dim')
-        preds = self._train_model.outputs
-        labels = self._train_model.labels[..., :output_dim]
+        preds = self.model.outputs
+        labels = self.model.labels[..., :output_dim]
 
         null_val = 0.
         self._loss_fn = masked_mse_loss(scaler, null_val)
@@ -156,9 +141,22 @@ class DCRNNSupervisor(AbstractModel):
             results['outputs'] = outputs
         return results
 
+    def _prepare_input(self, ground_truth, data, m_indicator):
+
+        x = np.zeros(shape=(self._seq_len, self._nodes, self._input_dim), dtype='float32')
+        y = np.zeros(shape=(self._horizon, self._nodes), dtype='float32')
+
+        x[:, :, 0] = data
+        x[:, :, 1] = m_indicator
+
+        y[:] = ground_truth
+        y = np.expand_dims(y, axis=2)
+
+        return np.expand_dims(x, axis=0), np.expand_dims(y, axis=0)
+
     def _run_tm_prediction(self, sess, model, runId, writer=None):
 
-        test_data_norm = self._data['test_data_norm']
+        test_data_norm = self._data['test_set']
 
         # Initialize traffic matrix data
         tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
@@ -198,8 +196,14 @@ class DCRNNSupervisor(AbstractModel):
 
             sampling = self._monitored_flows_slection(time_slot=ts, m_indicator=m_indicator)
 
+            # invert of sampling: for choosing value from the original data
+
             ground_true = test_data_norm[ts + self._seq_len]
+
+            # Merge value from pred_input and measured_input
             new_input = pred * (1.0 - sampling) + ground_true * sampling
+
+            # Concatenating new_input into current rnn_input
             tm_pred[ts + self._seq_len] = new_input
 
         results = {'y_preds': y_preds,
@@ -245,7 +249,7 @@ class DCRNNSupervisor(AbstractModel):
             self.set_lr(sess=sess, lr=new_lr)
 
             start_time = time.time()
-            train_results = self.run_epoch_generator(sess, self._train_model,
+            train_results = self.run_epoch_generator(sess, self.model,
                                                      self._data['train_loader'].get_iterator(),
                                                      training=True,
                                                      writer=self._writer)
@@ -256,7 +260,7 @@ class DCRNNSupervisor(AbstractModel):
 
             global_step = sess.run(tf.train.get_or_create_global_step())
             # Compute validation error.
-            val_results = self.run_epoch_generator(sess, self._val_model,
+            val_results = self.run_epoch_generator(sess, self.model,
                                                    self._data['val_loader'].get_iterator(),
                                                    training=False)
             val_loss, val_mse = val_results['loss'].item(), val_results['mse'].item()
@@ -265,17 +269,15 @@ class DCRNNSupervisor(AbstractModel):
                                      ['loss/train_loss', 'metric/train_mse', 'loss/val_loss', 'metric/val_mse'],
                                      [train_loss, train_mse, val_loss, val_mse], global_step=global_step)
             end_time = time.time()
-            message = 'Epoch [{}/{}] ({}) train_mse: {:.4f}, val_mse: {:.4f} lr:{:.6f} {:.1f}s'.format(
+            message = 'Epoch [{}/{}] ({}) train_mse: {:f}, val_mse: {:f} lr:{:f} {:.1f}s'.format(
                 self._epoch, epochs, global_step, train_mse, val_mse, new_lr, (end_time - start_time))
             self._logger.info(message)
-            if self._epoch % test_every_n_epochs == test_every_n_epochs - 1:
-                self.evaluate(sess)
             if val_loss <= min_val_loss:
                 wait = 0
                 if save_model > 0:
                     model_filename = self.save(sess, val_loss)
                 self._logger.info(
-                    'Val loss decrease from %.4f to %.4f, saving to %s' % (min_val_loss, val_loss, model_filename))
+                    'Val loss decrease from %f to %f, saving to %s' % (min_val_loss, val_loss, model_filename))
                 min_val_loss = val_loss
             else:
                 wait += 1
@@ -297,20 +299,8 @@ class DCRNNSupervisor(AbstractModel):
 
         return np.min(history)
 
-    def _prepare_test_set(self):
+    def test(self, sess):
 
-        y_test = np.zeros(shape=(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1,
-                                 self._horizon,
-                                 self._nodes,
-                                 1), dtype='float32')
-        for t in range(self._data['test_data_norm'].shape[0] - self._seq_len - self._horizon + 1):
-            y_test[t] = np.expand_dims(self._data['test_data_norm']
-                                       [t + self._seq_len:t + self._seq_len + self._horizon],
-                                       axis=2)
-
-        return y_test
-
-    def _test(self, sess):
         n_metrics = 4
         # Metrics: MSE, MAE, RMSE, MAPE, ER
         metrics_summary = np.zeros(shape=(self._run_times + 3, self._horizon * n_metrics + 1))
@@ -319,11 +309,11 @@ class DCRNNSupervisor(AbstractModel):
             self._logger.info('|--- Run time: {}'.format(i))
             # y_test = self._prepare_test_set()
 
-            test_results = self._run_tm_prediction(sess, model=self._test_model, runId=i)
+            test_results = self._run_tm_prediction(sess, model=self.model, runId=i)
 
             metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
                                                       scaler=self._data['scaler'],
-                                                      runId=i, data_norm=self._data['test_data_norm'])
+                                                      runId=i, data_norm=self._data['test_set'])
 
         self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 
@@ -333,13 +323,9 @@ class DCRNNSupervisor(AbstractModel):
         kwargs.update(self._train_kwargs)
         return self._train(sess, **kwargs)
 
-    def test(self, sess, **kwargs):
-        kwargs.update(self._test_kwargs)
-        return self._test(sess)
-
     def evaluate(self, sess):
         global_step = sess.run(tf.train.get_or_create_global_step())
-        test_results = self.run_epoch_generator(sess, self._eval_model,
+        test_results = self.run_epoch_generator(sess, self.model,
                                                 self._data['eval_loader'].get_iterator(),
                                                 return_output=True,
                                                 training=False)

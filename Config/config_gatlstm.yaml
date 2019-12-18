@@ -1,58 +1,41 @@
 ---
-alg: gconvrnn
+alg: gatlstm
 base_dir: logs/pretrained/Abilene
 log_level: INFO
-gpu: 1
+gpu: 0
 mon_ratio: 0.5
 scaler: MM
 seed: 1
 data:
   data_name: Abilene
-  batch_size: 128
-  test_batch_size: 1
+  batch_size: 32
   dataset_dir: Dataset/Abilene2d.npy
   adj_method: OD
-  pos_thres: 0.1
-  neg_thres: -0.1
   day_size: 288
   data_size: 1.0
 model:
-  model_type: glstm
-  cl_decay_steps: 2000
-  filter_type: dual_random_walk
-  horizon: 1
-  input_dim: 2
-  l1_decay: 0
-  max_diffusion_step: 1
+  input_dim: 3
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 256
-  seq_len: 36
-  num_kernel: 1
   classif_loss: mse
   optimizer: adam
   learning_rate: 0.001
   max_grad_norm: 1
-  return_seq: False
+  n_heads: [8, 1]
+  hid_units: [8]
+  residual: True
 train:
-  base_lr: 0.001
+  base_lr: 0.005
   dropout: 0.5
   epoch: 0
   epochs: 50000
   epsilon: 0.00000001
   global_step: 24375
   lr_decay_ratio: 0.05
-  max_to_keep: 100
-  min_learning_rate: 2.0e-06
-  patience: 30
-  steps:
-    - 20
-    - 30
-    - 40
-    - 50
-  logstep: 20
-  checkpoint_secs: 300
+  max_to_keep: 300
+  min_learning_rate: 0.0005
+  patience: 50
 test:
   run_times: 50
   flow_selection: Random

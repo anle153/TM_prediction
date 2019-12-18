@@ -49,7 +49,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         # residual connection
         if residual:
             if seq.shape[-1] != ret.shape[-1]:
-                ret = ret + conv1d(seq, ret.shape[-1], 1)  # activation
+                ret = ret + tf.layers.conv1d(seq, ret.shape[-1], 1)  # activation
             else:
                 ret = ret + seq
 

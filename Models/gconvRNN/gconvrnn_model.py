@@ -221,7 +221,6 @@ class gconvLSTMCell(RNNCell):
                     new_state = tf.concat([new_c, new_h], 1)
                 return new_h, new_state
 
-
 class Model(object):
     """
     Defined:

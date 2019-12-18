@@ -302,6 +302,27 @@ def create_data_dcrnn(data, seq_len, horizon, input_dim, mon_ratio, eps):
     return x, y
 
 
+def create_data_gatlstm(data, num_nodes, input_dim, mon_ratio, eps, day_size):
+    _tf = np.array([1.0, 0.0])
+    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
+    _labels = _labels.astype('float32')
+    _data = np.copy(data)
+
+    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+
+    x = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, input_dim), dtype='float32')
+    y = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, 1), dtype='float32')
+
+    i = 0
+    for time_slot in range(_data.shape[0] - day_size * input_dim):
+        x[i] = _data[time_slot: time_slot + input_dim * day_size: day_size].T
+
+        y[i, :, 0] = data[time_slot + input_dim * day_size]
+
+        i += 1
+    return x, y
+
+
 def create_data_dcrnn_weighted(data, seq_len, horizon, input_dim, mon_ratio, eps):
     _tf = np.array([1.0, 0.0])
     _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
@@ -645,6 +666,52 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, dataset_dir, data
 
     adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data, seq_len=seq_len, adj_dir=dataset_dir,
                                 pos_thres=pos_thres, neg_thres=neg_thres)
+
+    print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
+
+    adj_mx = adj_mx.astype('float32')
+
+    data['adj_mx'] = adj_mx
+
+    return data
+
+
+def load_dataset_gatlstm(num_nodes, input_dim, mon_ratio, dataset_dir, data_size, day_size, batch_size,
+                         adj_method='CORR1', scaler_type='SD', is_training=False, **kwargs):
+    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
+        prepare_data(dataset_dir, day_size, data_size, scaler_type)
+    data = {}
+    data['test_data_norm'] = test_data_norm
+    if is_training:
+        x_train, y_train = create_data_gatlstm(data=train_data_norm, num_nodes=num_nodes, input_dim=input_dim,
+                                               mon_ratio=mon_ratio, eps=train_data_norm.std(), day_size=day_size)
+        x_val, y_val = create_data_gatlstm(data=valid_data_norm, num_nodes=num_nodes, input_dim=input_dim,
+                                           mon_ratio=mon_ratio, eps=train_data_norm.std(), day_size=day_size)
+
+        for category in ['train', 'val']:
+            _x, _y = locals()["x_" + category], locals()["y_" + category]
+            print(category, "x: ", _x.shape, "y:", _y.shape)
+            data['x_' + category] = _x
+            data['y_' + category] = _y
+        # Data format
+
+        data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+        data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
+
+    data['scaler'] = scaler
+
+    print('|--- Get Correlation Matrix')
+
+    adj_dir = dataset_dir.split('/')[:-1]
+    adj_dir = '/'.join(adj_dir)
+    print('|--- Dataset dir: {}'.format(adj_dir))
+
+    adj_file_name = 'OD'.format(adj_method)
+    if os.path.isfile(os.path.join(adj_dir, adj_file_name + '.npy')):
+        adj_mx = np.load(os.path.join(adj_dir, adj_file_name + '.npy'))
+    else:
+        adj_mx = od_flow_matrix()
+        np.save(os.path.join(adj_dir, adj_file_name), adj_mx)
 
     print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
 

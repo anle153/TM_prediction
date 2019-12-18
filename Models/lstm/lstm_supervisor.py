@@ -130,7 +130,7 @@ class lstm(AbstractModel):
 
             metrics_summary = self._calculate_metrics(prediction_results=test_results, metrics_summary=metrics_summary,
                                                       scaler=self._data['scaler'],
-                                                      runId=i, data_norm=self._data['test_data_norm'])
+                                                      runId=i, data_norm=self._data['test_set'])
 
         self._summarize_results(metrics_summary=metrics_summary, n_metrics=n_metrics)
 

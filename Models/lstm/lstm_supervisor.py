@@ -84,7 +84,7 @@ class lstm(AbstractModel):
 
     def _run_tm_prediction(self, runId):
 
-        test_data_norm = self._data['test_data_norm']
+        test_data_norm = self._data['test_set']
 
         tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)
 

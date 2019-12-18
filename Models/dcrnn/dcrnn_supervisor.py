@@ -156,7 +156,7 @@ class DCRNNSupervisor(AbstractModel):
 
     def _run_tm_prediction(self, sess, model, runId, writer=None):
 
-        test_data_norm = self._data['test_data_norm']
+        test_data_norm = self._data['test_set']
 
         # Initialize traffic matrix data
         tm_pred, m_indicator = self._init_data_test(test_data_norm, runId)

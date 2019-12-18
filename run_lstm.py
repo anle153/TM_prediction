@@ -94,7 +94,7 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
-    parser.add_argument('--config', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+    parser.add_argument('--config', default='Config/config_lstm.yaml', type=str,
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
@@ -107,6 +107,10 @@ if __name__ == '__main__':
         config = yaml.load(f)
 
     print_lstm_info(args.mode, config)
+
+    import numpy as np
+
+    np.random.seed(config['seed'])
 
     if args.mode == 'train':
         if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':

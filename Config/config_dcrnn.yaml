@@ -24,7 +24,7 @@ model:
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 128
+  rnn_units: 32
   seq_len: 36
   use_curriculum_learning: true
 train:

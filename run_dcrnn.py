@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 
+import numpy as np
 import tensorflow as tf
 import yaml
 
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
-    parser.add_argument('--config', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+    parser.add_argument('--config', default='Config/config_dcrnn.yaml', type=str,
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')
@@ -122,6 +123,7 @@ if __name__ == '__main__':
         config = yaml.load(f)
 
     print_dcrnn_info(args.mode, config)
+    np.random.seed(config['seed'])
     if args.mode == 'train':
         train_dcrnn(config, args.gpu)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':

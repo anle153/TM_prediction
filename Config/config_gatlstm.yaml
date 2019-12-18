@@ -22,7 +22,7 @@ model:
   optimizer: adam
   learning_rate: 0.001
   max_grad_norm: 1
-  n_heads: [8, 1]
+  n_heads: [8, 8]
   hid_units: [64]
   residual: True
 train:

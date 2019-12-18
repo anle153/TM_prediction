@@ -46,7 +46,7 @@ class DCRNNSupervisor(AbstractModel):
                                     adj_mx=self._data['adj_mx'], **self._model_kwargs)
         else:
             self.model = DCRNNModel(scaler=scaler,
-                                    batch_size=self._data_kwargs['test_batch_size'],
+                                    batch_size=1,
                                     adj_mx=self._data['adj_mx'], **self._model_kwargs)
 
         # Learning rate.

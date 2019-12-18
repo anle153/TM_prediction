@@ -277,20 +277,14 @@ def prepare_train_valid_test_2d(data, day_size):
     return train_set, valid_set, test_set
 
 
-def create_data_dcrnn(data, seq_len, horizon, input_dim, mon_ratio, eps):
-    _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
-    _labels = _labels.astype('float32')
-    _data = np.copy(data)
-
-    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
+def create_data_dcrnn(data, label, seq_len, horizon, input_dim):
 
     x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
     y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
-    for idx in range(_data.shape[0] - seq_len - horizon):
-        _x = _data[idx: idx + seq_len]
-        _label = _labels[idx: idx + seq_len]
+    for idx in range(data.shape[0] - seq_len - horizon):
+        _x = data[idx: idx + seq_len]
+        _label = label[idx: idx + seq_len]
 
         x[idx, :, :, 0] = _x
         x[idx, :, :, 1] = _label
@@ -569,17 +563,15 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
     return adj_mx
 
 
-def prepare_data(dataset_dir, day_size, data_size, scaler_type='SD'):
-    raw_data = np.load(dataset_dir)
+def normalizing_data(dataset_dir, data_name, day_size, scaler_type='SD'):
+    print('|--- ')
+    raw_data = np.load(os.path.join(dataset_dir, '{}/{}.npy'.format(data_name, data_name)))
     raw_data[raw_data <= 0] = 0.0
 
     raw_data = raw_data / 1e6
 
     raw_data = raw_data.astype("float32")
 
-    raw_data = raw_data[:int(raw_data.shape[0] * data_size)]
-
-    print('|--- Splitting train-test set.')
     train_data, valid_data, test_data = prepare_train_valid_test_2d(data=raw_data, day_size=day_size)
     test_data = test_data[0:-day_size * 3]
 
@@ -588,7 +580,7 @@ def prepare_data(dataset_dir, day_size, data_size, scaler_type='SD'):
     valid_data_norm = scaler.transform(valid_data)
     test_data_norm = scaler.transform(test_data)
 
-    return train_data, train_data_norm, valid_data_norm, test_data_norm, scaler
+    return train_data_norm, valid_data_norm, test_data_norm, scaler
 
 
 def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
@@ -637,18 +629,64 @@ def load_dataset_dcrnn_att(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, dataset_dir, data_size, day_size, batch_size, pos_thres,
-                       neg_thres, adj_method='CORR1', scaler_type='SD', is_training=False, **kwargs):
-    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
-        prepare_data(dataset_dir, day_size, data_size, scaler_type)
+def create_sampled_data(data, mon_ratio):
+    _tf = np.array([1.0, 0.0])
+    label = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
+    label = label.astype('float32')
+    sampled_data = np.copy(data)
+
+    sampled_data[label == 0.0] = np.random.uniform(sampled_data[label == 0.0] - data.std(),
+                                                   sampled_data[label == 0.0] + data.std())
+
+    return sampled_data, label
+
+
+def _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ratio):
+    if os.path.isfile(os.path.join(dataset_dir, data_name + '/train_set.npy')):
+        train_set = np.load(os.path.join(dataset_dir, data_name + '/train_set.npy'))
+        train_label = np.load(os.path.join(dataset_dir, data_name + '/train_label.npy'))
+        valid_set = np.load(os.path.join(dataset_dir, data_name + '/valid_set.npy'))
+        valid_label = np.load(os.path.join(dataset_dir, data_name + '/valid_label.npy'))
+        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set.npy'))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler'), 'rb'))
+        return train_set, train_label, valid_set, valid_label, test_set, scaler
+    else:
+        train_data_norm, valid_data_norm, test_set, scaler = \
+            normalizing_data(dataset_dir, data_name, day_size, scaler_type)
+
+        train_set, train_label = create_sampled_data(train_data_norm, mon_ratio)
+        valid_set, valid_label = create_sampled_data(valid_data_norm, mon_ratio)
+
+        np.save(os.path.join(dataset_dir, data_name + '/train_set'), train_set)
+        np.save(os.path.join(dataset_dir, data_name + '/train_label'), train_label)
+        np.save(os.path.join(dataset_dir, data_name + '/valid_set'), valid_set)
+        np.save(os.path.join(dataset_dir, data_name + '/valid_label'), valid_label)
+        np.save(os.path.join(dataset_dir, data_name + '/test_set'), test_set)
+        pickle.dump(scaler, open(os.path.join(dataset_dir, data_name + '/scaler'), 'wb'))
+
+        return train_set, train_label, valid_set, valid_label, test_set, scaler
+
+
+def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, batch_size, scaler_type='SD', is_training=False,
+                       **kwargs):
+    data_name = kwargs.get('data_name')
+    dataset_dir = kwargs.get('data_dir')
+    data_size = kwargs.get('data_size')
+    day_size = kwargs.get('day_size')
     data = {}
-    data['test_data_norm'] = test_data_norm
+
     if is_training:
-        x_train, y_train = create_data_dcrnn(data=train_data_norm, seq_len=seq_len, horizon=horizon,
-                                             input_dim=input_dim,
-                                             mon_ratio=mon_ratio, eps=train_data_norm.std())
-        x_val, y_val = create_data_dcrnn(data=valid_data_norm, seq_len=seq_len, horizon=horizon, input_dim=input_dim,
-                                         mon_ratio=mon_ratio, eps=train_data_norm.std())
+
+        train_set, train_label, valid_set, valid_label, test_set, scaler = \
+            _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ratio)
+
+        x_train, y_train = create_data_dcrnn(data=train_set, label=train_label,
+                                             seq_len=seq_len, horizon=horizon, input_dim=input_dim)
+
+        x_val, y_val = create_data_dcrnn(data=valid_set, label=valid_label,
+                                         seq_len=seq_len, horizon=horizon, input_dim=input_dim)
+
+        data['scaler'] = scaler
 
         for category in ['train', 'val']:
             _x, _y = locals()["x_" + category], locals()["y_" + category]
@@ -660,12 +698,15 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, dataset_dir, data
         data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
         data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
 
-    data['scaler'] = scaler
+    else:
+        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set.npy'))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler', 'rb')))
+
+        data['test_set'] = test_set
+        data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')
-
-    adj_mx = adj_mx_contruction(adj_method=adj_method, data=train_data, seq_len=seq_len, adj_dir=dataset_dir,
-                                pos_thres=pos_thres, neg_thres=neg_thres)
+    adj_mx = np.load(os.path.join(dataset_dir, data_name + '/adj_mx.npy'))
 
     print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
 

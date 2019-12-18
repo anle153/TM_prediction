@@ -34,7 +34,7 @@ model:
   max_grad_norm: 1
   return_seq: False
 train:
-  base_lr: 0.005
+  base_lr: 0.001
   dropout: 0.5
   epoch: 0
   epochs: 50000

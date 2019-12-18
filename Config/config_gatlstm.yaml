@@ -8,7 +8,7 @@ scaler: MM
 seed: 1
 data:
   data_name: Abilene
-  batch_size: 32
+  batch_size: 128
   dataset_dir: Dataset/Abilene2d.npy
   adj_method: OD
   day_size: 288

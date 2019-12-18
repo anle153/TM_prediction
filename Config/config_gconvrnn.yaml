@@ -25,7 +25,7 @@ model:
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
-  rnn_units: 64
+  rnn_units: 128
   seq_len: 36
   num_kernel: 1
   classif_loss: mse

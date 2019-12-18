@@ -1033,21 +1033,14 @@ def load_dataset_fwbw_lstm_ed(seq_len, horizon, input_dim, mon_ratio,
     return data
 
 
-def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
-    _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1 - mon_ratio))
+def create_data_lstm(data, label, seq_len, input_dim):
     data_x = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], seq_len, input_dim), dtype='float32')
     data_y = np.zeros(shape=((data.shape[0] - seq_len) * data.shape[1], 1), dtype='float32')
-
-    _data = np.copy(data)
-
-    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
-
     i = 0
-    for flow in range(_data.shape[1]):
-        for idx in range(_data.shape[0] - seq_len):
-            _x = _data[idx: idx + seq_len, flow]
-            _label = _labels[idx: idx + seq_len, flow]
+    for flow in range(data.shape[1]):
+        for idx in range(data.shape[0] - seq_len):
+            _x = data[idx: idx + seq_len, flow]
+            _label = label[idx: idx + seq_len, flow]
 
             data_x[i, :, 0] = _x
             data_x[i, :, 1] = _label
@@ -1060,27 +1053,38 @@ def create_data_lstm(data, seq_len, input_dim, mon_ratio, eps):
 
 
 def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
-                      dataset_dir, day_size, data_size, batch_size, eval_batch_size=None,
-                      scaler_type='SD', is_training=False, **kwargs):
-    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
-        prepare_data(dataset_dir, day_size, data_size, scaler_type)
+                      batch_size, scaler_type='SD', is_training=False, **kwargs):
+    data_name = kwargs.get('data_name')
+    dataset_dir = kwargs.get('data_dir')
+    data_size = kwargs.get('data_size')
+    day_size = kwargs.get('day_size')
     data = {}
-    data['test_data_norm'] = test_data_norm
 
     if is_training:
-        x_train, y_train = create_data_lstm(train_data_norm, seq_len=seq_len, input_dim=input_dim,
-                                            mon_ratio=mon_ratio, eps=train_data_norm.std())
-        x_val, y_val = create_data_lstm(valid_data_norm, seq_len=seq_len, input_dim=input_dim,
-                                        mon_ratio=mon_ratio, eps=train_data_norm.std())
-        x_eval, y_eval = create_data_lstm(test_data_norm, seq_len=seq_len, input_dim=input_dim,
-                                          mon_ratio=mon_ratio, eps=train_data_norm.std())
+        train_set, train_label, valid_set, valid_label, test_set, scaler = \
+            _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ratio)
 
-        for cat in ["train", "val", "eval"]:
-            _x, _y = locals()["x_" + cat], locals()["y_" + cat]
-            print(cat, "x: ", _x.shape, "y:", _y.shape)
+        x_train, y_train = create_data_lstm(data=train_set, label=train_label,
+                                            seq_len=seq_len, input_dim=input_dim)
 
-            data['x_' + cat] = _x
-            data['y_' + cat] = _y
+        x_val, y_val = create_data_lstm(data=valid_set, label=valid_label,
+                                        seq_len=seq_len, input_dim=input_dim)
+
+        for category in ['train', 'val']:
+            _x, _y = locals()["x_" + category], locals()["y_" + category]
+            print(category, "x: ", _x.shape, "y:", _y.shape)
+            data['x_' + category] = _x
+            data['y_' + category] = _y
+        # Data format
+
+        data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
+        data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
+
+    else:
+        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set.npy'))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler', 'rb')))
+
+        data['test_set'] = test_set
 
     data['scaler'] = scaler
 

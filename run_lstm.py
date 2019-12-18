@@ -5,7 +5,6 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.lstm.encoder_decoder_supervisor import EncoderDecoder
 from Models.lstm.lstm_supervisor import lstm
 
 config = tf.ConfigProto()
@@ -76,30 +75,12 @@ def train_lstm(config):
     return
 
 
-def train_lstm_ed(config):
-    print('|-- Run model training dgc_lstm.')
-    with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        model = EncoderDecoder(is_training=True, **config)
-        model.train()
-
-
-def test_lstm_ed(config):
-    with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        model = EncoderDecoder(is_training=False, **config)
-        model.test()
-
-
 def evaluate_lstm(config):
     with tf.device('/device:GPU:{}'.format(config['gpu'])):
         lstm_net = build_model(config)
     lstm_net.load()
     lstm_net.evaluate()
 
-
-def evaluate_lstm_ed(config):
-    with tf.device('/device:GPU:{}'.format(config['gpu'])):
-        model = EncoderDecoder(is_training=False, **config)
-        model.evaluate()
 
 
 def test_lstm(config):
@@ -130,16 +111,12 @@ if __name__ == '__main__':
     if args.mode == 'train':
         if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
             train_lstm(config)
-        elif config['model']['model_type'] == 'ed':
-            train_lstm_ed(config)
         else:
             raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
     elif args.mode == 'evaluate' or args.mode == 'evaluation':
 
         if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
             evaluate_lstm(config)
-        elif config['model']['model_type'] == 'ed':
-            evaluate_lstm_ed(config)
         else:
             raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
 
@@ -147,8 +124,6 @@ if __name__ == '__main__':
 
         if config['model']['model_type'] == 'lstm' or config['model']['model_type'] == 'LSTM':
             test_lstm(config)
-        elif config['model']['model_type'] == 'ed':
-            test_lstm_ed(config)
         else:
             raise RuntimeError('|--- Model should be lstm or ed (encoder-decoder)!')
 

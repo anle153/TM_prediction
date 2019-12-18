@@ -643,6 +643,7 @@ def create_sampled_data(data, mon_ratio):
 
 def _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ratio):
     if os.path.isfile(os.path.join(dataset_dir, data_name + '/train_set.npy')):
+        print('|--- Load data set')
         train_set = np.load(os.path.join(dataset_dir, data_name + '/train_set.npy'))
         train_label = np.load(os.path.join(dataset_dir, data_name + '/train_label.npy'))
         valid_set = np.load(os.path.join(dataset_dir, data_name + '/valid_set.npy'))
@@ -651,6 +652,7 @@ def _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ra
         scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler'), 'rb'))
         return train_set, train_label, valid_set, valid_label, test_set, scaler
     else:
+        print('|--- Prepare data set')
         train_data_norm, valid_data_norm, test_set, scaler = \
             normalizing_data(dataset_dir, data_name, day_size, scaler_type)
 

@@ -5,6 +5,7 @@ log_level: INFO
 gpu: 0
 mon_ratio: 0.5
 scaler: MM
+seed: 153
 data:
   data_name: Abilene
   batch_size: 256

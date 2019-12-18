@@ -110,6 +110,9 @@ if __name__ == '__main__':
         config = yaml.load(f)
 
     print_dcrnn_att_info(args.mode, config)
+    import numpy as np
+
+    np.random.seed(config['seed'])
     if args.mode == 'train':
         train_dcrnn_att(config)
     elif args.mode == 'evaluate' or args.mode == 'evaluation':

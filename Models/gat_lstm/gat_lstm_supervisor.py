@@ -266,7 +266,6 @@ class GATLSTMSupervisor():
 
             history.append(val_loss)
             # Increases epoch.
-            self._epoch += 1
             losses.append(train_loss)
             val_losses.append(val_loss)
             sys.stdout.flush()

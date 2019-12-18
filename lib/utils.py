@@ -642,14 +642,14 @@ def create_sampled_data(data, mon_ratio):
 
 
 def _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ratio):
-    if os.path.isfile(os.path.join(dataset_dir, data_name + '/train_set.npy')):
+    if os.path.isfile(os.path.join(dataset_dir, data_name + '/train_set_{}.npy'.format(mon_ratio))):
         print('|--- Load data set')
-        train_set = np.load(os.path.join(dataset_dir, data_name + '/train_set.npy'))
-        train_label = np.load(os.path.join(dataset_dir, data_name + '/train_label.npy'))
-        valid_set = np.load(os.path.join(dataset_dir, data_name + '/valid_set.npy'))
-        valid_label = np.load(os.path.join(dataset_dir, data_name + '/valid_label.npy'))
-        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set.npy'))
-        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler'), 'rb'))
+        train_set = np.load(os.path.join(dataset_dir, data_name + '/train_set_{}.npy'.format(mon_ratio)))
+        train_label = np.load(os.path.join(dataset_dir, data_name + '/train_label_{}.npy'.format(mon_ratio)))
+        valid_set = np.load(os.path.join(dataset_dir, data_name + '/valid_set_{}.npy'.format(mon_ratio)))
+        valid_label = np.load(os.path.join(dataset_dir, data_name + '/valid_label_{}.npy'.format(mon_ratio)))
+        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set_{}.npy'.format(mon_ratio)))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio)), 'rb'))
         return train_set, train_label, valid_set, valid_label, test_set, scaler
     else:
         print('|--- Prepare data set')
@@ -659,12 +659,12 @@ def _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ra
         train_set, train_label = create_sampled_data(train_data_norm, mon_ratio)
         valid_set, valid_label = create_sampled_data(valid_data_norm, mon_ratio)
 
-        np.save(os.path.join(dataset_dir, data_name + '/train_set'), train_set)
-        np.save(os.path.join(dataset_dir, data_name + '/train_label'), train_label)
-        np.save(os.path.join(dataset_dir, data_name + '/valid_set'), valid_set)
-        np.save(os.path.join(dataset_dir, data_name + '/valid_label'), valid_label)
-        np.save(os.path.join(dataset_dir, data_name + '/test_set'), test_set)
-        pickle.dump(scaler, open(os.path.join(dataset_dir, data_name + '/scaler'), 'wb'))
+        np.save(os.path.join(dataset_dir, data_name + '/train_set_{}'.format(mon_ratio)), train_set)
+        np.save(os.path.join(dataset_dir, data_name + '/train_label_{}'.format(mon_ratio)), train_label)
+        np.save(os.path.join(dataset_dir, data_name + '/valid_set_{}'.format(mon_ratio)), valid_set)
+        np.save(os.path.join(dataset_dir, data_name + '/valid_label_{}'.format(mon_ratio)), valid_label)
+        np.save(os.path.join(dataset_dir, data_name + '/test_set_{}'.format(mon_ratio)), test_set)
+        pickle.dump(scaler, open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio)), 'wb'))
 
         return train_set, train_label, valid_set, valid_label, test_set, scaler
 
@@ -701,8 +701,8 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, batch_size, scale
         data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
 
     else:
-        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set.npy'))
-        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler', 'rb')))
+        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set_{}.npy'.format(mon_ratio)))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio), 'rb')))
 
         data['test_set'] = test_set
         data['scaler'] = scaler
@@ -1081,8 +1081,8 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
         data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
 
     else:
-        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set.npy'))
-        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler', 'rb')))
+        test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set_{}.npy'.format(mon_ratio)))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio), 'rb')))
 
         data['test_set'] = test_set
 

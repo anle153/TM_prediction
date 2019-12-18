@@ -8,12 +8,10 @@ scaler: MM
 seed: 1
 data:
   data_name: Abilene
-  batch_size: 128
+  batch_size: 256
   test_batch_size: 1
-  dataset_dir: Dataset/Abilene2d.npy
+  dataset_dir: Dataset/
   adj_method: OD
-  pos_thres: 0.1
-  neg_thres: -0.1
   day_size: 288
   data_size: 1.0
 model:
@@ -36,21 +34,21 @@ model:
   max_grad_norm: 1
   return_seq: False
 train:
-  base_lr: 0.001
+  base_lr: 0.005
   dropout: 0.5
   epoch: 0
   epochs: 50000
   epsilon: 0.00000001
   global_step: 24375
   lr_decay_ratio: 0.05
-  max_to_keep: 100
-  min_learning_rate: 2.0e-06
+  max_to_keep: 300
+  min_learning_rate: 0.0005
   patience: 30
   steps:
-    - 20
-    - 30
-    - 40
     - 50
+    - 100
+    - 150
+    - 200
   logstep: 20
   checkpoint_secs: 300
 test:

@@ -14,7 +14,7 @@ data:
   day_size: 288
   data_size: 1.0
 model:
-  input_dim: 3
+  input_dim: 5
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
@@ -23,7 +23,7 @@ model:
   learning_rate: 0.001
   max_grad_norm: 1
   n_heads: [8, 1]
-  hid_units: [8]
+  hid_units: [64]
   residual: True
 train:
   base_lr: 0.005

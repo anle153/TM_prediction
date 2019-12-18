@@ -5,7 +5,7 @@ import sys
 import tensorflow as tf
 import yaml
 
-from Models.dcrnn_att.dcrnn_supervisor_att import DCRNNSupervisor
+from Models.dcrnn_att.dcrnn_supervisor_att import DCRNN_ATT_Supervisor
 
 
 def print_dcrnn_att_info(mode, config):
@@ -22,8 +22,6 @@ def print_dcrnn_att_info(mode, config):
     print('|--- SCALER:\t{}'.format(config['scaler']))
 
     print('|--- ADJ_METHOD:\t{}'.format(config['data']['adj_method']))
-    print('|--- ADJ_POS_THRES:\t{}'.format(config['data']['pos_thres']))
-    print('|--- ADJ_NEG_THRES:\t{}'.format(config['data']['neg_thres']))
 
     print('----------------------- MODEL -----------------------')
     print('|--- SEQ_LEN:\t{}'.format(config['model']['seq_len']))
@@ -62,7 +60,7 @@ def train_dcrnn_att(config):
     tf_config.gpu_options.allow_growth = True
 
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(is_training=True, **config)
+        model = DCRNN_ATT_Supervisor(is_training=True, **config)
         try:
             if config['train']['continue_train']:
                 model.load(sess, config['train']['model_filename'])
@@ -77,7 +75,7 @@ def test_dcrnn_att(config):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(is_training=False, **config)
+        model = DCRNN_ATT_Supervisor(is_training=False, **config)
         model.load(sess, config['train']['model_filename'])
         model.test(sess)
         # np.savez_compressed(os.path.join(HOME_PATH, config['test']['results_path']), **outputs)
@@ -91,7 +89,7 @@ def evaluate_dcrnn_att(config):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     with tf.Session(config=tf_config) as sess:
-        model = DCRNNSupervisor(is_training=False, **config)
+        model = DCRNN_ATT_Supervisor(is_training=False, **config)
         model.load(sess, config['train']['model_filename'])
         outputs = model.evaluate(sess)
 
@@ -101,7 +99,7 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
-    parser.add_argument('--config', default='data/model/pretrained/METR-LA/config.yaml', type=str,
+    parser.add_argument('--config', default='Config/config_dcrnn_att.yaml', type=str,
                         help='Config file for pretrained model.')
     parser.add_argument('--mode', default='train', type=str,
                         help='Run mode.')

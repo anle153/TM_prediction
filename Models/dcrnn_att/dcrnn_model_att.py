@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from Models.dcrnn.dcrnn_cell import DCGRUCell
+from Models.dcrnn_att.dcrnn_cell_att import DCGRUCell
 
 
 # from tensorflow.contrib import legacy_seq2seq
@@ -35,9 +35,10 @@ class DCRNN_ATT_Model(object):
         # Labels: (batch_size, timesteps, num_sensor, input_dim), same format with input except the temporal dimension.
         self._labels = tf.placeholder(tf.float32, shape=(batch_size, horizon, num_nodes, 1), name='labels')
         cell = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
+                         batch_size=batch_size,
                          filter_type=filter_type)
         cell_with_projection = DCGRUCell(rnn_units, adj_mx, max_diffusion_step=max_diffusion_step, num_nodes=num_nodes,
-                                         num_proj=output_dim, filter_type=filter_type)
+                                         num_proj=output_dim, filter_type=filter_type, batch_size=batch_size)
 
         encoding_cells = [cell] * (num_rnn_layers - 1) + [cell_with_projection]
         encoding_cells = tf.contrib.rnn.MultiRNNCell(encoding_cells, state_is_tuple=True)

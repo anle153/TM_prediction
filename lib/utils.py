@@ -702,7 +702,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, batch_size, scale
 
     else:
         test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set_{}.npy'.format(mon_ratio)))
-        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio), 'rb')))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio)), 'rb'))
 
         data['test_set'] = test_set
         data['scaler'] = scaler
@@ -1082,7 +1082,7 @@ def load_dataset_lstm(seq_len, horizon, input_dim, mon_ratio,
 
     else:
         test_set = np.load(os.path.join(dataset_dir, data_name + '/test_set_{}.npy'.format(mon_ratio)))
-        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio), 'rb')))
+        scaler = pickle.load(open(os.path.join(dataset_dir, data_name + '/scaler_{}'.format(mon_ratio)), 'rb'))
 
         data['test_set'] = test_set
 

@@ -708,7 +708,10 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, batch_size, scale
         data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')
-    adj_mx = np.load(os.path.join(dataset_dir, data_name + '/adj_mx.npy'))
+    if not os.path.isfile(os.path.join(dataset_dir, data_name + '/adj_mx.npy')):
+        raise FileNotFoundError('ADJ_MX not found')
+    else:
+        adj_mx = np.load(os.path.join(dataset_dir, data_name + '/adj_mx.npy'))
 
     print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
 

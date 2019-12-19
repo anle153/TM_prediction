@@ -8,7 +8,7 @@ scaler: MM
 seed: 153
 data:
   data_name: Geant
-  batch_size: 256
+  batch_size: 128
   data_dir: Dataset/
   adj_method: OD
   day_size: 96

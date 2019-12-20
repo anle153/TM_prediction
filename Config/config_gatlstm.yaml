@@ -22,11 +22,11 @@ model:
   optimizer: adam
   learning_rate: 0.001
   max_grad_norm: 1
-  n_heads: [8, 8]
+  n_heads: [8, 1]
   hid_units: [64]
   residual: True
 train:
-  base_lr: 0.005
+  base_lr: 0.001
   dropout: 0.5
   epoch: 0
   epochs: 50000
@@ -34,7 +34,7 @@ train:
   global_step: 24375
   lr_decay_ratio: 0.05
   max_to_keep: 300
-  min_learning_rate: 0.0005
+  min_learning_rate: 0.0001
   patience: 50
 test:
   run_times: 50

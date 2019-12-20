@@ -278,16 +278,15 @@ def prepare_train_valid_test_2d(data, day_size):
 
 
 def create_data_dcrnn(data, label, seq_len, horizon, input_dim):
-
     x = np.zeros(shape=(data.shape[0] - seq_len - horizon, seq_len, data.shape[1], input_dim), dtype='float32')
     y = np.zeros(shape=(data.shape[0] - seq_len - horizon, horizon, data.shape[1], 1), dtype='float32')
 
     for idx in range(data.shape[0] - seq_len - horizon):
         _x = data[idx: idx + seq_len]
-        _label = label[idx: idx + seq_len]
+        # _label = label[idx: idx + seq_len]
 
         x[idx, :, :, 0] = _x
-        x[idx, :, :, 1] = _label
+        # x[idx, :, :, 1] = _label
 
         _y = data[idx + seq_len:idx + seq_len + horizon]
 
@@ -296,22 +295,18 @@ def create_data_dcrnn(data, label, seq_len, horizon, input_dim):
     return x, y
 
 
-def create_data_gatlstm(data, num_nodes, input_dim, mon_ratio, eps, day_size):
-    _tf = np.array([1.0, 0.0])
-    _labels = np.random.choice(_tf, size=data.shape, p=(mon_ratio, 1.0 - mon_ratio))
-    _labels = _labels.astype('float32')
-    _data = np.copy(data)
-
-    _data[_labels == 0.0] = np.random.uniform(_data[_labels == 0.0] - eps, _data[_labels == 0.0] + eps)
-
+def create_data_gatlstm(data, num_nodes, input_dim, day_size):
     x = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, input_dim), dtype='float32')
     y = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, 1), dtype='float32')
 
     i = 0
-    for time_slot in range(_data.shape[0] - day_size * input_dim):
-        x[i] = _data[time_slot: time_slot + input_dim * day_size: day_size].T
+    for time_slot in range(data.shape[0] - day_size * (input_dim - 1)):
+        x[i, :, :-1] = data[time_slot: time_slot + (input_dim - 1) * day_size: day_size].T
 
-        y[i, :, 0] = data[time_slot + input_dim * day_size]
+        x[i, :, -1] = np.random.uniform(data[time_slot + (input_dim - 1) * day_size] - data.std(),
+                                        data[time_slot + (input_dim - 1) * day_size] + data.std())
+
+        y[i, :, 0] = data[time_slot + (input_dim - 1) * day_size]
 
         i += 1
     return x, y
@@ -724,15 +719,27 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, batch_size, scale
 
 def load_dataset_gatlstm(num_nodes, input_dim, mon_ratio, dataset_dir, data_size, day_size, batch_size,
                          adj_method='CORR1', scaler_type='SD', is_training=False, **kwargs):
-    train_data, train_data_norm, valid_data_norm, test_data_norm, scaler = \
-        prepare_data(dataset_dir, day_size, data_size, scaler_type)
+    data_name = kwargs.get('data_name')
+    dataset_dir = kwargs.get('data_dir')
+    data_size = kwargs.get('data_size')
+    day_size = kwargs.get('day_size')
     data = {}
-    data['test_data_norm'] = test_data_norm
+
     if is_training:
-        x_train, y_train = create_data_gatlstm(data=train_data_norm, num_nodes=num_nodes, input_dim=input_dim,
-                                               mon_ratio=mon_ratio, eps=train_data_norm.std(), day_size=day_size)
-        x_val, y_val = create_data_gatlstm(data=valid_data_norm, num_nodes=num_nodes, input_dim=input_dim,
-                                           mon_ratio=mon_ratio, eps=train_data_norm.std(), day_size=day_size)
+
+        # train_set, train_label, valid_set, valid_label, test_set, scaler = \
+        #     _prepare_training_data(dataset_dir, data_name, day_size, scaler_type, mon_ratio)
+
+        train_data_norm, valid_data_norm, test_set, scaler = \
+            normalizing_data(dataset_dir, data_name, day_size, scaler_type)
+
+        x_train, y_train = create_data_gatlstm(data=train_data_norm, num_nodes=num_nodes, day_size=day_size,
+                                               input_dim=input_dim)
+
+        x_val, y_val = create_data_gatlstm(data=valid_data_norm, num_nodes=num_nodes, day_size=day_size,
+                                           input_dim=input_dim)
+
+        data['scaler'] = scaler
 
         for category in ['train', 'val']:
             _x, _y = locals()["x_" + category], locals()["y_" + category]
@@ -744,20 +751,18 @@ def load_dataset_gatlstm(num_nodes, input_dim, mon_ratio, dataset_dir, data_size
         data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
         data['val_loader'] = DataLoader(data['x_val'], data['y_val'], batch_size, shuffle=False)
 
-    data['scaler'] = scaler
+    else:
+        train_data_norm, valid_data_norm, test_set, scaler = \
+            normalizing_data(dataset_dir, data_name, day_size, scaler_type)
+
+        data['test_set'] = test_set
+        data['scaler'] = scaler
 
     print('|--- Get Correlation Matrix')
-
-    adj_dir = dataset_dir.split('/')[:-1]
-    adj_dir = '/'.join(adj_dir)
-    print('|--- Dataset dir: {}'.format(adj_dir))
-
-    adj_file_name = 'OD'.format(adj_method)
-    if os.path.isfile(os.path.join(adj_dir, adj_file_name + '.npy')):
-        adj_mx = np.load(os.path.join(adj_dir, adj_file_name + '.npy'))
+    if not os.path.isfile(os.path.join(dataset_dir, data_name + '/adj_mx.npy')):
+        raise FileNotFoundError('ADJ_MX not found')
     else:
-        adj_mx = od_flow_matrix()
-        np.save(os.path.join(adj_dir, adj_file_name), adj_mx)
+        adj_mx = np.load(os.path.join(dataset_dir, data_name + '/adj_mx.npy'))
 
     print('Number of edges: {}'.format(np.sum(adj_mx > 0.0)))
 

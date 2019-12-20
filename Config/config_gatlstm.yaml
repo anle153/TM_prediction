@@ -11,18 +11,18 @@ data:
   batch_size: 128
   data_dir: Dataset/
   adj_method: OD
-  day_size: 288
+  day_size: 96
   data_size: 1.0
 model:
   input_dim: 8
-  num_nodes: 144
+  num_nodes: 529
   num_rnn_layers: 1
   output_dim: 1
   classif_loss: mse
   optimizer: adam
   learning_rate: 0.001
   max_grad_norm: 1
-  n_heads: [8, 10]
+  n_heads: [8, 1]
   hid_units: [64]
   residual: True
 train:

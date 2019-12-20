@@ -296,11 +296,11 @@ def create_data_dcrnn(data, label, seq_len, horizon, input_dim):
 
 
 def create_data_gatlstm(data, num_nodes, input_dim, day_size):
-    x = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, input_dim), dtype='float32')
-    y = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, 1), dtype='float32')
+    x = np.zeros(shape=(data.shape[0] - day_size * (input_dim), num_nodes, input_dim), dtype='float32')
+    y = np.zeros(shape=(data.shape[0] - day_size * (input_dim), num_nodes, 1), dtype='float32')
 
     i = 0
-    for time_slot in tqdm(range(data.shape[0] - day_size * (input_dim - 1))):
+    for time_slot in tqdm(range(data.shape[0] - day_size * (input_dim))):
         x[i, :, :-1] = data[time_slot: time_slot + (input_dim - 1) * day_size: day_size].T
 
         x[i, :, -1] = np.random.uniform(data[time_slot + (input_dim - 1) * day_size] - data.std(),

@@ -39,7 +39,7 @@ def od_flow_matrix(flow_index_file='./Dataset/demands.csv'):
     nflow = flow_index['index'].size
     adj_matrix = np.zeros(shape=(nflow, nflow))
 
-    for i in range(nflow):
+    for i in tqdm(range(nflow)):
         for j in range(nflow):
             if flow_index.iloc[i].d == flow_index.iloc[j].d:
                 adj_matrix[i, j] = 1.0
@@ -48,15 +48,18 @@ def od_flow_matrix(flow_index_file='./Dataset/demands.csv'):
 
 
 if __name__ == '__main__':
-    train_size = int((data.shape[0] / day_size) * 0.6)
+    # train_size = int((data.shape[0] / day_size) * 0.6)
+    #
+    # corr_mx = correlation_matrix(data[:train_size * day_size], seq_len=int(day_size / 2))
+    # corr_mx[corr_mx <= 0.0] = 0.0
+    #
+    # corr_mx = (corr_mx - np.min(corr_mx)) / (np.max(corr_mx) - np.min(corr_mx))
+    #
+    # corr_mx[corr_mx > 0.5] = 1.0
+    # corr_mx[corr_mx <= 0.5] = 0.0
 
-    corr_mx = correlation_matrix(data[:train_size * day_size], seq_len=int(day_size / 2))
-    corr_mx[corr_mx <= 0.0] = 0.0
+    corr_mx = od_flow_matrix(flow_index_file='Dataset/{}/demands.txt'.format(data_name))
 
-    corr_mx = (corr_mx - np.min(corr_mx)) / (np.max(corr_mx) - np.min(corr_mx))
-
-    corr_mx[corr_mx > 0.5] = 1.0
-    corr_mx[corr_mx <= 0.5] = 0.0
     print(corr_mx.sum())
 
     path = 'Dataset/{}/adj_mx'.format(data_name)

@@ -1,17 +1,17 @@
 ---
 alg: dcrnn
-base_dir: logs/pretrained/Geant
+base_dir: logs/pretrained/Abilene
 log_level: INFO
 gpu: 0
 mon_ratio: 0.5
 scaler: MM
 seed: 153
 data:
-  data_name: Geant
+  data_name: Abilene
   batch_size: 128
   data_dir: Dataset/
   adj_method: OD
-  day_size: 96
+  day_size: 288
   data_size: 1.0
   generate_data: False
 model:
@@ -20,12 +20,12 @@ model:
   horizon: 1
   input_dim: 2
   l1_decay: 0
-  max_diffusion_step: 1
-  num_nodes: 529
+  max_diffusion_step: 2
+  num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1
   rnn_units: 64
-  seq_len: 48
+  seq_len: 36
   use_curriculum_learning: true
 train:
   base_lr: 0.001

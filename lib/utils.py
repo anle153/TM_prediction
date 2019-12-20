@@ -300,7 +300,7 @@ def create_data_gatlstm(data, num_nodes, input_dim, day_size):
     y = np.zeros(shape=(data.shape[0] - day_size * input_dim, num_nodes, 1), dtype='float32')
 
     i = 0
-    for time_slot in range(data.shape[0] - day_size * (input_dim - 1)):
+    for time_slot in tqdm(range(data.shape[0] - day_size * (input_dim - 1))):
         x[i, :, :-1] = data[time_slot: time_slot + (input_dim - 1) * day_size: day_size].T
 
         x[i, :, -1] = np.random.uniform(data[time_slot + (input_dim - 1) * day_size] - data.std(),
@@ -559,7 +559,6 @@ def adj_mx_contruction(adj_method, data, seq_len, adj_dir, pos_thres=0.7, neg_th
 
 
 def normalizing_data(dataset_dir, data_name, day_size, scaler_type='SD'):
-    print('|--- ')
     raw_data = np.load(os.path.join(dataset_dir, '{}/{}.npy'.format(data_name, data_name)))
     raw_data[raw_data <= 0] = 0.0
 

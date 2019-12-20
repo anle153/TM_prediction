@@ -14,7 +14,7 @@ data:
   day_size: 288
   data_size: 1.0
 model:
-  input_dim: 5
+  input_dim: 8
   num_nodes: 144
   num_rnn_layers: 1
   output_dim: 1

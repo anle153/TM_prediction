@@ -9,7 +9,7 @@ seed: 1
 data:
   data_name: Abilene
   batch_size: 128
-  dataset_dir: Dataset/Abilene2d.npy
+  data_dir: Dataset/
   adj_method: OD
   day_size: 288
   data_size: 1.0
@@ -22,7 +22,7 @@ model:
   optimizer: adam
   learning_rate: 0.001
   max_grad_norm: 1
-  n_heads: [8, 1]
+  n_heads: [8, 10]
   hid_units: [64]
   residual: True
 train:

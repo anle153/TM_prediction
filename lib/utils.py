@@ -717,7 +717,7 @@ def load_dataset_dcrnn(seq_len, horizon, input_dim, mon_ratio, batch_size, scale
     return data
 
 
-def load_dataset_gatlstm(num_nodes, input_dim, mon_ratio, dataset_dir, data_size, day_size, batch_size,
+def load_dataset_gatlstm(num_nodes, input_dim, mon_ratio, batch_size,
                          adj_method='CORR1', scaler_type='SD', is_training=False, **kwargs):
     data_name = kwargs.get('data_name')
     dataset_dir = kwargs.get('data_dir')

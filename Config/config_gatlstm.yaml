@@ -1,13 +1,13 @@
 ---
 alg: gatlstm
-base_dir: logs/pretrained/Abilene
+base_dir: logs/pretrained/Geant
 log_level: INFO
 gpu: 0
 mon_ratio: 0.5
 scaler: MM
 seed: 1
 data:
-  data_name: Abilene
+  data_name: Geant
   batch_size: 128
   data_dir: Dataset/
   adj_method: OD
